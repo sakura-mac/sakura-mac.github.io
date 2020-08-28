@@ -6,7 +6,7 @@
   <link href="http://yoursite.com/atom.xml" rel="self"/>
   
   <link href="http://yoursite.com/"/>
-  <updated>2020-08-25T15:41:34.045Z</updated>
+  <updated>2020-08-28T13:34:51.689Z</updated>
   <id>http://yoursite.com/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>my weird dreams</title>
+    <link href="http://yoursite.com/2020/08/28/my-weird-dreams/"/>
+    <id>http://yoursite.com/2020/08/28/my-weird-dreams/</id>
+    <published>2020-08-28T13:23:20.000Z</published>
+    <updated>2020-08-28T13:34:51.689Z</updated>
+    
+    <content type="html"><![CDATA[<p>###梦的简略片段</p><p>场景都很大 碰到的人都不认识 很少遇到真实认识的人 感觉上的刺激偏多 还有画外音或者不知道哪里来的配乐 感觉是电影看多了的后遗症 有的很好听 可惜我记不下来）毕竟和弦器乐旋律好多 记不来记不来</p><p>像是在广阔红色黏土上行走 或者在沙砾海滩上奔跑 或者在动车车厢的柜子里呆着</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;###梦的简略片段&lt;/p&gt;
+&lt;p&gt;场景都很大 碰到的人都不认识 很少遇到真实认识的人 感觉上的刺激偏多 还有画外音或者不知道哪里来的配乐 感觉是电影看多了的后遗症 有的很好听 可惜我记不下来）毕竟和弦器乐旋律好多 记不来记不来&lt;/p&gt;
+&lt;p&gt;像是在广阔红色黏土上行走 或者在</summary>
+      
+    
+    
+    
+    
+  </entry>
   
   <entry>
     <title>My New Post</title>
