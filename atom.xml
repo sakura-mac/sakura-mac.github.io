@@ -37,6 +37,19 @@
   </entry>
   
   <entry>
+    <title>My New Post</title>
+    <link href="http://yoursite.com/2020/08/25/My-New-Post/"/>
+    <id>http://yoursite.com/2020/08/25/My-New-Post/</id>
+    <published>2020-08-25T15:41:34.000Z</published>
+    <updated>2020-08-29T02:31:02.376Z</updated>
+    
+    
+    
+    
+    
+  </entry>
+  
+  <entry>
     <title>Hello World</title>
     <link href="http://yoursite.com/2020/08/25/hello-world/"/>
     <id>http://yoursite.com/2020/08/25/hello-world/</id>
