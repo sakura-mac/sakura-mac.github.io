@@ -6,7 +6,7 @@
   <link href="http://yoursite.com/atom.xml" rel="self"/>
   
   <link href="http://yoursite.com/"/>
-  <updated>2020-08-30T05:12:07.591Z</updated>
+  <updated>2020-08-30T14:37:11.694Z</updated>
   <id>http://yoursite.com/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Todo list</title>
+    <link href="http://yoursite.com/2020/08/30/Todo-list/"/>
+    <id>http://yoursite.com/2020/08/30/Todo-list/</id>
+    <published>2020-08-30T14:28:24.000Z</published>
+    <updated>2020-08-30T14:37:11.694Z</updated>
+    
+    <content type="html"><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="/assets/css/APlayer.min.css"><script src="/assets/js/APlayer.min.js" class="aplayer-secondary-script-marker"></script><script class="meting-secondary-script-marker" src="/assets/js/Meting.min.js"></script><ul><li>学习markdown格式☑️</li><li>图床和T软件的学习使用☑️</li><li>文章关键字搜索功能☑️</li><li>添加合适的背景图片</li><li>添加文章的封面实现</li><li>添加毛玻璃特效</li><li>添加搭建博客记录文章</li><li>细节添加特效</li><li>添加侧边目录</li><li>添加置顶效果☑️</li><li>添加live2d猫猫☑️</li><li>实现网易云播放器歌单☑️</li><li>添加背景音乐</li><li>添加测试文章☑️</li><li>实现标签和分类页面☑️</li><li>添加鼠标烟花特效☑️</li><li>添加个人信息页面☑️</li><li>添加无后端评论功能☑️</li></ul>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;link rel=&quot;stylesheet&quot; class=&quot;aplayer-secondary-style-marker&quot; href=&quot;/assets/css/APlayer.min.css&quot;&gt;&lt;script src=&quot;/assets/js/APlayer.min.js&quot; cla</summary>
+      
+    
+    
+    
+    
+    <category term="Todo list" scheme="http://yoursite.com/tags/Todo-list/"/>
+    
+  </entry>
   
   <entry>
     <title>怪诞梦前篇</title>
