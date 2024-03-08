@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+
+
+<html lang="en">
+
+
+<head>
+  <meta charset="utf-8" />
+    
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>
+    lab3：用户环境(PartA) |  
+  </title>
+  <meta name="generator" content="hexo-theme-ayer">
+  
+  <link rel="shortcut icon" href="/images/ayer.png" />
+  
+  
+<link rel="stylesheet" href="/dist/main.css">
+
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Shen-Yu/cdn/css/remixicon.min.css">
+
+  
+<link rel="stylesheet" href="/css/custom.css">
+
+  
+  
+<script src="https://cdn.jsdelivr.net/npm/pace-js@1.0.2/pace.min.js"></script>
+
+  
+  
+
+  
+<script>
+var _hmt = _hmt || [];
+(function() {
+	var hm = document.createElement("script");
+	hm.src = "https://hm.baidu.com/hm.js?41fc030db57d5570dd22f78997dc4a7e";
+	var s = document.getElementsByTagName("script")[0]; 
+	s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+<link rel="alternate" href="/atom.xml" title="海猫栖息地" type="application/atom+xml">
+</head>
+
+</html>
+
+<body>
+  <div id="app">
+    
+      <canvas class="fireworks"></canvas>
+      <style>
+        .fireworks {
+          position: fixed;
+          left: 0;
+          top: 0;
+          z-index: 99999;
+          pointer-events: none;
+        }
+      </style>
+      
+      
+    <main class="content on">
+      <section class="outer">
+  <article
+  id="post-lab3：PartA"
+  class="article article-type-post"
+  itemscope
+  itemprop="blogPost"
+  data-scroll-reveal
+>
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h1 class="article-title sea-center" style="border-left:0" itemprop="name">
+  lab3：用户环境(PartA)
+</h1>
+ 
+
+    </header>
+     
+    <div class="article-meta">
+      <a href="/2024/03/08/lab3%EF%BC%9APartA/" class="article-date">
+  <time datetime="2024-03-08T13:16:50.327Z" itemprop="datePublished">2024-03-08</time>
+</a>   
+<div class="word_count">
+    <span class="post-time">
+        <span class="post-meta-item-icon">
+            <i class="ri-quill-pen-line"></i>
+            <span class="post-meta-item-text"> Word count:</span>
+            <span class="post-count">7.6k</span>
+        </span>
+    </span>
+
+    <span class="post-time">
+        &nbsp; | &nbsp;
+        <span class="post-meta-item-icon">
+            <i class="ri-book-open-line"></i>
+            <span class="post-meta-item-text"> Reading time≈</span>
+            <span class="post-count">29 min</span>
+        </span>
+    </span>
+</div>
+ 
+    </div>
+      
+    <div class="tocbot"></div>
+
+
+
+
+  
+    <div class="article-entry" itemprop="articleBody">
+       
+  <p>lab通关记录</p>
+<a href="/2024/03/08/MIT-6.828%E5%AE%9E%E9%AA%8C%E9%80%9A%E5%85%B3%E8%AE%B0%E5%BD%95/" title="MIT-6.828实验通关记录">MIT-6.828实验通关记录</a>
+
+<p>作者说：从这个实验开始，我逐渐开始感觉到随着理论的补充和实验能力的提升，此后将直接按照exercise顺序记录实验: 将按情况删减“关键文件注释”部分，取而代之是实验笔记中的更直接，简短的数据结构和函数。</p>
+<p>大家应该要多看课程，理论书籍，而不是一开始直接上实验：因为大部分实验都是理论的简化实现（逃）。</p>
+<h2 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h2><p>在本实验中，我们将实现运行受保护的用户模式环境（即“进程”）所需的基本内核工具。</p>
+<p>第一部分将实现内核中创建进程，手动加载磁盘代码中（没有文件系统），中断初始化。</p>
+<p>第二部分将实现系统调用，特权保护，缺页的基本处理。</p>
+<p>后续实验将丰富中断处理。</p>
+<span id="more"></span>
+
+<p><strong>注意：</strong> 在本实验中，术语<em>用户环境</em>和<em>进程</em>可互换 - 两者均指允许您运行程序的抽象。我们引入术语“环境”而不是传统术语“进程”是为了强调 JOS 环境和 UNIX 进程提供不同的接口，并且不提供相同的语义。</p>
+<h2 id="入门"><a href="#入门" class="headerlink" title="入门"></a>入门</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$git checkout lab3</span><br><span class="line">$git merge lab2</span><br></pre></td></tr></table></figure>
+
+<p>实验 3 包含许多新的源文件，您应该浏览这些文件：</p>
+<table>
+<thead>
+<tr>
+<th><code>inc/</code></th>
+<th><code>env.h</code></th>
+<th>用户模式环境的公共定义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td></td>
+<td><code>trap.h</code></td>
+<td>陷阱处理的公共定义</td>
+</tr>
+<tr>
+<td></td>
+<td><code>syscall.h</code></td>
+<td>从用户环境到内核的系统调用的公共定义</td>
+</tr>
+<tr>
+<td></td>
+<td><code>lib</code></td>
+<td>用户模式库的公共定义</td>
+</tr>
+<tr>
+<td><code>kern/</code></td>
+<td><code>env.h</code></td>
+<td>用户模式环境的内核私有定义</td>
+</tr>
+<tr>
+<td></td>
+<td><code>env.c</code></td>
+<td>实现用户模式环境的内核代码</td>
+</tr>
+<tr>
+<td></td>
+<td><code>trap.h</code></td>
+<td>内核私有陷阱处理定义</td>
+</tr>
+<tr>
+<td></td>
+<td><code>trap.c</code></td>
+<td>陷阱处理代码</td>
+</tr>
+<tr>
+<td></td>
+<td><code>Traentry.S</code></td>
+<td>汇编语言陷阱处理程序入口点</td>
+</tr>
+<tr>
+<td></td>
+<td><code>syscall.h</code></td>
+<td>系统调用处理的内核私有定义</td>
+</tr>
+<tr>
+<td></td>
+<td><code>syscall.c</code></td>
+<td>系统调用实现代码</td>
+</tr>
+<tr>
+<td><code>lib/</code></td>
+<td>Makefrag</td>
+<td>构建用户模式库的 Makefile 片段： <code>obj/lib/libjos.a</code></td>
+</tr>
+<tr>
+<td></td>
+<td><code>entry.S</code></td>
+<td>用户环境的汇编语言入口点</td>
+</tr>
+<tr>
+<td></td>
+<td><code>libmain</code></td>
+<td>从<code>entry.S 调用的</code>用户模式库设置代码</td>
+</tr>
+<tr>
+<td></td>
+<td><code>syscall</code></td>
+<td>用户模式系统调用存根函数</td>
+</tr>
+<tr>
+<td></td>
+<td><code>console</code></td>
+<td><code>putchar</code>和<code>getchar 的</code> 用户模式实现 ，提供控制台 I&#x2F;O</td>
+</tr>
+<tr>
+<td></td>
+<td><code>exit.c</code></td>
+<td><code>exit</code> 用户模式实现</td>
+</tr>
+<tr>
+<td></td>
+<td><code>panic.c</code></td>
+<td><code>panic</code> 用户模式实现</td>
+</tr>
+<tr>
+<td><code>user/</code></td>
+<td><code>*</code></td>
+<td>用于检查内核实验室 3 代码的各种测试程序</td>
+</tr>
+</tbody></table>
+<p>此外，我们为 lab2 分发的一些源文件在 lab3 中进行了修改。要查看差异，您可以键入：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ git diff lab2</span><br></pre></td></tr></table></figure>
+
+<p>您可能还想再看看<a target="_blank" rel="noopener" href="https://pdos.csail.mit.edu/6.828/2017/labguide.html">实验室工具指南</a>，因为它包含有关调试与本实验室相关的用户代码的信息。</p>
+<p>在本实验中，我们至少应该学会看内联汇编，尽管也可以不使用它来完成实验。至少，您需要能够理解我们提供给您的源代码中已经存在的内联汇编语言（“ <code>asm</code> ”语句）的片段。您可以在类<a target="_blank" rel="noopener" href="https://pdos.csail.mit.edu/6.828/2017/reference.html">参考资料</a>页面上找到有关 GCC 内联汇编语言的多个信息来源。</p>
+<h1 id="A-部分：用户环境和异常处理"><a href="#A-部分：用户环境和异常处理" class="headerlink" title="A 部分：用户环境和异常处理"></a>A 部分：用户环境和异常处理</h1><p>新的包含文件<code>inc/env.h</code> 包含 JOS 中用户环境的基本定义。内核使用<code>Env</code>数据结构来跟踪每个用户环境。在本实验中，您最初将只创建一个环境，但您需要设计 JOS 内核以支持多个进程；实验 4 将通过允许用户环境进入<code>fork</code>其他环境来完成。</p>
+<p>正如您在<code>kern/env.c 中</code>看到的，内核维护着三个与env相关的主要全局变量：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">struct Env *envs = NULL; // 所有进程</span><br><span class="line">struct Env *curenv = NULL; // 当前进程</span><br><span class="line">static struct Env *env_free_list; // 空闲进程表</span><br></pre></td></tr></table></figure>
+
+<p>一旦 JOS 启动并运行，<code>envs</code>指针就会指向<code>Env</code>代表系统中所有环境的结构数组。在我们的设计中，JOS 内核将支持最多<code>NENV</code> 同时处于活动状态的环境，尽管在任何给定时间运行的环境通常会少得多。（<code>NENV</code>为常数宏定义在<code>inc / env.h</code>。）一旦它被分配，该<code>envs</code>阵列会包含的单个实例<code>Env</code>的数据结构为每个的<code>NENV</code>可能的环境。</p>
+<p>JOS 内核将所有非活动<code>Env</code>结构保存在<code>env_free_list</code>. 这种设计允许轻松分配和释放环境，因为它们只需添加到空闲表或从空闲表中删除。</p>
+<p>内核在任何给定时间使用该<code>curenv</code>符号来跟踪<em>当前正在执行的</em>环境。在启动期间，在运行第一个环境之前， <code>curenv</code>最初设置为<code>NULL</code>.</p>
+<p>因此我们知道，这个设置跟lab2的PageInfo数组和free_list是一样的，只是“空闲”的定义不同：本实验中为未占用CPU的意思。</p>
+<p><code>Env</code>结构在<code>inc/env.h 中</code>定义如下（尽管在未来的实验中将添加更多字段）：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span>&#123;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">Trapframe</span> <span class="title">env_tf</span>;</span> <span class="comment">// 保存的寄存器</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">Env</span> *<span class="title">env_link</span>;</span> <span class="comment">// 下一个自由环境</span></span><br><span class="line">	<span class="type">env_t</span> env_id; <span class="comment">// 唯一的环境标识符</span></span><br><span class="line">	<span class="type">env_t</span> env_parent_id; <span class="comment">// 此 env 的父级的 env_id</span></span><br><span class="line">	<span class="class"><span class="keyword">enum</span> <span class="title">EnvType</span> <span class="title">env_type</span>;</span> <span class="comment">// 表示特殊的系统环境</span></span><br><span class="line">	<span class="type">unsigned</span> env_status; <span class="comment">// 环境状态</span></span><br><span class="line">	<span class="type">uint32_t</span> env_runs; <span class="comment">// 环境运行的次数</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// 地址空间</span></span><br><span class="line">	<span class="type">pde_t</span> *env_pgdir; <span class="comment">// 页目录的内核虚拟地址</span></span><br></pre></td></tr></table></figure>
+
+<p>以下是这些<code>Env</code>字段的用途：</p>
+<ul>
+<li><p><strong>env_tf</strong>：</p>
+<p>这个在<code>inc/trap.h 中</code>定义的结构保存了该环境<em>未</em>运行时为该环境保存的寄存器值：即，当内核或其他环境正在运行时。当从用户模式切换到内核模式时，内核会保存这些信息，以便稍后可以从中断处恢复环境。</p>
+</li>
+<li><p><strong>env_link</strong>：</p>
+<p> <code>env_free_list</code>指向列表中的第一个空闲环境,然后每个空闲环境指向下一个空闲环境，从而构造空闲表，因此我们同样也知道curenv指向的环境此项为NULL。</p>
+</li>
+<li><p><strong>env_id</strong>：</p>
+<p>内核在此处存储一个值，该值唯一标识当前使用此<code>Env</code>结构的环境（即，使用<code>envs</code>数组中的此特定插槽）。在用户环境终止后，内核可能会将相同的<code>Env</code>结构重新分配给不同的环境 - 但是这种重复利用至少会改变env_id来区分环境。即unix系统里的pid</p>
+</li>
+<li><p><strong>env_parent_id</strong>：</p>
+<p>内核在此处存储<code>env_id</code> 创建此环境的环境的 。通过这种方式，环境可以形成一个“家谱”，这将有助于做出关于允许哪些环境对谁做什么的安全决策。这就构建了一个反向链表。</p>
+</li>
+<li><p><strong>env_type</strong>：</p>
+<p>这用于区分特殊环境。对于大多数环境，它将是<code>ENV_TYPE_USER</code>. 我们将在后面的实验中为特殊系统服务环境引入更多类型。</p>
+</li>
+<li><p><strong>env_status</strong>：</p>
+<p>此变量包含以下值之一：</p>
+<p>1.<code>ENV_FREE</code>：表示<code>Env</code>结构处于非活动状态，因此在<code>env_free_list</code>.<code>ENV_RUNNABLE</code>：表示该<code>Env</code>结构表示等待在处理器上运行的环境。<strong>这就是“就绪态”</strong></p>
+<p>2.<code>ENV_RUNNING</code>：表示<code>Env</code>结构代表当前运行的环境。<strong>这就是“运行态”</strong></p>
+<p>3.<code>ENV_NOT_RUNNABLE</code>：表示该<code>Env</code>结构表示当前处于活动状态的环境，但它当前尚未准备好运行：例如，因为它正在等待来自另一个环境的进程间通信 (IPC)。<strong>这就是“阻塞态”</strong></p>
+<p>4.<code>ENV_DYING</code>：表示该<code>Env</code>结构代表僵尸环境。僵尸环境将在下一次陷入内核时被释放。在实验 4 之前我们不会使用这个标志。<strong>这就是“僵尸态”</strong></p>
+</li>
+<li><p><strong>env_pgdir</strong> :</p>
+<p>这个变量保存了 这个环境页面目录的内核<em>虚拟地址</em>。**(注意不是kern_pgdir，后面会创建这个部分)**</p>
+</li>
+</ul>
+<p>与 Unix 进程一样，JOS 环境将“进程”和“地址空间”的概念结合在一起。线程主要由保存的寄存器（<code>env_tf</code>字段）定义，地址空间由 指向的页目录和页表定义 <code>env_pgdir</code>。运行环境，内核必须设置CPU与<em>两个</em>保存的寄存器和相应的地址空间。</p>
+<p>我们<code>struct Env</code>的类似于xv6中<code>struct proc</code> 。两个结构都在一个结构中保存环境（即进程的）用户模式寄存器状态<code>Trapframe</code> 。在 JOS 中，单个环境没有像 xv6 中的进程那样拥有自己的内核堆栈。只能有一个JOS环境中进行活动在时间的内核，所以需要JOS只有一个 <em>单一的</em>内核堆栈。这点是和正常os不同的地方之一。</p>
+<h2 id="Exercise1"><a href="#Exercise1" class="headerlink" title="Exercise1"></a>Exercise1</h2><p>在实验 2 中，我们在<code>mem_init()</code> 为<code>pages[]</code>数组分配了内存，该数组是内核用来跟踪哪些页是空闲的，哪些不是的表。您现在需要<code>mem_init()</code>进一步修改以分配一个类似的<code>Env</code>结构数组，称为<code>envs</code>.</p>
+<p><code>mem_init()</code>在<code>kern/pmap.c 中</code> 修改 以分配和映射<code>envs</code>数组。这个数组完全由分配结构的<code>NENV</code>实例组成，<code>Env</code>就像你分配 <code>pages</code>数组的方式一样。与<code>pages</code>数组一样，内存支持 <code>envs</code>也应该映射到用户只读 <code>UENVS</code>（在<code>inc/memlayout.h 中</code>定义），以便用户进程可以从该数组中读取。</p>
+<p>运行测试脚本确保 <code>check_kern_pgdir()</code>成功。</p>
+<p>在写exercise代码前，给你这些部分函数的调用关系，希望对你有帮助</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">env_init()</span><br><span class="line">env_create()</span><br><span class="line">	env_alloc()</span><br><span class="line">		env_setup_vm()</span><br><span class="line">	load_icode()</span><br><span class="line">		region_alloc()</span><br><span class="line">env_run()</span><br><span class="line">	pop_tf()</span><br></pre></td></tr></table></figure>
+
+<p>我们就像分配pages数组那样分配envs数组，做三件事</p>
+<p>1.虚拟alloc，初始化0</p>
+<p>2.页面分配，建立映射</p>
+<p>3.权限设置</p>
+<p>mem_init():分配用户环境表，建立映射</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1.</span></span><br><span class="line">	envs = (<span class="keyword">struct</span> Env*)boot_alloc(<span class="keyword">sizeof</span>(<span class="keyword">struct</span> Env) * NENV);</span><br><span class="line">	<span class="built_in">memset</span>(envs, <span class="number">0</span>, <span class="keyword">sizeof</span>(<span class="keyword">struct</span> Env) * NENV);</span><br><span class="line"><span class="number">2</span>/<span class="number">3.</span></span><br><span class="line">	boot_map_region(kern_pgdir, UENVS, PTSIZE, PADDR(envs), PTE_U);</span><br></pre></td></tr></table></figure>
+
+<h2 id="Exercise2"><a href="#Exercise2" class="headerlink" title="Exercise2"></a>Exercise2</h2><p>在文件<code>env.c 中</code>，完成以下函数的编码：</p>
+<ul>
+<li><p><code>env_init()</code></p>
+<p>初始化数组<code>Env</code>中的所有结构<code>envs</code>并将它们添加到<code>env_free_list</code>. 还调用<code>env_init_percpu</code>，它使用单独的段为权限级别 0（内核）和权限级别 3（用户）配置分段硬件。</p>
+</li>
+<li><p><code>env_setup_vm()</code></p>
+<p>为新环境分配页目录并初始化新环境地址空间的内核部分。</p>
+</li>
+<li><p><code>region_alloc()</code></p>
+<p>为环境分配和映射物理内存</p>
+</li>
+<li><p><code>load_icode()</code></p>
+<p>您将需要解析一个 ELF 二进制映像，就像引导加载程序已经做的那样，并将其内容加载到新环境的用户地址空间中。</p>
+</li>
+<li><p><code>env_create()</code></p>
+<p>分配环境<code>env_alloc</code> 并调用<code>load_icode</code>将 ELF 二进制文件加载到其中。</p>
+</li>
+<li><p><code>env_run()</code></p>
+<p>启动在用户模式下运行的给定环境。</p>
+</li>
+</ul>
+<p>在编写这些函数时，您可能会发现新的 cprintf 的<code>%e</code> 很有用——它会打印与错误代码对应的描述。例如，</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">r = -E_NO_MEM;</span><br><span class="line">panic(<span class="string">&quot;env_alloc: %e&quot;</span>, r);</span><br></pre></td></tr></table></figure>
+
+<p>会给出消息“env_alloc：out of memory”。</p>
+<p>下面是调用用户代码之前的代码调用图。确保您了解每个步骤的目的。</p>
+<ul>
+<li><p><code>start</code>( <code>kern/entry.S</code>)</p>
+</li>
+<li><p><code>i386_init</code>( <code>kern/init.c</code>)</p>
+<ul>
+<li><p><code>cons_init</code></p>
+</li>
+<li><p><code>mem_init</code></p>
+</li>
+<li><p><code>env_init</code></p>
+</li>
+<li><p><code>trap_init</code> （此时仍不完整）</p>
+</li>
+<li><p><code>env_create</code></p>
+</li>
+<li><p><code>env_run</code></p>
+<ul>
+<li><code>env_pop_tf</code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>完成后，您应该编译内核并在 QEMU 下运行它。如果一切顺利，您的系统应该进入用户空间并执行 <code>hello</code>二进制文件，直到它使用该<code>int</code>指令进行系统调用 。那时会有麻烦，因为 JOS 还没有设置硬件来允许从用户空间到内核的任何类型的转换。当CPU发现它没有设置处理这个系统调用中断时，就会产生一个通用保护异常，发现它不能处理一场，就会产生一个双故障异常，发现它也不能处理第二个异常，并最终放弃所谓的“三重故障”。通常，您会看到 CPU 复位和系统重新启动。虽然这对于遗留应用程序很重要（请参阅<a target="_blank" rel="noopener" href="http://blogs.msdn.com/larryosterman/archive/2005/02/08/369243.aspx"> 此博客文章</a>原因的解释），这对内核开发来说很痛苦，所以使用 6.828 修补的 QEMU，您将看到寄存器转储和“三重故障”。信息。</p>
+<p>给出env_pop_tf，他的作用就是中断返回时通过env里的trapframe恢复现场：<strong>因此当我们创建一个用户环境或者返回用户环境时，都会调用这个函数。</strong></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span></span><br><span class="line"><span class="title function_">env_pop_tf</span><span class="params">(<span class="keyword">struct</span> Trapframe *tf)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">asm</span> <span class="title function_">volatile</span><span class="params">(</span></span><br><span class="line"><span class="params">		<span class="string">&quot;\tmovl %0,%%esp\n&quot;</span>				</span></span><br><span class="line"><span class="params">		<span class="string">&quot;\tpopal\n&quot;</span>						<span class="comment">//通用寄存器的pop</span></span></span><br><span class="line"><span class="params">		<span class="string">&quot;\tpopl %%es\n&quot;</span>					</span></span><br><span class="line"><span class="params">		<span class="string">&quot;\tpopl %%ds\n&quot;</span>					</span></span><br><span class="line"><span class="params">		<span class="string">&quot;\taddl $0x8,%%esp\n&quot;</span> <span class="comment">/* skip tf_trapno and tf_errcode */</span></span></span><br><span class="line"><span class="params">		<span class="string">&quot;\tiret\n&quot;</span>						<span class="comment">//从Trapframe pop tf_eip,tf_cs,tf_eflags,tf_esp,tf_ss到寄存器</span></span></span><br><span class="line"><span class="params">		: : <span class="string">&quot;g&quot;</span> (tf) : <span class="string">&quot;memory&quot;</span>)</span>;</span><br><span class="line">	panic(<span class="string">&quot;iret failed&quot;</span>);  <span class="comment">/* mostly to placate the compiler */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们很快就会解决这个问题，但现在我们可以使用调试器来检查我们是否正在进入用户模式。在 处使用make qemu-gdb并设置 GDB 断点<code>env_pop_tf</code>，这应该是您在实际进入用户模式之前点击的最后一个函数。使用si;单步执行此功能 处理器应在<code>iret</code>指令后进入用户模式。然后，您应该看到在用户环境中的可执行文件，这是第一个指令<code>cmpl</code>在标签说明书<code>start</code> 中<code>的lib / entry.S中</code>。现在用于在<code>hello</code>中的inb *0x…处设置断点 （请参阅<code>obj/user/hello.asm</code>以获取用户空间地址）。这个<code>int $0x30``sys_cputs()``````int</code>是向控制台显示字符的系统调用。如果你不能执行到<code>int</code>，那么你的地址空间设置或程序加载代码有问题；在继续之前返回并修复它。</p>
+<p>env_init():就像我们前面构建free_list一样，保证每一次从env_free_list取出的都是最小的</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span></span><br><span class="line"><span class="title function_">env_init</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// Set up envs array</span></span><br><span class="line">	<span class="comment">// LAB 3: Your code here.</span></span><br><span class="line">	env_free_list = <span class="literal">NULL</span>;</span><br><span class="line">	<span class="keyword">for</span> (<span class="type">int</span> i = NENV - <span class="number">1</span>; i &gt;= <span class="number">0</span>; i--) &#123;	<span class="comment">//如果你的直接让env_link指向i+1，最后env_free_list指向i=0，部分也行，不过实际情况并不是顺序分配，所以我们使用前插法</span></span><br><span class="line">		envs[i].env_id = <span class="number">0</span>;</span><br><span class="line">		envs[i].env_link = env_free_list;</span><br><span class="line">		env_free_list = &amp;envs[i];</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Per-CPU part of the initialization</span></span><br><span class="line">	env_init_percpu();    <span class="comment">//加载GDT</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>Env_setup_vm():给定struct Env *e指针，初始化用户页目录</p>
+<p>做三件事</p>
+<p>1.分配页，初始化页</p>
+<p>2.将e-&gt;env_pgdir指向页，并将此页当作页目录初始化（模仿lab2的内核页目录）</p>
+<p>3.权限设置</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span></span><br><span class="line"><span class="title function_">env_setup_vm</span><span class="params">(<span class="keyword">struct</span> Env *e)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> i;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">PageInfo</span> *<span class="title">p</span> =</span> <span class="literal">NULL</span>;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Allocate a page for the page directory</span></span><br><span class="line">	<span class="keyword">if</span> (!(p = page_alloc(ALLOC_ZERO)))  <span class="comment">//分配一页，page alloc只会从空闲表中找一页，修改link部分为NULL，因此我们需要增加ref</span></span><br><span class="line">		<span class="keyword">return</span> -E_NO_MEM;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// LAB 3: Your code here.</span></span><br><span class="line">	p-&gt;pp_ref++;</span><br><span class="line">	e-&gt;env_pgdir = (<span class="type">pde_t</span> *) page2kva(p);  <span class="comment">//页目录指向</span></span><br><span class="line">	<span class="built_in">memcpy</span>(e-&gt;env_pgdir, kern_pgdir, PGSIZE); <span class="comment">//模仿内核页目录</span></span><br><span class="line">	</span><br><span class="line">	<span class="comment">// UVPT maps the env&#x27;s own page table read-only.</span></span><br><span class="line">	<span class="comment">// Permissions: kernel R, user R</span></span><br><span class="line">	e-&gt;env_pgdir[PDX(UVPT)] = PADDR(e-&gt;env_pgdir) | PTE_P | PTE_U;  <span class="comment">//模仿，修改页目录项为用户的</span></span><br><span class="line">	</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>region_alloc():为每个用户，通过页目录e-&gt;env_pgdir和page_insert，为[va, va+len)分配物理内存,建立多页映射</p>
+<p>做三件事</p>
+<p>1.确定分配页的范围：va如果在页中就应该找到页基址，va+len反而应该在下一页的基址</p>
+<p>2.page_alloc循环分配物理页</p>
+<p>3..page_insert建立映射</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">void</span></span><br><span class="line"><span class="title function_">region_alloc</span><span class="params">(<span class="keyword">struct</span> Env *e, <span class="type">void</span> *va, <span class="type">size_t</span> len)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">void</span> *start = ROUNDDOWN(va, PGSIZE), </span><br><span class="line">	<span class="type">void</span> *end = ROUNDUP(va+len, PGSIZE);</span><br><span class="line">	<span class="keyword">while</span> (start &lt; end) &#123;<span class="comment">//开区间所以不等</span></span><br><span class="line">		<span class="class"><span class="keyword">struct</span> <span class="title">PageInfo</span> *<span class="title">p</span> =</span> page_alloc(<span class="number">0</span>); <span class="comment">//分配一个物理页</span></span><br><span class="line">		<span class="keyword">if</span> (!p) &#123;</span><br><span class="line">			panic(<span class="string">&quot;fault: region_alloc: page_alloc failed\n&quot;</span>);</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span>(page_insert(e-&gt;env_pgdir, p, start, PTE_W | PTE_U) != <span class="number">0</span>)&#123;<span class="comment">//建立映射,成功返回0</span></span><br><span class="line">			panic(<span class="string">&quot;fault: region_alloc: page_insert failed\n&quot;</span>);</span><br><span class="line">		&#125;;   </span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>load_icode():当内核初始化时，前面所说用户文件二进制插入：解析binary地址开始处的ELF文件，紧接着我们才能进入用户环境</p>
+<p>做三件事</p>
+<p>1.得到ELF header和其他有用的指针</p>
+<p>2.模仿boot&#x2F;main.c,按照ELF头设置（ph-&gt;p_type &#x3D;&#x3D; ELF_PROG_LOAD）加载ELF段到用户虚拟内存（ph-&gt;p_va，大小ph-&gt;p_memsz），初始化bss为0（把binary + ph-&gt;p_offset，大小ph-&gt;p_filesz复制到ph-&gt;p_va，剩余部分置为0）</p>
+<p>3.设置eip为entry，为用户的main栈分配内存，建立映射</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">void</span></span><br><span class="line"><span class="title function_">load_icode</span><span class="params">(<span class="keyword">struct</span> Env *e, <span class="type">uint8_t</span> *binary)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// LAB 3: Your code here.</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">Elf</span> *<span class="title">ELF</span> =</span> (<span class="keyword">struct</span> Elf *) binary;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">Proghdr</span> *<span class="title">ph</span>;</span>				<span class="comment">//ELF header</span></span><br><span class="line">	<span class="type">int</span> ph_cnt;						<span class="comment">//load counter</span></span><br><span class="line">	<span class="keyword">if</span> (ELF-&gt;e_magic != ELF_MAGIC) &#123;</span><br><span class="line">		panic(<span class="string">&quot;fault: The binary is not ELF format\n&quot;</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span>(ELF-&gt;e_entry == <span class="number">0</span>)&#123;</span><br><span class="line">     panic(<span class="string">&quot;fault: The ELF file can&#x27;t be executed.\n&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">	ph = (<span class="keyword">struct</span> Proghdr *) ((<span class="type">uint8_t</span> *) ELF + ELF-&gt;e_phoff);<span class="comment">//得到ELF header指针</span></span><br><span class="line">	ph_cnt = ELF-&gt;e_phnum;<span class="comment">//得到load counter</span></span><br><span class="line"></span><br><span class="line">	lcr3(PADDR(e-&gt;env_pgdir));			<span class="comment">//设置cr3为用户页目录</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; ph_cnt; i++) &#123;</span><br><span class="line">		<span class="keyword">if</span> (ph[i].p_type == ELF_PROG_LOAD) &#123;		<span class="comment">//只加载LOAD类型的Segment</span></span><br><span class="line">			region_alloc(e, (<span class="type">void</span> *)ph[i].p_va, ph[i].p_memsz);<span class="comment">//用户态建立映射</span></span><br><span class="line">			<span class="built_in">memset</span>((<span class="type">void</span> *)ph[i].p_va, <span class="number">0</span>, ph[i].p_memsz);	<span class="comment">//分配为0</span></span><br><span class="line">			<span class="built_in">memcpy</span>((<span class="type">void</span> *)ph[i].p_va, binary + ph[i].p_offset, ph[i].p_filesz); <span class="comment">//不为0的部分</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">	e-&gt;env_tf.tf_eip = ELF-&gt;e_entry;</span><br><span class="line">	<span class="comment">// Now map one page for the program&#x27;s initial stack</span></span><br><span class="line">	<span class="comment">// at virtual address USTACKTOP - PGSIZE.</span></span><br><span class="line">	<span class="comment">// LAB 3: Your code here.</span></span><br><span class="line">	region_alloc(e, (<span class="type">void</span> *) (USTACKTOP - PGSIZE), PGSIZE);<span class="comment">//建立main stack映射</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>env_create()：</p>
+<p>1.申请一个env，设置用户type</p>
+<p>2.加载ELF：使用load_icode</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span></span><br><span class="line"><span class="title function_">env_create</span><span class="params">(<span class="type">uint8_t</span> *binary, <span class="keyword">enum</span> EnvType type)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// LAB 3: Your code here.</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">Env</span> *<span class="title">e</span>;</span></span><br><span class="line">    <span class="type">int</span> rc;</span><br><span class="line">    <span class="keyword">if</span>((rc = env_alloc(&amp;e, <span class="number">0</span>)) != <span class="number">0</span>) &#123;</span><br><span class="line">        panic(<span class="string">&quot;env_create failed: env_alloc failed.\n&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    load_icode(e, binary);</span><br><span class="line">    e-&gt;env_type = type;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>env_run(struct Env *e)：开始运行用户环境（按照jos注释要求写即可）</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span></span><br><span class="line"><span class="title function_">env_run</span><span class="params">(<span class="keyword">struct</span> Env *e)</span></span><br><span class="line">&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span>(curenv != <span class="literal">NULL</span> &amp;&amp; curenv-&gt;env_status == ENV_RUNNING) &#123;</span><br><span class="line">        curenv-&gt;env_status = ENV_RUNNABLE;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    curenv = e;</span><br><span class="line">    curenv-&gt;env_status = ENV_RUNNING;</span><br><span class="line">    curenv-&gt;env_runs++;</span><br><span class="line">    lcr3(PADDR(curenv-&gt;env_pgdir));<span class="comment">//页目录切换</span></span><br><span class="line">    env_pop_tf(&amp;curenv-&gt;env_tf);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="Exercise3"><a href="#Exercise3" class="headerlink" title="Exercise3"></a>Exercise3</h2><p>我们应该让<code>int $0x30</code>的系统调用中断生效</p>
+<p>阅读 <a target="_blank" rel="noopener" href="https://pdos.csail.mit.edu/6.828/2017/readings/i386/c09.htm">第9章，异常和中断</a> 的 <a target="_blank" rel="noopener" href="https://pdos.csail.mit.edu/6.828/2017/readings/i386/toc.htm">80386程序员手册</a> （或第5章的<a target="_blank" rel="noopener" href="https://pdos.csail.mit.edu/6.828/2017/readings/ia32/IA32-3A.pdf"> IA-32开发者手册</a>）。</p>
+<p>在本实验中，我们通常遵循 Intel 的中断、异常等术语。但是，异常、陷阱、中断、故障和中止等术语在架构或操作系统之间没有标准含义，并且经常在不考虑它们在特定架构（例如 x86）上的细微区别的情况下使用。当您在本实验室之外看到这些术语时，其含义可能略有不同。</p>
+<h3 id="中断的意义"><a href="#中断的意义" class="headerlink" title="中断的意义"></a>中断的意义</h3><p>异常和中断都是“受保护的控制传输”，它们会导致处理器从用户模式切换到内核模式 (CPL&#x3D;0)，我们通常认为中断时外部处理器异步的信息传输，而异常一般是内部问题，比如除0异常。</p>
+<p>但实际上对于代码，无论是硬件中断，还是CPU处理异常，都会进入统一的函数入口，在中断向量选择后进行不同处理。并且处理必须进行检查，以此保护内核。在 x86 上，两种机制协同工作以提供这种保护：</p>
+<ol>
+<li><p><strong>中断描述符表IDT。</strong> 处理器确保中断和异常只能<em>在内核本身确定</em>的几个特定的、定义良好的入口点处进入 <em>内核</em>，而不是在发生中断或异常时运行的代码。</p>
+<p>x86 允许多达 256 个不同的中断或异常入口点进入内核，每个都有不同的<em>中断向量</em>。向量是 0 到 255 之间的数字。中断向量由中断源决定：不同的设备、错误条件和对内核的应用程序请求会生成具有不同向量的中断。CPU 使用向量作为处理器<em>中断描述符表</em>(IDT)的索引，内核在内核私有内存中设置该<em>表</em>，很像 GDT。处理器从该表中的相应条目加载：</p>
+<ul>
+<li>要加载到指令指针 ( <code>EIP</code> ) 寄存器中的值，指向指定用于处理该类型异常的内核代码。</li>
+<li>要加载到代码段 ( <code>CS</code> ) 寄存器中的值，该值在位 0-1 中包含异常处理程序运行的特权级别。（在 JOS 中，所有异常都在内核模式下处理，特权级别为 0。）</li>
+</ul>
+</li>
+<li><p><strong>任务状态段TSS。</strong> 处理器需要一个地方来保存中断或异常发生之前的<em>旧</em>处理器状态，例如 处理器调用异常处理程序之前的<code>EIP</code>和<code>CS</code>的原始值，以便异常处理程序稍后可以恢复旧状态并恢复中断代码从它停止的地方开始。但是这个旧处理器状态的保存区域必须反过来保护不受非特权用户模式代码的影响；否则错误或恶意的用户代码可能会危及内核。</p>
+<p>出于这个原因，当 x86 处理器接受导致特权级别从用户模式更改为内核模式的中断或陷阱时，它也会切换到内核内存中的堆栈。称为<em>任务状态段</em>(TSS) 的结构指定了此堆栈所在的段选择器和地址。处理器推送（在这个新堆栈上） <code>SS</code>、<code>ESP</code>、<code>EFLAGS</code>、<code>CS</code>、<code>EIP</code>和一个可选的错误代码。然后它从中断描述符中加载<code>CS</code>和<code>EIP</code>，并设置<code>ESP</code>和<code>SS</code>以引用新堆栈。</p>
+<p>尽管 TSS 很大并且可能有多种用途，但 JOS 仅使用它来定义处理器从用户模式转换到内核模式时应切换到的内核堆栈。由于“内核模式”是JOS特权级别0在x86，处理器使用<code>ESP0</code>和<code>SS0</code>的TSS的字段中输入内核模式时，以限定内核栈。JOS 不使用任何其他 TSS 字段。</p>
+</li>
+</ol>
+<h3 id="异常和中断的类型"><a href="#异常和中断的类型" class="headerlink" title="异常和中断的类型"></a>异常和中断的类型</h3><p>x86 处理器可以在内部生成的所有同步异常都使用 0 到 31 之间的中断向量，因此映射到 IDT 条目 0-31。例如，页面错误总是通过向量 14 引起异常。大于 31 的中断向量仅用于 <em>软件中断</em>，它可以由<code>int</code>指令产生，或者异步<em>硬件中断</em>，由外部设备在需要注意时引起。</p>
+<p>在本节中，我们将扩展 JOS 以处理向量 0-31 中内部生成的 x86 异常。在下一节中，我们将使 JOS 处理软件中断向量 48 (0x30)，JOS（相当随意）将其用作其系统调用中断向量。在实验 4 中，我们将扩展 JOS 以处理外部生成的硬件中断，例如时钟中断。</p>
+<h3 id="一个例子"><a href="#一个例子" class="headerlink" title="一个例子"></a>一个例子</h3><p>让我们将这些部分放在一起并通过一个示例进行跟踪。假设处理器正在用户环境中执行代码并遇到试图除以零的除法指令。</p>
+<ol>
+<li><p>所述处理器切换到由定义的堆栈 <code>SS0</code>和<code>ESP0</code>的TSS的字段，它们在书将保存的值 <code>GD_KD</code>和<code>KSTACKTOP</code>分别。</p>
+</li>
+<li><p>处理器将异常参数推送到内核堆栈上，从地址开始</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">KSTACKTOP</span><br></pre></td></tr></table></figure>
+
+<p>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">+--------------------+ KSTACKTOP             </span><br><span class="line">| <span class="number">0x00000</span> | 旧SS | ” - <span class="number">4</span></span><br><span class="line">| 旧ESP | ” - <span class="number">8</span></span><br><span class="line">| 旧 EFLAGS | ” - <span class="number">12</span></span><br><span class="line">| <span class="number">0x00000</span> | 旧CS | “ - <span class="number">16</span></span><br><span class="line">| 旧EIP | <span class="string">&quot; - 20 &lt;---- ESP</span></span><br><span class="line"><span class="string">+--------------------+             </span></span><br><span class="line"><span class="string">   	</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p>因为我们正在处理除法错误，即 x86 上的中断向量 0，处理器读取 IDT 条目 0 并将 <code>CS:EIP 设置</code>为指向条目描述的处理程序函数。</p>
+</li>
+<li><p>处理程序函数取得控制权并处理异常，例如通过终止用户环境。</p>
+</li>
+</ol>
+<p>对于某些类型的 x86 异常，除了上面的五个word外，处理器还会将另一个包含*错误代码的word压入堆栈。页错误异常，编号 14，是一个重要的例子。请参阅 80386 手册以确定处理器推送错误代码的异常编号，以及错误代码在这种情况下的含义。当处理器推送错误代码时，当从用户模式进入时，堆栈将在异常处理程序的开头如下所示：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">+--------------------+ KSTACKTOP             </span><br><span class="line">| <span class="number">0x00000</span> | 老SS | ” - <span class="number">4</span></span><br><span class="line">| 旧ESP | ” - <span class="number">8</span></span><br><span class="line">| 旧 EFLAGS | ” - <span class="number">12</span></span><br><span class="line">| <span class="number">0x00000</span> | 老CS | “ - <span class="number">16</span></span><br><span class="line">| 旧EIP | “ - <span class="number">20</span></span><br><span class="line">| 错误代码 | <span class="string">&quot; - 24 &lt;---- ESP</span></span><br><span class="line"><span class="string">+--------------------+             </span></span><br><span class="line"><span class="string">	</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="嵌套异常和中断"><a href="#嵌套异常和中断" class="headerlink" title="嵌套异常和中断"></a>嵌套异常和中断</h3><p>处理器可以从内核和用户模式接受异常和中断。然而，只有当从用户模式进入内核时，x86 处理器才会在将其旧寄存器状态推送到堆栈并通过 IDT 调用适当的异常处理程序之前自动切换堆栈。如果在中断或异常发生时处理器<em>已经</em>处于内核模式（<code>CS</code>寄存器的低 2 位已经为零），那么 CPU 只会在同一内核堆栈上压入更多值。通过这种方式，内核可以优雅地处<em>理由</em> 内核本身内的代码引起的<em>嵌套异常</em>。此功能是实施保护的重要工具，我们将在稍后有关系统调用的部分中看到。</p>
+<p>如果处理器已经处于内核模式并出现嵌套异常，由于不需要切换堆栈，它不会保存旧的<code>SS</code>或<code>ESP</code>寄存器。对于不推送错误代码的异常类型，内核堆栈因此在异常处理程序入口处如下所示：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">+--------------------+ &lt;---- 旧 ESP</span><br><span class="line">| 旧 EFLAGS | ” - <span class="number">4</span></span><br><span class="line">| <span class="number">0x00000</span> | 旧CS | ” - <span class="number">8</span></span><br><span class="line">| 旧EIP | ” - <span class="number">12</span></span><br><span class="line">+--------------------+             </span><br></pre></td></tr></table></figure>
+
+<p>对于推送错误代码的异常类型，处理器会像以前一样在旧的<code>EIP</code>之后立即推送错误代码。</p>
+<p>处理器的嵌套异常功能有一个可能的问题。如果处理器在已经处于内核模式时发生异常，并且由于任何原因（例如堆栈空间不足）而<em>无法将其旧状态推送到内核堆栈上</em>，那么处理器无法进行任何恢复，因此它只会重置自己。不用说，内核的设计应该避免这种情况发生。</p>
+<h2 id="Exercise4"><a href="#Exercise4" class="headerlink" title="Exercise4"></a>Exercise4</h2><p>您现在应该拥有在 JOS 中设置 IDT 和处理异常所需的基本信息。现在，您将设置 IDT 来处理中断向量 0-31（处理器异常）。我们将在本实验的稍后部分处理系统调用中断，并在稍后的实验中添加中断 32-47（设备 IRQ）。</p>
+<p>头文件<code>inc/trap.h</code>和<code>kern/trap.h</code> 包含与您需要熟悉的中断和异常相关的重要定义。文件<code>kern/trap.h</code>包含对内核严格私有的定义，而<code>inc/trap.h</code> 包含对用户级程序和库也可能有用的定义。</p>
+<p>注意：0-31 范围内的一些异常由 Intel 定义为保留。由于它们永远不会由处理器生成，因此您如何处理它们并不重要。</p>
+<p>您应该实现的总体控制流程如下所示：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">      IDT trapentry.S trap.c</span><br><span class="line">   </span><br><span class="line">+----------------+                        </span><br><span class="line">| &amp;handler1 |---------&gt; handler1: trap (<span class="keyword">struct</span> Trapframe *tf)</span><br><span class="line">| | <span class="comment">// code &#123;</span></span><br><span class="line">| | call trap <span class="comment">// 处理异常/中断</span></span><br><span class="line">| | <span class="comment">// ... &#125;</span></span><br><span class="line">+----------------+</span><br><span class="line">| &amp;handler2 |--------&gt; handler2：</span><br><span class="line">| | <span class="comment">// code</span></span><br><span class="line">| | call陷阱</span><br><span class="line">| | <span class="comment">// ...</span></span><br><span class="line">+----------------+</span><br><span class="line">       .</span><br><span class="line">       .</span><br><span class="line">       .</span><br><span class="line">+----------------+</span><br><span class="line">| &amp;handlerX |--------&gt; handlerX：</span><br><span class="line">| | <span class="comment">// code</span></span><br><span class="line">| | call陷阱</span><br><span class="line">| | <span class="comment">// ...</span></span><br><span class="line">+----------------+</span><br></pre></td></tr></table></figure>
+
+<p>每个异常或中断都应该在<code>trapentry.S 中</code>有自己的处理程序， 并且<code>trap_init()</code>应该用这些处理程序的地址初始化 IDT。每个处理程序都应该在堆栈上构建一个<code>struct Trapframe</code> （参见<code>inc/trap.h</code>）并使用指向 Trapframe 的指针调用 <code>trap()</code>（在<code>trap.c 中</code>）。 <code>trap()</code>然后处理异常&#x2F;中断或分派到特定的处理程序函数。</p>
+<p>编辑<code>trapentry.S</code>和<code>trap.c</code>并实现上述功能。</p>
+<p><code>_alltraps</code>应该做的事：</p>
+<ol>
+<li>保存现场：压入值使堆栈使看起来像一个结构体 Trapframe</li>
+<li>加载<code>GD_KD</code>到<code>%ds</code>和<code>%es</code></li>
+<li><code>pushl %esp</code> 将指向 Trapframe 的指针作为参数传递给 trap()</li>
+<li><code>call trap</code>（能返回吗？）</li>
+</ol>
+<p>考虑使用<code>pushal</code> 指令；它非常适合<code>struct Trapframe</code>.</p>
+<p>先给出trapframe的结构定义</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">Trapframe</span> &#123;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">PushRegs</span> <span class="title">tf_regs</span>;</span></span><br><span class="line">	<span class="type">uint16_t</span> tf_es;</span><br><span class="line">	<span class="type">uint16_t</span> tf_padding1;</span><br><span class="line">	<span class="type">uint16_t</span> tf_ds;</span><br><span class="line">	<span class="type">uint16_t</span> tf_padding2;</span><br><span class="line">	<span class="type">uint32_t</span> tf_trapno;</span><br><span class="line">	<span class="comment">/* below here defined by x86 hardware */</span></span><br><span class="line">	<span class="type">uint32_t</span> tf_err;</span><br><span class="line">	<span class="type">uintptr_t</span> tf_eip;</span><br><span class="line">	<span class="type">uint16_t</span> tf_cs;</span><br><span class="line">	<span class="type">uint16_t</span> tf_padding3;</span><br><span class="line">	<span class="type">uint32_t</span> tf_eflags;</span><br><span class="line">	<span class="comment">/* below here only when crossing rings, such as from user to kernel */</span></span><br><span class="line">	<span class="type">uintptr_t</span> tf_esp;</span><br><span class="line">	<span class="type">uint16_t</span> tf_ss;</span><br><span class="line">	<span class="type">uint16_t</span> tf_padding4;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>1.IDT设置：定义每一种中断向量，为trapentry.S的handler预处理提供向量定义</p>
+<p>这部分代码参考了网络上的，主要是一开始global name不知道是啥。</p>
+<p>其中，0-16号中断号设置为异常部分，比如除0错误。页面错误，保护错误，tss错误等。</p>
+<p><a target="_blank" rel="noopener" href="https://pdos.csail.mit.edu/6.828/2017/readings/i386/s09_08.htm">0-16异常</a>这部分先看完，决定下面的设置，以及错误码是否需要的预处理。</p>
+<p>trap.c&#x2F;trap_init()（包含了partB的代码）</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span></span><br><span class="line"><span class="title function_">trap_init</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">extern</span> <span class="class"><span class="keyword">struct</span> <span class="title">Segdesc</span> <span class="title">gdt</span>[];</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// LAB 3: Your code here.</span></span><br><span class="line">	<span class="type">void</span> <span class="title function_">th0</span><span class="params">()</span>;</span><br><span class="line">	<span class="type">void</span> <span class="title function_">th1</span><span class="params">()</span>;</span><br><span class="line">	<span class="type">void</span> <span class="title function_">th3</span><span class="params">()</span>;</span><br><span class="line">	<span class="type">void</span> <span class="title function_">th4</span><span class="params">()</span>;</span><br><span class="line">	<span class="type">void</span> <span class="title function_">th5</span><span class="params">()</span>;</span><br><span class="line">	<span class="type">void</span> <span class="title function_">th6</span><span class="params">()</span>;</span><br><span class="line">	<span class="type">void</span> <span class="title function_">th7</span><span class="params">()</span>;</span><br><span class="line">	<span class="type">void</span> <span class="title function_">th8</span><span class="params">()</span>;</span><br><span class="line">	<span class="type">void</span> <span class="title function_">th9</span><span class="params">()</span>;</span><br><span class="line">	<span class="type">void</span> <span class="title function_">th10</span><span class="params">()</span>;</span><br><span class="line">	<span class="type">void</span> <span class="title function_">th11</span><span class="params">()</span>;</span><br><span class="line">	<span class="type">void</span> <span class="title function_">th12</span><span class="params">()</span>;</span><br><span class="line">	<span class="type">void</span> <span class="title function_">th13</span><span class="params">()</span>;</span><br><span class="line">	<span class="type">void</span> <span class="title function_">th14</span><span class="params">()</span>;</span><br><span class="line">	<span class="type">void</span> <span class="title function_">th16</span><span class="params">()</span>;</span><br><span class="line">	<span class="type">void</span> <span class="title function_">th_syscall</span><span class="params">()</span>;</span><br><span class="line">	SETGATE(idt[<span class="number">0</span>], <span class="number">0</span>, GD_KT, th0, <span class="number">0</span>);		<span class="comment">//定义在inc/mmu.h中</span></span><br><span class="line">	SETGATE(idt[<span class="number">1</span>], <span class="number">0</span>, GD_KT, th1, <span class="number">0</span>);  </span><br><span class="line">	SETGATE(idt[<span class="number">3</span>], <span class="number">0</span>, GD_KT, th3, <span class="number">3</span>);    <span class="comment">//DPL必须是3</span></span><br><span class="line">	SETGATE(idt[<span class="number">4</span>], <span class="number">0</span>, GD_KT, th4, <span class="number">0</span>);</span><br><span class="line">	SETGATE(idt[<span class="number">5</span>], <span class="number">0</span>, GD_KT, th5, <span class="number">0</span>);</span><br><span class="line">	SETGATE(idt[<span class="number">6</span>], <span class="number">0</span>, GD_KT, th6, <span class="number">0</span>);</span><br><span class="line">	SETGATE(idt[<span class="number">7</span>], <span class="number">0</span>, GD_KT, th7, <span class="number">0</span>);</span><br><span class="line">	SETGATE(idt[<span class="number">8</span>], <span class="number">0</span>, GD_KT, th8, <span class="number">0</span>);</span><br><span class="line">	SETGATE(idt[<span class="number">9</span>], <span class="number">0</span>, GD_KT, th9, <span class="number">0</span>);</span><br><span class="line">	SETGATE(idt[<span class="number">10</span>], <span class="number">0</span>, GD_KT, th10, <span class="number">0</span>);</span><br><span class="line">	SETGATE(idt[<span class="number">11</span>], <span class="number">0</span>, GD_KT, th11, <span class="number">0</span>);</span><br><span class="line">	SETGATE(idt[<span class="number">12</span>], <span class="number">0</span>, GD_KT, th12, <span class="number">0</span>);</span><br><span class="line">	SETGATE(idt[<span class="number">13</span>], <span class="number">0</span>, GD_KT, th13, <span class="number">0</span>);</span><br><span class="line">	SETGATE(idt[<span class="number">14</span>], <span class="number">0</span>, GD_KT, th14, <span class="number">0</span>);</span><br><span class="line">	SETGATE(idt[<span class="number">16</span>], <span class="number">0</span>, GD_KT, th16, <span class="number">0</span>);</span><br><span class="line"></span><br><span class="line">	SETGATE(idt[T_SYSCALL], <span class="number">0</span>, GD_KT, th_syscall, <span class="number">3</span>);		<span class="comment">//DPL定义为3，因为中断判断DPL只能低特权级调用高特权级，partB部分</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// Per-CPU setup </span></span><br><span class="line">	trap_init_percpu();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>trapentry.S：插入内联汇编(包含了partB的代码)</p>
+<p>2.使用宏来预处理每种中断向量，预处理后都会跳转到alltraps进行处理，最后跳转到trap函数</p>
+<p>其中，._alltraps应该做的事：</p>
+<ol>
+<li>保存现场：压入值使堆栈使看起来像一个结构体 Trapframe</li>
+<li>加载<code>GD_KD</code>到<code>%ds</code>和<code>%es</code></li>
+<li><code>pushl %esp</code> 将指向 Trapframe 的指针作为参数传递给 trap()</li>
+<li><code>call trap</code>（想想能返回吗？）</li>
+</ol>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * Lab 3: Your code here for generating entry points for the different traps.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">	TRAPHANDLER_NOEC(th0, <span class="number">0</span>)</span><br><span class="line">	TRAPHANDLER_NOEC(th1, <span class="number">1</span>)</span><br><span class="line">	TRAPHANDLER_NOEC(th3, <span class="number">3</span>)</span><br><span class="line">	TRAPHANDLER_NOEC(th4, <span class="number">4</span>)</span><br><span class="line">	TRAPHANDLER_NOEC(th5, <span class="number">5</span>)</span><br><span class="line">	TRAPHANDLER_NOEC(th6, <span class="number">6</span>)</span><br><span class="line">	TRAPHANDLER_NOEC(th7, <span class="number">7</span>)</span><br><span class="line">	TRAPHANDLER(th8, <span class="number">8</span>)</span><br><span class="line">	TRAPHANDLER_NOEC(th9, <span class="number">9</span>)</span><br><span class="line">	TRAPHANDLER(th10, <span class="number">10</span>)</span><br><span class="line">	TRAPHANDLER(th11, <span class="number">11</span>)</span><br><span class="line">	TRAPHANDLER(th12, <span class="number">12</span>)</span><br><span class="line">	TRAPHANDLER(th13, <span class="number">13</span>)</span><br><span class="line">	TRAPHANDLER(th14, <span class="number">14</span>)</span><br><span class="line">	TRAPHANDLER_NOEC(th16, <span class="number">16</span>)</span><br><span class="line">	</span><br><span class="line">	TRAPHANDLER_NOEC(th_syscall, T_SYSCALL)</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * Lab 3: Your code here for _alltraps</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">	_alltraps:</span><br><span class="line">	pushl %ds</span><br><span class="line">	pushl %es</span><br><span class="line">	pushal</span><br><span class="line">	pushl $GD_KD</span><br><span class="line">	popl %ds</span><br><span class="line">	pushl $GD_KD</span><br><span class="line">	popl %es</span><br><span class="line">	pushl %esp	</span><br><span class="line">	call trap       </span><br></pre></td></tr></table></figure>
+
+<p>确保应该能够make grade 在<code>divzero</code>、<code>softint</code>和<code>badsegment</code>测试中取得成功。</p>
+<p>Happy!<img src="https://bed1.oss-cn-beijing.aliyuncs.com/202112211139873.png"></p>
+<ol>
+<li>为每个异常&#x2F;中断设置单独的处理函数的目的是什么？（即，如果所有异常&#x2F;中断都传递给同一个处理程序，则无法提供当前实现中存在的哪些功能？）</li>
+</ol>
+<p>首先内核的嵌套中断不需要推送错误号，因为能直接处理，其次内核中断为了避免内存不够问题，必须直接panic。最后，并且用户态中断处理返回，内核则不必返回。</p>
+<ol start="2">
+<li>您是否必须采取任何措施才能使<code>user/softint</code>程序正确运行？等级脚本预计它会产生一般保护错误（trap 13），但<code>softint</code>的代码会使用中断 <code>int $14</code>。 <em>为什么</em>这会产生中断向量 13？如果内核实际上允许<code>softint</code>的 <code>int $14</code>指令调用内核的页面错误处理程序（即中断向量 14）会发生什么？</li>
+</ol>
+<p>14是缺页中断，这是用户态到内核的唯一方法。用户态是不允许直接调用内核函数。会产生保护错误trap 13:特权级保护错误。</p>
+<a href="/2024/03/08/lab3%EF%BC%9APartB/" title="lab3：PartB">lab3：PartB</a>
+ 
+      <!-- reward -->
+      
+      <div id="reword-out">
+        <div id="reward-btn">
+          Donate
+        </div>
+      </div>
+      
+    </div>
+    
+
+    <!-- copyright -->
+    
+    <div class="declare">
+      <ul class="post-copyright">
+        <li>
+          <i class="ri-copyright-line"></i>
+          <strong>Copyright： </strong>
+          Copyright is owned by the author. For commercial reprints, please contact the author for authorization. For non-commercial reprints, please indicate the source.
+        </li>
+      </ul>
+    </div>
+    
+    <footer class="article-footer">
+       
+<div class="share-btn">
+      <span class="share-sns share-outer">
+        <i class="ri-share-forward-line"></i>
+        分享
+      </span>
+      <div class="share-wrap">
+        <i class="arrow"></i>
+        <div class="share-icons">
+          
+          <a class="weibo share-sns" href="javascript:;" data-type="weibo">
+            <i class="ri-weibo-fill"></i>
+          </a>
+          <a class="weixin share-sns wxFab" href="javascript:;" data-type="weixin">
+            <i class="ri-wechat-fill"></i>
+          </a>
+          <a class="qq share-sns" href="javascript:;" data-type="qq">
+            <i class="ri-qq-fill"></i>
+          </a>
+          <a class="douban share-sns" href="javascript:;" data-type="douban">
+            <i class="ri-douban-line"></i>
+          </a>
+          <!-- <a class="qzone share-sns" href="javascript:;" data-type="qzone">
+            <i class="icon icon-qzone"></i>
+          </a> -->
+          
+          <a class="facebook share-sns" href="javascript:;" data-type="facebook">
+            <i class="ri-facebook-circle-fill"></i>
+          </a>
+          <a class="twitter share-sns" href="javascript:;" data-type="twitter">
+            <i class="ri-twitter-fill"></i>
+          </a>
+          <a class="google share-sns" href="javascript:;" data-type="google">
+            <i class="ri-google-fill"></i>
+          </a>
+        </div>
+      </div>
+</div>
+
+<div class="wx-share-modal">
+    <a class="modal-close" href="javascript:;"><i class="ri-close-circle-line"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <div class="wx-qrcode">
+      <img src="//api.qrserver.com/v1/create-qr-code/?size=150x150&data=http://sakura-mac.github.io/2024/03/08/lab3%EF%BC%9APartA/" alt="微信分享二维码">
+    </div>
+</div>
+
+<div id="share-mask"></div>  
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Mit-6-828/" rel="tag">Mit-6.828</a></li></ul>
+
+    </footer>
+  </div>
+
+   
+  <nav class="article-nav">
+    
+      <a href="/2024/03/08/lab3%EF%BC%9APartB/" class="article-nav-link">
+        <strong class="article-nav-caption">上一篇</strong>
+        <div class="article-nav-title">
+          
+            lab3：PartB
+          
+        </div>
+      </a>
+    
+    
+      <a href="/2024/03/08/lab2/" class="article-nav-link">
+        <strong class="article-nav-caption">下一篇</strong>
+        <div class="article-nav-title">实验 2：内存管理</div>
+      </a>
+    
+  </nav>
+
+   
+<!-- valine评论 -->
+<div id="vcomments-box">
+  <div id="vcomments"></div>
+</div>
+<script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/valine@1.4.14/dist/Valine.min.js"></script>
+<script>
+  new Valine({
+    el: "#vcomments",
+    app_id: "bbzBMY2PHFRlbkSCorlYCrRX-gzGzoHsz",
+    app_key: "NMnT9uDCzg2rW4ckm0fpSm5y",
+    path: window.location.pathname,
+    avatar: "monsterid",
+    placeholder: "请留下你此刻脑海中的想法~",
+    recordIP: true,
+  });
+  const infoEle = document.querySelector("#vcomments .info");
+  if (infoEle && infoEle.childNodes && infoEle.childNodes.length > 0) {
+    infoEle.childNodes.forEach(function (item) {
+      item.parentNode.removeChild(item);
+    });
+  }
+</script>
+<style>
+  #vcomments-box {
+    padding: 5px 30px;
+  }
+
+  @media screen and (max-width: 800px) {
+    #vcomments-box {
+      padding: 5px 0px;
+    }
+  }
+
+  #vcomments-box #vcomments {
+    background-color: #fff;
+  }
+
+  .v .vlist .vcard .vh {
+    padding-right: 20px;
+  }
+
+  .v .vlist .vcard {
+    padding-left: 10px;
+  }
+</style>
+
+ 
+     
+</article>
+
+</section>
+      <footer class="footer">
+  <div class="outer">
+    <ul>
+      <li>
+        Copyrights &copy;
+        2020-2024
+        <i class="ri-heart-fill heart_icon"></i> 环烷烃
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        
+        Powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+        <span class="division">|</span>
+        Theme - <a href="https://github.com/Shen-Yu/hexo-theme-ayer" target="_blank">Ayer</a>
+        
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        <span>
+  <span><i class="ri-user-3-fill"></i>Visitors:<span id="busuanzi_value_site_uv"></span></s>
+  <span class="division">|</span>
+  <span><i class="ri-eye-fill"></i>Views:<span id="busuanzi_value_page_pv"></span></span>
+</span>
+        
+      </li>
+    </ul>
+    <ul>
+      
+    </ul>
+    <ul>
+      <li>
+        <!-- cnzz统计 -->
+        
+        <script type="text/javascript" src='https://s9.cnzz.com/z_stat.php?id=1278069914&amp;web_id=1278069914'></script>
+        
+      </li>
+    </ul>
+  </div>
+</footer>
+      <div class="float_btns">
+        <div class="totop" id="totop">
+  <i class="ri-arrow-up-line"></i>
+</div>
+
+      </div>
+    </main>
+    <aside class="sidebar on">
+      <button class="navbar-toggle"></button>
+<nav class="navbar">
+  
+  <div class="logo">
+    <a href="/"><img src="/images/ayer-side.jpg" alt="海猫栖息地"></a>
+  </div>
+  
+  <ul class="nav nav-main">
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/">主页</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/archives">归档</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/tags">标签</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/player/">播放器</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/about">关于我</a>
+    </li>
+    
+  </ul>
+</nav>
+<nav class="navbar navbar-bottom">
+  <ul class="nav">
+    <li class="nav-item">
+      
+      <a class="nav-item-link nav-item-search"  title="Search">
+        <i class="ri-search-line"></i>
+      </a>
+      
+      
+      <a class="nav-item-link" target="_blank" href="/atom.xml" title="RSS Feed">
+        <i class="ri-rss-line"></i>
+      </a>
+      
+    </li>
+  </ul>
+</nav>
+<div class="search-form-wrap">
+  <div class="local-search local-search-plugin">
+  <input type="search" id="local-search-input" class="local-search-input" placeholder="Search...">
+  <div id="local-search-result" class="local-search-result"></div>
+</div>
+</div>
+
+    </aside>
+    <script>
+      if (window.matchMedia("(max-width: 768px)").matches) {
+        document.querySelector('.content').classList.remove('on');
+        document.querySelector('.sidebar').classList.remove('on');
+      }
+    </script>
+    <div id="mask"></div>
+
+<!-- #reward -->
+<div id="reward">
+  <span class="close"><i class="ri-close-line"></i></span>
+  <p class="reward-p"><i class="ri-cup-line"></i>我很可爱，请我喝一瓶怡宝吧~</p>
+  <div class="reward-box">
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/alipay.jpg">
+      <span class="reward-type">支付宝</span>
+    </div>
+    
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/wechat.jpg">
+      <span class="reward-type">微信</span>
+    </div>
+    
+  </div>
+</div>
+    
+<script src="/js/jquery-2.0.3.min.js"></script>
+
+
+<script src="/js/lazyload.min.js"></script>
+
+<!-- Tocbot -->
+
+
+<script src="/js/tocbot.min.js"></script>
+
+<script>
+  tocbot.init({
+    tocSelector: '.tocbot',
+    contentSelector: '.article-entry',
+    headingSelector: 'h1, h2, h3, h4, h5, h6',
+    hasInnerContainers: true,
+    scrollSmooth: true,
+    scrollContainer: 'main',
+    positionFixedSelector: '.tocbot',
+    positionFixedClass: 'is-position-fixed',
+    fixedSidebarOffset: 'auto'
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.css">
+<script src="https://cdn.jsdelivr.net/npm/justifiedGallery@3.7.0/dist/js/jquery.justifiedGallery.min.js"></script>
+
+<script src="/dist/main.js"></script>
+
+<!-- ImageViewer -->
+
+<!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" style="display:none" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css">
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"></script>
+
+<script>
+    function viewer_init() {
+        let pswpElement = document.querySelectorAll('.pswp')[0];
+        let $imgArr = document.querySelectorAll(('.article-entry img:not(.reward-img)'))
+
+        $imgArr.forEach(($em, i) => {
+            $em.onclick = () => {
+                // slider展开状态
+                // todo: 这样不好，后面改成状态
+                if (document.querySelector('.left-col.show')) return
+                let items = []
+                $imgArr.forEach(($em2, i2) => {
+                    let img = $em2.getAttribute('data-idx', i2)
+                    let src = $em2.getAttribute('data-target') || $em2.getAttribute('src')
+                    let title = $em2.getAttribute('alt')
+                    // 获得原图尺寸
+                    const image = new Image()
+                    image.src = src
+                    items.push({
+                        src: src,
+                        w: image.width || $em2.width,
+                        h: image.height || $em2.height,
+                        title: title
+                    })
+                })
+                var gallery = new PhotoSwipe(pswpElement, PhotoSwipeUI_Default, items, {
+                    index: parseInt(i)
+                });
+                gallery.init()
+            }
+        })
+    }
+    viewer_init()
+</script>
+
+<!-- MathJax -->
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+      tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+  });
+
+  MathJax.Hub.Queue(function() {
+      var all = MathJax.Hub.getAllJax(), i;
+      for(i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+      }
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.6/unpacked/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<script>
+  var ayerConfig = {
+    mathjax: true
+  }
+</script>
+
+<!-- Katex -->
+
+<!-- busuanzi  -->
+
+
+<script src="/js/busuanzi-2.3.pure.min.js"></script>
+
+
+<!-- ClickLove -->
+
+<!-- ClickBoom1 -->
+
+<script src="https://cdn.jsdelivr.net/npm/animejs@latest/anime.min.js"></script>
+
+<script src="/js/clickBoom1.js"></script>
+
+
+<!-- ClickBoom2 -->
+
+<!-- CodeCopy -->
+
+
+<link rel="stylesheet" href="/css/clipboard.css">
+
+<script src="https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js"></script>
+<script>
+  function wait(callback, seconds) {
+    var timelag = null;
+    timelag = window.setTimeout(callback, seconds);
+  }
+  !function (e, t, a) {
+    var initCopyCode = function(){
+      var copyHtml = '';
+      copyHtml += '<button class="btn-copy" data-clipboard-snippet="">';
+      copyHtml += '<i class="ri-file-copy-2-line"></i><span>COPY</span>';
+      copyHtml += '</button>';
+      $(".highlight .code pre").before(copyHtml);
+      $(".article pre code").before(copyHtml);
+      var clipboard = new ClipboardJS('.btn-copy', {
+        target: function(trigger) {
+          return trigger.nextElementSibling;
+        }
+      });
+      clipboard.on('success', function(e) {
+        let $btn = $(e.trigger);
+        $btn.addClass('copied');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-checkbox-circle-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPIED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-checkbox-circle-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+      clipboard.on('error', function(e) {
+        e.clearSelection();
+        let $btn = $(e.trigger);
+        $btn.addClass('copy-failed');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-time-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPY FAILED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-time-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+    }
+    initCopyCode();
+  }(window, document);
+</script>
+
+
+<!-- CanvasBackground -->
+
+
+    
+  </div>
+<script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginRootPath":"live2dw/","pluginJsPath":"lib/","pluginModelPath":"assets/","tagMode":false,"debug":false,"model":{"jsonPath":"/live2dw/assets/hijiki.model.json"},"display":{"position":"left","width":150,"height":300,"hOffset":80,"vOffset":-50},"mobile":{"show":true},"log":false});</script></body>
+
+</html>

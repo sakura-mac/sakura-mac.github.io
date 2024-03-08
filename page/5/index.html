@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+
+
+<html lang="en">
+
+
+<head>
+  <meta charset="utf-8" />
+    
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>
+     
+  </title>
+  <meta name="generator" content="hexo-theme-ayer">
+  
+  <link rel="shortcut icon" href="/images/ayer.png" />
+  
+  
+<link rel="stylesheet" href="/dist/main.css">
+
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Shen-Yu/cdn/css/remixicon.min.css">
+
+  
+<link rel="stylesheet" href="/css/custom.css">
+
+  
+  
+<script src="https://cdn.jsdelivr.net/npm/pace-js@1.0.2/pace.min.js"></script>
+
+  
+  
+
+  
+<script>
+var _hmt = _hmt || [];
+(function() {
+	var hm = document.createElement("script");
+	hm.src = "https://hm.baidu.com/hm.js?41fc030db57d5570dd22f78997dc4a7e";
+	var s = document.getElementsByTagName("script")[0]; 
+	s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+<link rel="alternate" href="/atom.xml" title="海猫栖息地" type="application/atom+xml">
+</head>
+
+</html>
+
+<body>
+  <div id="app">
+    
+      <canvas class="fireworks"></canvas>
+      <style>
+        .fireworks {
+          position: fixed;
+          left: 0;
+          top: 0;
+          z-index: 99999;
+          pointer-events: none;
+        }
+      </style>
+      
+      
+    <main class="content on">
+      
+<section class="cover">
+    
+  <div class="cover-frame">
+    <div class="bg-box">
+      <img src="/images/cover1.jpg" alt="image frame" />
+    </div>
+    <div class="cover-inner text-center text-white">
+      <h1><a href="/">海猫栖息地</a></h1>
+      <div id="subtitle-box">
+        
+        <span id="subtitle"></span>
+        
+      </div>
+      <div>
+        
+      </div>
+    </div>
+  </div>
+  <div class="cover-learn-more">
+    <a href="javascript:void(0)" class="anchor"><i class="ri-arrow-down-line"></i></a>
+  </div>
+</section>
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/typed.js@2.0.11/lib/typed.min.js"></script>
+
+
+<!-- Subtitle -->
+
+  <script>
+    try {
+      var typed = new Typed("#subtitle", {
+        strings: ['使用左下🔍/关键词查找', '水果/还是维生素', '没有调研/没有发言权'],
+        startDelay: 0,
+        typeSpeed: 200,
+        loop: true,
+        backSpeed: 100,
+        showCursor: true
+      });
+    } catch (err) {
+      console.log(err)
+    }
+  </script>
+  
+<div id="main">
+  <section class="outer">
+  <article class="articles">
+    
+    
+    
+    
+    <article
+  id="post-OLAP下的优化技术"
+  class="article article-type-post"
+  itemscope
+  itemprop="blogPost"
+  data-scroll-reveal
+>
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h2 itemprop="name">
+  <a class="article-title" href="/2023/08/15/OLAP%E4%B8%8B%E7%9A%84%E4%BC%98%E5%8C%96%E6%8A%80%E6%9C%AF/"
+    >OLAP下的优化技术</a> 
+</h2>
+ 
+
+    </header>
+     
+    <div class="article-meta">
+      <a href="/2023/08/15/OLAP%E4%B8%8B%E7%9A%84%E4%BC%98%E5%8C%96%E6%8A%80%E6%9C%AF/" class="article-date">
+  <time datetime="2023-08-15T13:04:22.184Z" itemprop="datePublished">2023-08-15</time>
+</a>    
+    </div>
+      
+    <div class="article-entry" itemprop="articleBody">
+       
+  <h1 id="Resources"><a href="#Resources" class="headerlink" title="Resources"></a>Resources</h1><ul>
+<li><a target="_blank" rel="noopener" href="https://cloud.tencent.com/developer/article/1694495">https://cloud.tencent.com/developer/article/1694495</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=J0nbgXIarhc&amp;ab_channel=CMUDatabaseGroup">https://www.youtube.com/watch?v=J0nbgXIarhc&amp;ab_channel=CMUDatabaseGroup</a></li>
+<li><a href="https://cloud.tencent.com/developer/tools/blog-entry?target=https://links.jianshu.com/go?to=https://zhuanlan.zhihu.com/p/144926830">https://zhuanlan.zhihu.com/p/144926830</a></li>
+<li><a href="https://cloud.tencent.com/developer/tools/blog-entry?target=https://links.jianshu.com/go?to=https://zhuanlan.zhihu.com/p/35622907">https://zhuanlan.zhihu.com/p/35622907</a></li>
+<li><a href="https://cloud.tencent.com/developer/tools/blog-entry?target=https://links.jianshu.com/go?to=https://zhuanlan.zhihu.com/p/54484592">https://zhuanlan.zhihu.com/p/54484592</a></li>
+<li><a href="https://cloud.tencent.com/developer/tools/blog-entry?target=https://links.jianshu.com/go?to=https://zhuanlan.zhihu.com/p/100933389">https://zhuanlan.zhihu.com/p/100933389</a></li>
+<li><a href="https://cloud.tencent.com/developer/tools/blog-entry?target=https://links.jianshu.com/go?to=https://www.bilibili.com/video/BV1Bt411v7ST">https://www.bilibili.com/video/BV1Bt411v7ST</a></li>
+<li><a href="https://cloud.tencent.com/developer/tools/blog-entry?target=https://links.jianshu.com/go?to=https://www.the-paper-trail.org/post/2013-01-30-columnar-storage/">https://www.the-paper-trail.org/post/2013-01-30-columnar-storage/</a></li>
+</ul>
+<h1 id="compression"><a href="#compression" class="headerlink" title="compression"></a>compression</h1> 
+      <a class="article-more-link" href="/2023/08/15/OLAP%E4%B8%8B%E7%9A%84%E4%BC%98%E5%8C%96%E6%8A%80%E6%9C%AF/"
+        >More...</a
+      >
+       
+      <!-- reward -->
+      
+    </div>
+    
+
+    <!-- copyright -->
+    
+    <footer class="article-footer">
+       
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/DB/" rel="tag">DB</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/OLAP/" rel="tag">OLAP</a></li></ul>
+
+    </footer>
+  </div>
+
+    
+ 
+   
+</article>
+
+    
+    <article
+  id="post-2022 FALL CMU15445：lab3"
+  class="article article-type-post"
+  itemscope
+  itemprop="blogPost"
+  data-scroll-reveal
+>
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h2 itemprop="name">
+  <a class="article-title" href="/2023/02/18/2022%20FALL%20CMU15445%EF%BC%9Alab3/"
+    >2022 FALL CMU15445：lab3</a> 
+</h2>
+ 
+
+    </header>
+     
+    <div class="article-meta">
+      <a href="/2023/02/18/2022%20FALL%20CMU15445%EF%BC%9Alab3/" class="article-date">
+  <time datetime="2023-02-17T16:27:40.496Z" itemprop="datePublished">2023-02-18</time>
+</a>    
+    </div>
+      
+    <div class="article-entry" itemprop="articleBody">
+       
+  <h1 id="Resources"><a href="#Resources" class="headerlink" title="Resources"></a>Resources</h1><ul>
+<li><a target="_blank" rel="noopener" href="https://15445.courses.cs.cmu.edu/fall2022">https://15445.courses.cs.cmu.edu/fall2022</a> 课程官网</li>
+<li><a target="_blank" rel="noopener" href="https://github.com/cmu-db/bustub">https://github.com/cmu-db/bustub</a> Bustub Github Repo</li>
+<li><a target="_blank" rel="noopener" href="https://www.gradescope.com/">https://www.gradescope.com/</a> 自动测评网站 GradeScope</li>
+<li><a target="_blank" rel="noopener" href="https://discord.gg/YF7dMCg">https://discord.gg/YF7dMCg</a> Discord 论坛，课程交流用</li>
+<li><a target="_blank" rel="noopener" href="https://www.bilibili.com/video/BV1Bg411w7kW/?spm_id_from=333.999.0.0&amp;vd_source=06def12065e2f44a1283169bd13b48bc">https://www.bilibili.com/video/BV1Bg411w7kW/?spm_id_from=333.999.0.0&amp;vd_source=06def12065e2f44a1283169bd13b48bc</a> Moody老师的中文讲解ppt </li>
+<li><a target="_blank" rel="noopener" href="https://15445.courses.cs.cmu.edu/fall2022/bpt-printer/">https://15445.courses.cs.cmu.edu/fall2022/bpt-printer/</a> B+ 树插入删除的官方printer</li>
+</ul> 
+      <a class="article-more-link" href="/2023/02/18/2022%20FALL%20CMU15445%EF%BC%9Alab3/"
+        >More...</a
+      >
+       
+      <!-- reward -->
+      
+    </div>
+    
+
+    <!-- copyright -->
+    
+    <footer class="article-footer">
+       
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/CMU-15445/" rel="tag">CMU-15445</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/DB/" rel="tag">DB</a></li></ul>
+
+    </footer>
+  </div>
+
+    
+ 
+   
+</article>
+
+    
+    <article
+  id="post-2022 FALL CMU15445：lab2"
+  class="article article-type-post"
+  itemscope
+  itemprop="blogPost"
+  data-scroll-reveal
+>
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h2 itemprop="name">
+  <a class="article-title" href="/2023/02/17/2022%20FALL%20CMU15445%EF%BC%9Alab2/"
+    >2022 FALL CMU15445：lab2</a> 
+</h2>
+ 
+
+    </header>
+     
+    <div class="article-meta">
+      <a href="/2023/02/17/2022%20FALL%20CMU15445%EF%BC%9Alab2/" class="article-date">
+  <time datetime="2023-02-17T03:23:32.111Z" itemprop="datePublished">2023-02-17</time>
+</a>    
+    </div>
+      
+    <div class="article-entry" itemprop="articleBody">
+       
+  <h1 id="Resources"><a href="#Resources" class="headerlink" title="Resources"></a>Resources</h1><ul>
+<li><a target="_blank" rel="noopener" href="https://15445.courses.cs.cmu.edu/fall2022">https://15445.courses.cs.cmu.edu/fall2022</a> 课程官网</li>
+<li><a target="_blank" rel="noopener" href="https://github.com/cmu-db/bustub">https://github.com/cmu-db/bustub</a> Bustub Github Repo</li>
+<li><a target="_blank" rel="noopener" href="https://www.gradescope.com/">https://www.gradescope.com/</a> 自动测评网站 GradeScope</li>
+<li><a target="_blank" rel="noopener" href="https://discord.gg/YF7dMCg">https://discord.gg/YF7dMCg</a> Discord 论坛，课程交流用</li>
+<li><a target="_blank" rel="noopener" href="https://www.bilibili.com/video/BV1Bg411w7kW/?spm_id_from=333.999.0.0&amp;vd_source=06def12065e2f44a1283169bd13b48bc">https://www.bilibili.com/video/BV1Bg411w7kW/?spm_id_from=333.999.0.0&amp;vd_source=06def12065e2f44a1283169bd13b48bc</a> Moody老师的中文讲解ppt </li>
+<li><a target="_blank" rel="noopener" href="https://15445.courses.cs.cmu.edu/fall2022/bpt-printer/">https://15445.courses.cs.cmu.edu/fall2022/bpt-printer/</a> B+ 树插入删除的官方printer</li>
+</ul> 
+      <a class="article-more-link" href="/2023/02/17/2022%20FALL%20CMU15445%EF%BC%9Alab2/"
+        >More...</a
+      >
+       
+      <!-- reward -->
+      
+    </div>
+    
+
+    <!-- copyright -->
+    
+    <footer class="article-footer">
+       
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/CMU-15445/" rel="tag">CMU-15445</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/DB/" rel="tag">DB</a></li></ul>
+
+    </footer>
+  </div>
+
+    
+ 
+   
+</article>
+
+    
+    <article
+  id="post-PLRG：record1"
+  class="article article-type-post"
+  itemscope
+  itemprop="blogPost"
+  data-scroll-reveal
+>
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h2 itemprop="name">
+  <a class="article-title" href="/2023/01/20/PLRG%EF%BC%9Arecord1/"
+    >PLRG：record1</a> 
+</h2>
+ 
+
+    </header>
+     
+    <div class="article-meta">
+      <a href="/2023/01/20/PLRG%EF%BC%9Arecord1/" class="article-date">
+  <time datetime="2023-01-19T19:32:52.550Z" itemprop="datePublished">2023-01-20</time>
+</a>    
+    </div>
+      
+    <div class="article-entry" itemprop="articleBody">
+       
+  <p>今天分享的曲子是《The Nearness of You》</p>
+<p>参考链接：</p>
+<ul>
+<li>Transcription <a target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=6g9IdpdKfXQ&amp;ab_channel=EdmundB">https://www.youtube.com/watch?v=6g9IdpdKfXQ&amp;ab_channel=EdmundB</a></li>
+<li>Unknown transcription anaylysis <a target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=1kBA09Hugcs&amp;ab_channel=JazzPianoSchool.com-LearningFreedom(OnlineJazzPianoCourses)">https://www.youtube.com/watch?v=1kBA09Hugcs&amp;ab_channel=JazzPianoSchool.com-LearningFreedom%28OnlineJazzPianoCourses%29</a></li>
+<li>Red garland course <a target="_blank" rel="noopener" href="https://community.pianogroove.com/t/how-to-play-like-red-garland/4101/4">https://community.pianogroove.com/t/how-to-play-like-red-garland/4101/4</a></li>
+<li>Solo analysis <a target="_blank" rel="noopener" href="https://www.freejazzlessons.com/red-garlands-solo-on-what-is-this-things-called-love-learn-to-really-solo/">https://www.freejazzlessons.com/red-garlands-solo-on-what-is-this-things-called-love-learn-to-really-solo/</a></li>
+<li>Play like red garland <a target="_blank" rel="noopener" href="https://jazz-library.com/articles/red-garland/">https://jazz-library.com/articles/red-garland/</a></li>
+<li>Solo analysis <a target="_blank" rel="noopener" href="http://thejazzlanguage.com/tag/rhythm-changes/">http://thejazzlanguage.com/tag/rhythm-changes/</a></li>
+<li>Red garland’s block chords style <a target="_blank" rel="noopener" href="https://www.riccardoscivales.com/billy-boy-red-garlands-block-chords-style/">https://www.riccardoscivales.com/billy-boy-red-garlands-block-chords-style/</a></li>
+</ul> 
+      <a class="article-more-link" href="/2023/01/20/PLRG%EF%BC%9Arecord1/"
+        >More...</a
+      >
+       
+      <!-- reward -->
+      
+    </div>
+    
+
+    <!-- copyright -->
+    
+    <footer class="article-footer">
+       
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Solo/" rel="tag">Solo</a></li></ul>
+
+    </footer>
+  </div>
+
+    
+ 
+   
+</article>
+
+    
+    <article
+  id="post-PLRG：record0"
+  class="article article-type-post"
+  itemscope
+  itemprop="blogPost"
+  data-scroll-reveal
+>
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h2 itemprop="name">
+  <a class="article-title" href="/2023/01/20/PLRG%EF%BC%9Arecord0/"
+    >PLRG：record0</a> 
+</h2>
+ 
+
+    </header>
+     
+    <div class="article-meta">
+      <a href="/2023/01/20/PLRG%EF%BC%9Arecord0/" class="article-date">
+  <time datetime="2023-01-19T19:16:03.935Z" itemprop="datePublished">2023-01-20</time>
+</a>    
+    </div>
+      
+    <div class="article-entry" itemprop="articleBody">
+       
+  <p><a target="_blank" rel="noopener" href="https://community.pianogroove.com/uploads/default/original/2X/f/f878c63d791b8e0e4fb38d169b7e443f9ab9c62b.jpeg"></a></p>
+<p>新开坑，目测相当长的一段时间里会更新一系列”play like red garland”文章（虽然大家都不屑于把Red Garland和George Shearing, Nat King Cole, Oscar Peterson, Barry Harris等人放在一起比较，但是对于初学者的我来讲很好听），当然说是analysis，更算是笔记</p>
+<p>当然可以先看看<a target="_blank" rel="noopener" href="https://community.pianogroove.com/uploads/short-url/eR3K8uKMdptu8nMASgRAOI32a1q.pdf">大致风格</a></p> 
+      <a class="article-more-link" href="/2023/01/20/PLRG%EF%BC%9Arecord0/"
+        >More...</a
+      >
+       
+      <!-- reward -->
+      
+    </div>
+    
+
+    <!-- copyright -->
+    
+    <footer class="article-footer">
+       
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Solo/" rel="tag">Solo</a></li></ul>
+
+    </footer>
+  </div>
+
+    
+ 
+   
+</article>
+
+    
+    <article
+  id="post-2022 FALL CMU15445：lab1"
+  class="article article-type-post"
+  itemscope
+  itemprop="blogPost"
+  data-scroll-reveal
+>
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h2 itemprop="name">
+  <a class="article-title" href="/2023/01/09/2022%20FALL%20CMU15445%EF%BC%9Alab1/"
+    >2022 FALL CMU15445：lab1</a> 
+</h2>
+ 
+
+    </header>
+     
+    <div class="article-meta">
+      <a href="/2023/01/09/2022%20FALL%20CMU15445%EF%BC%9Alab1/" class="article-date">
+  <time datetime="2023-01-09T13:22:20.603Z" itemprop="datePublished">2023-01-09</time>
+</a>    
+    </div>
+      
+    <div class="article-entry" itemprop="articleBody">
+       
+  <h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>​	这次的lab&#x2F;project分为三个步骤：实现extendible hash table, 实现LRU k replacer，实现buffer pool manager instance。值得注意的是在第三个实现会调用前两个实现，因此如果使用autograder，最好先让前两个满分（56），然后再测评第三个。</p>
+<p>​	对我而言，在实现时画类图蛮有效的（毕竟无法过目不忘），因此实验完成之后整理了大类关系图。接下来也会部分截图辅助说明思路。</p> 
+      <a class="article-more-link" href="/2023/01/09/2022%20FALL%20CMU15445%EF%BC%9Alab1/"
+        >More...</a
+      >
+       
+      <!-- reward -->
+      
+    </div>
+    
+
+    <!-- copyright -->
+    
+    <footer class="article-footer">
+       
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/CMU-15445/" rel="tag">CMU-15445</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/DB/" rel="tag">DB</a></li></ul>
+
+    </footer>
+  </div>
+
+    
+ 
+   
+</article>
+
+    
+    <article
+  id="post-2022 FALL CMU15445： hw1"
+  class="article article-type-post"
+  itemscope
+  itemprop="blogPost"
+  data-scroll-reveal
+>
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h2 itemprop="name">
+  <a class="article-title" href="/2022/12/31/2022%20FALL%20CMU15445%EF%BC%9A%20hw1/"
+    >2022 FALL CMU15445：hw1</a> 
+</h2>
+ 
+
+    </header>
+     
+    <div class="article-meta">
+      <a href="/2022/12/31/2022%20FALL%20CMU15445%EF%BC%9A%20hw1/" class="article-date">
+  <time datetime="2022-12-30T16:05:55.342Z" itemprop="datePublished">2022-12-31</time>
+</a>    
+    </div>
+      
+    <div class="article-entry" itemprop="articleBody">
+       
+  <h1 id="目的"><a href="#目的" class="headerlink" title="目的"></a>目的</h1><p>​	目的就是让你熟悉一下SQL查询的书写，大致了解查询的</p>
+<ul>
+<li>语法</li>
+<li>嵌套</li>
+<li>执行优先顺序</li>
+</ul> 
+      <a class="article-more-link" href="/2022/12/31/2022%20FALL%20CMU15445%EF%BC%9A%20hw1/"
+        >More...</a
+      >
+       
+      <!-- reward -->
+      
+    </div>
+    
+
+    <!-- copyright -->
+    
+    <footer class="article-footer">
+       
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/CMU-15445/" rel="tag">CMU-15445</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/DB/" rel="tag">DB</a></li></ul>
+
+    </footer>
+  </div>
+
+    
+ 
+   
+</article>
+
+    
+    <article
+  id="post-2023 SPRING CMU15721 ：查询执行"
+  class="article article-type-post"
+  itemscope
+  itemprop="blogPost"
+  data-scroll-reveal
+>
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h2 itemprop="name">
+  <a class="article-title" href="/2022/12/31/2023%20SPRING%20CMU15721%20%EF%BC%9A%E6%9F%A5%E8%AF%A2%E6%89%A7%E8%A1%8C/"
+    >2023 SPRING CMU15721：Query Execution &amp; Processing</a> 
+</h2>
+ 
+
+    </header>
+     
+    <div class="article-meta">
+      <a href="/2022/12/31/2023%20SPRING%20CMU15721%20%EF%BC%9A%E6%9F%A5%E8%AF%A2%E6%89%A7%E8%A1%8C/" class="article-date">
+  <time datetime="2022-12-30T16:05:55.342Z" itemprop="datePublished">2022-12-31</time>
+</a>    
+    </div>
+      
+    <div class="article-entry" itemprop="articleBody">
+       
+  <h1 id="Resources"><a href="#Resources" class="headerlink" title="Resources"></a>Resources</h1><ul>
+<li><a target="_blank" rel="noopener" href="https://15721.courses.cs.cmu.edu/spring2023/">课程官网</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.youtube.com/playlist?list=PLSE8ODhjZXjYzlLMbX3cR0sxWnRM7CLFn">官方课程视频</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.bilibili.com/video/BV1K24y1L7Ae/?spm_id_from=333.337.top_right_bar_window_custom_collection.content.click">Bilibili 课程视频</a></li>
+<li>P. Boncz, et al., <a target="_blank" rel="noopener" href="https://15721.courses.cs.cmu.edu/spring2023/papers/06-execution/boncz-cidr2005.pdf">MonetDB&#x2F;X100: Hyper-Pipelining Query Execution</a>, in <em>CIDR</em>, 2005</li>
+<li>L. Shrinivas, et al., <a target="_blank" rel="noopener" href="https://15721.courses.cs.cmu.edu/spring2023/papers/06-execution/shrinivas-icde2013.pdf">Materialization Strategies in the Vertica Analytic Database: Lessons Learned</a>, in <em>ICDE</em>, 2013 <em>(Optional)</em></li>
+<li>M. Kester, et al., <a target="_blank" rel="noopener" href="https://15721.courses.cs.cmu.edu/spring2023/papers/06-execution/kester-sigmod17.pdf">Access Path Selection in Main-Memory Optimized Data Systems: Should I Scan or Should I Probe?</a>, in <em>SIGMOD</em>, 2017 <em>(Optional)</em></li>
+</ul> 
+      <a class="article-more-link" href="/2022/12/31/2023%20SPRING%20CMU15721%20%EF%BC%9A%E6%9F%A5%E8%AF%A2%E6%89%A7%E8%A1%8C/"
+        >More...</a
+      >
+       
+      <!-- reward -->
+      
+    </div>
+    
+
+    <!-- copyright -->
+    
+    <footer class="article-footer">
+       
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/CMU-15721/" rel="tag">CMU-15721</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/DB/" rel="tag">DB</a></li></ul>
+
+    </footer>
+  </div>
+
+    
+ 
+   
+</article>
+
+    
+    <article
+  id="post-2022 FALL CMU15445： lab0"
+  class="article article-type-post"
+  itemscope
+  itemprop="blogPost"
+  data-scroll-reveal
+>
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h2 itemprop="name">
+  <a class="article-title" href="/2022/12/30/2022%20FALL%20CMU15445%EF%BC%9A%20lab0/"
+    >2022 FALL CMU15445：lab0</a> 
+</h2>
+ 
+
+    </header>
+     
+    <div class="article-meta">
+      <a href="/2022/12/30/2022%20FALL%20CMU15445%EF%BC%9A%20lab0/" class="article-date">
+  <time datetime="2022-12-30T09:29:42.858Z" itemprop="datePublished">2022-12-30</time>
+</a>    
+    </div>
+      
+    <div class="article-entry" itemprop="articleBody">
+       
+  <h1 id="环境配置"><a href="#环境配置" class="headerlink" title="环境配置"></a>环境配置</h1><p><a target="_blank" rel="noopener" href="https://github.com/cmu-db/bustub">2022官网</a>，跟着配置即可，推荐使用linux，windows&#x2F;docker官网不推荐，个人不推荐mac，因为mac的新版本发布后导致gdb使用困难</p> 
+      <a class="article-more-link" href="/2022/12/30/2022%20FALL%20CMU15445%EF%BC%9A%20lab0/"
+        >More...</a
+      >
+       
+      <!-- reward -->
+      
+    </div>
+    
+
+    <!-- copyright -->
+    
+    <footer class="article-footer">
+       
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/CMU-15445/" rel="tag">CMU-15445</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/DB/" rel="tag">DB</a></li></ul>
+
+    </footer>
+  </div>
+
+    
+ 
+   
+</article>
+
+    
+    <article
+  id="post-mit-6-828-overview"
+  class="article article-type-post"
+  itemscope
+  itemprop="blogPost"
+  data-scroll-reveal
+>
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h2 itemprop="name">
+  <a class="article-title" href="/2021/11/29/mit-6-828-overview/"
+    >mit-6.828_overview</a> 
+</h2>
+ 
+
+    </header>
+     
+    <div class="article-meta">
+      <a href="/2021/11/29/mit-6-828-overview/" class="article-date">
+  <time datetime="2021-11-29T03:17:32.000Z" itemprop="datePublished">2021-11-29</time>
+</a>    
+    </div>
+      
+    <div class="article-entry" itemprop="articleBody">
+       
+  <p>lab通关记录</p>
+<a href="/2024/03/08/MIT-6.828%E5%AE%9E%E9%AA%8C%E9%80%9A%E5%85%B3%E8%AE%B0%E5%BD%95/" title="MIT-6.828实验通关记录">MIT-6.828实验通关记录</a>
+
+<p>课程安排</p>
+<p><a target="_blank" rel="noopener" href="https://pdos.csail.mit.edu/6.828/2017/schedule.html">https://pdos.csail.mit.edu/6.828/2017/schedule.html</a></p>
+<p>b站视频</p>
+<p><a target="_blank" rel="noopener" href="https://www.bilibili.com/video/BV19k4y1C7kA?from=search&amp;seid=14266879966158464981&amp;spm_id_from=333.337.0.0">https://www.bilibili.com/video/BV19k4y1C7kA?from=search&amp;seid=14266879966158464981&amp;spm_id_from=333.337.0.0</a></p>
+<p>个人安排：书–讲义–视频–材料–实验–回顾笔记–循环</p> 
+      <a class="article-more-link" href="/2021/11/29/mit-6-828-overview/"
+        >More...</a
+      >
+       
+      <!-- reward -->
+      
+    </div>
+    
+
+    <!-- copyright -->
+    
+    <footer class="article-footer">
+       
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Mit-6-828/" rel="tag">Mit-6.828</a></li></ul>
+
+    </footer>
+  </div>
+
+    
+ 
+   
+</article>
+
+    
+  </article>
+  
+
+  
+  <nav class="page-nav">
+    
+    <a class="extend prev" rel="prev" href="/page/4/">上一页</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/3/">3</a><a class="page-number" href="/page/4/">4</a><span class="page-number current">5</span><a class="page-number" href="/page/6/">6</a><a class="extend next" rel="next" href="/page/6/">下一页</a>
+  </nav>
+  
+</section>
+</div>
+
+      <footer class="footer">
+  <div class="outer">
+    <ul>
+      <li>
+        Copyrights &copy;
+        2020-2024
+        <i class="ri-heart-fill heart_icon"></i> 环烷烃
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        
+        Powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+        <span class="division">|</span>
+        Theme - <a href="https://github.com/Shen-Yu/hexo-theme-ayer" target="_blank">Ayer</a>
+        
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        <span>
+  <span><i class="ri-user-3-fill"></i>Visitors:<span id="busuanzi_value_site_uv"></span></s>
+  <span class="division">|</span>
+  <span><i class="ri-eye-fill"></i>Views:<span id="busuanzi_value_page_pv"></span></span>
+</span>
+        
+      </li>
+    </ul>
+    <ul>
+      
+    </ul>
+    <ul>
+      <li>
+        <!-- cnzz统计 -->
+        
+        <script type="text/javascript" src='https://s9.cnzz.com/z_stat.php?id=1278069914&amp;web_id=1278069914'></script>
+        
+      </li>
+    </ul>
+  </div>
+</footer>
+      <div class="float_btns">
+        <div class="totop" id="totop">
+  <i class="ri-arrow-up-line"></i>
+</div>
+
+      </div>
+    </main>
+    <aside class="sidebar on">
+      <button class="navbar-toggle"></button>
+<nav class="navbar">
+  
+  <div class="logo">
+    <a href="/"><img src="/images/ayer-side.jpg" alt="海猫栖息地"></a>
+  </div>
+  
+  <ul class="nav nav-main">
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/">主页</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/archives">归档</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/tags">标签</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/player/">播放器</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/about">关于我</a>
+    </li>
+    
+  </ul>
+</nav>
+<nav class="navbar navbar-bottom">
+  <ul class="nav">
+    <li class="nav-item">
+      
+      <a class="nav-item-link nav-item-search"  title="Search">
+        <i class="ri-search-line"></i>
+      </a>
+      
+      
+      <a class="nav-item-link" target="_blank" href="/atom.xml" title="RSS Feed">
+        <i class="ri-rss-line"></i>
+      </a>
+      
+    </li>
+  </ul>
+</nav>
+<div class="search-form-wrap">
+  <div class="local-search local-search-plugin">
+  <input type="search" id="local-search-input" class="local-search-input" placeholder="Search...">
+  <div id="local-search-result" class="local-search-result"></div>
+</div>
+</div>
+
+    </aside>
+    <script>
+      if (window.matchMedia("(max-width: 768px)").matches) {
+        document.querySelector('.content').classList.remove('on');
+        document.querySelector('.sidebar').classList.remove('on');
+      }
+    </script>
+    <div id="mask"></div>
+
+<!-- #reward -->
+<div id="reward">
+  <span class="close"><i class="ri-close-line"></i></span>
+  <p class="reward-p"><i class="ri-cup-line"></i>我很可爱，请我喝一瓶怡宝吧~</p>
+  <div class="reward-box">
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/alipay.jpg">
+      <span class="reward-type">支付宝</span>
+    </div>
+    
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/wechat.jpg">
+      <span class="reward-type">微信</span>
+    </div>
+    
+  </div>
+</div>
+    
+<script src="/js/jquery-2.0.3.min.js"></script>
+
+
+<script src="/js/lazyload.min.js"></script>
+
+<!-- Tocbot -->
+
+<script src="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.css">
+<script src="https://cdn.jsdelivr.net/npm/justifiedGallery@3.7.0/dist/js/jquery.justifiedGallery.min.js"></script>
+
+<script src="/dist/main.js"></script>
+
+<!-- ImageViewer -->
+
+<!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" style="display:none" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css">
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"></script>
+
+<script>
+    function viewer_init() {
+        let pswpElement = document.querySelectorAll('.pswp')[0];
+        let $imgArr = document.querySelectorAll(('.article-entry img:not(.reward-img)'))
+
+        $imgArr.forEach(($em, i) => {
+            $em.onclick = () => {
+                // slider展开状态
+                // todo: 这样不好，后面改成状态
+                if (document.querySelector('.left-col.show')) return
+                let items = []
+                $imgArr.forEach(($em2, i2) => {
+                    let img = $em2.getAttribute('data-idx', i2)
+                    let src = $em2.getAttribute('data-target') || $em2.getAttribute('src')
+                    let title = $em2.getAttribute('alt')
+                    // 获得原图尺寸
+                    const image = new Image()
+                    image.src = src
+                    items.push({
+                        src: src,
+                        w: image.width || $em2.width,
+                        h: image.height || $em2.height,
+                        title: title
+                    })
+                })
+                var gallery = new PhotoSwipe(pswpElement, PhotoSwipeUI_Default, items, {
+                    index: parseInt(i)
+                });
+                gallery.init()
+            }
+        })
+    }
+    viewer_init()
+</script>
+
+<!-- MathJax -->
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+      tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+  });
+
+  MathJax.Hub.Queue(function() {
+      var all = MathJax.Hub.getAllJax(), i;
+      for(i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+      }
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.6/unpacked/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<script>
+  var ayerConfig = {
+    mathjax: true
+  }
+</script>
+
+<!-- Katex -->
+
+<!-- busuanzi  -->
+
+
+<script src="/js/busuanzi-2.3.pure.min.js"></script>
+
+
+<!-- ClickLove -->
+
+<!-- ClickBoom1 -->
+
+<script src="https://cdn.jsdelivr.net/npm/animejs@latest/anime.min.js"></script>
+
+<script src="/js/clickBoom1.js"></script>
+
+
+<!-- ClickBoom2 -->
+
+<!-- CodeCopy -->
+
+
+<link rel="stylesheet" href="/css/clipboard.css">
+
+<script src="https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js"></script>
+<script>
+  function wait(callback, seconds) {
+    var timelag = null;
+    timelag = window.setTimeout(callback, seconds);
+  }
+  !function (e, t, a) {
+    var initCopyCode = function(){
+      var copyHtml = '';
+      copyHtml += '<button class="btn-copy" data-clipboard-snippet="">';
+      copyHtml += '<i class="ri-file-copy-2-line"></i><span>COPY</span>';
+      copyHtml += '</button>';
+      $(".highlight .code pre").before(copyHtml);
+      $(".article pre code").before(copyHtml);
+      var clipboard = new ClipboardJS('.btn-copy', {
+        target: function(trigger) {
+          return trigger.nextElementSibling;
+        }
+      });
+      clipboard.on('success', function(e) {
+        let $btn = $(e.trigger);
+        $btn.addClass('copied');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-checkbox-circle-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPIED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-checkbox-circle-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+      clipboard.on('error', function(e) {
+        e.clearSelection();
+        let $btn = $(e.trigger);
+        $btn.addClass('copy-failed');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-time-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPY FAILED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-time-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+    }
+    initCopyCode();
+  }(window, document);
+</script>
+
+
+<!-- CanvasBackground -->
+
+
+    
+  </div>
+<script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginRootPath":"live2dw/","pluginJsPath":"lib/","pluginModelPath":"assets/","tagMode":false,"debug":false,"model":{"jsonPath":"/live2dw/assets/hijiki.model.json"},"display":{"position":"left","width":150,"height":300,"hOffset":80,"vOffset":-50},"mobile":{"show":true},"log":false});</script></body>
+
+</html>

@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+
+
+<html lang="en">
+
+
+<head>
+  <meta charset="utf-8" />
+    
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>
+    L5：隔离机制 |  
+  </title>
+  <meta name="generator" content="hexo-theme-ayer">
+  
+  <link rel="shortcut icon" href="/images/ayer.png" />
+  
+  
+<link rel="stylesheet" href="/dist/main.css">
+
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Shen-Yu/cdn/css/remixicon.min.css">
+
+  
+<link rel="stylesheet" href="/css/custom.css">
+
+  
+  
+<script src="https://cdn.jsdelivr.net/npm/pace-js@1.0.2/pace.min.js"></script>
+
+  
+  
+
+  
+<script>
+var _hmt = _hmt || [];
+(function() {
+	var hm = document.createElement("script");
+	hm.src = "https://hm.baidu.com/hm.js?41fc030db57d5570dd22f78997dc4a7e";
+	var s = document.getElementsByTagName("script")[0]; 
+	s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+<link rel="alternate" href="/atom.xml" title="海猫栖息地" type="application/atom+xml">
+</head>
+
+</html>
+
+<body>
+  <div id="app">
+    
+      <canvas class="fireworks"></canvas>
+      <style>
+        .fireworks {
+          position: fixed;
+          left: 0;
+          top: 0;
+          z-index: 99999;
+          pointer-events: none;
+        }
+      </style>
+      
+      
+    <main class="content on">
+      <section class="outer">
+  <article
+  id="post-L5：资源隔离"
+  class="article article-type-post"
+  itemscope
+  itemprop="blogPost"
+  data-scroll-reveal
+>
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h1 class="article-title sea-center" style="border-left:0" itemprop="name">
+  L5：隔离机制
+</h1>
+ 
+
+    </header>
+     
+    <div class="article-meta">
+      <a href="/2024/03/08/L5%EF%BC%9A%E8%B5%84%E6%BA%90%E9%9A%94%E7%A6%BB/" class="article-date">
+  <time datetime="2024-03-08T13:16:50.310Z" itemprop="datePublished">2024-03-08</time>
+</a>   
+<div class="word_count">
+    <span class="post-time">
+        <span class="post-meta-item-icon">
+            <i class="ri-quill-pen-line"></i>
+            <span class="post-meta-item-text"> Word count:</span>
+            <span class="post-count">3.1k</span>
+        </span>
+    </span>
+
+    <span class="post-time">
+        &nbsp; | &nbsp;
+        <span class="post-meta-item-icon">
+            <i class="ri-book-open-line"></i>
+            <span class="post-meta-item-text"> Reading time≈</span>
+            <span class="post-count">11 min</span>
+        </span>
+    </span>
+</div>
+ 
+    </div>
+      
+    <div class="tocbot"></div>
+
+
+
+
+  
+    <div class="article-entry" itemprop="articleBody">
+       
+  <p>lab通关记录</p>
+<a href="/2024/03/08/MIT-6.828%E5%AE%9E%E9%AA%8C%E9%80%9A%E5%85%B3%E8%AE%B0%E5%BD%95/" title="MIT-6.828实验通关记录">MIT-6.828实验通关记录</a>
+
+
+
+<h1 id="第五讲：隔离机制"><a href="#第五讲：隔离机制" class="headerlink" title="第五讲：隔离机制"></a>第五讲：隔离机制</h1><h2 id="课程总览"><a href="#课程总览" class="headerlink" title="课程总览"></a>课程总览</h2><p>  用户&#x2F;内核隔离，用户&#x2F;用户隔离<br>  xv6 系统调用作为案例研究</p>
+<span id="more"></span>
+
+<h2 id="用户-x2F-内核隔离，用户-x2F-用户隔离"><a href="#用户-x2F-内核隔离，用户-x2F-用户隔离" class="headerlink" title="用户&#x2F;内核隔离，用户&#x2F;用户隔离"></a>用户&#x2F;内核隔离，用户&#x2F;用户隔离</h2><ul>
+<li><p>如何选择内核的整体形式？<br>许多可能的答案！<br>一种极端：<br>  只是一个设备驱动程序库，与应用程序链接<br>  直接在硬件上运行应用程序<br>  快速灵活地用于单一用途的设备<br>  但通常在一台计算机上执行多项任务</p>
+</li>
+<li><p>多项任务推动关键要求：<br>多路复用<br>隔离<br>通信</p>
+</li>
+<li><p>有用的方法：抽象资源而不是原始硬件<br>1.文件系统，而不是原始磁盘<br>2.进程，而不是原始 CPU&#x2F;内存<br>3.TCP 连接，而不是以太网数据包</p>
+</li>
+<li><p>抽象通常更容易隔离和共享<br>  例如程序只会看到一个私有 CPU，不需要考虑多路复用CPU</p>
+</li>
+<li><p>隔离通常是最严格的要求。</p>
+</li>
+<li><p>什么是隔离？<br>1.强制分离以控制故障的影响<br>进程是通常的隔离单元</p>
+</li>
+<li><p>隔离目的：</p>
+<p>1.防止进程 X 破坏或监视进程 Y<br>2.r&#x2F;w 内存，使用 100% 的 CPU，更改 FD，&amp;c<br>3.防止进程干扰操作系统<br>4.面对恶意和错误：一个糟糕的进程可能会试图欺骗硬件或内核</p>
+</li>
+<li><p>内核使用<strong>硬件机制</strong>作为进程隔离的一部分：<br>用户&#x2F;内核模式标志<br>虚拟地址空间<br>分时多路复用CPU<br>系统调用接口</p>
+</li>
+<li><p>硬件用户&#x2F;内核模式标志<br>控制指令是否可以访问特权硬件？<br>在 x86 上称为 CPL，%cs 寄存器的底部两位<br>  CPL&#x3D;0 – 内核模式 – 特权<br>  CPL&#x3D;3 – 用户模式 – 无权限</p>
+</li>
+<li><p>x86 CPL 保护许多与隔离相关的处理器寄存器<br>  I&#x2F;O 端口访问<br>  控制寄存器访问（eflags、%cs4、…）<br>包括 %cs 本身<br>  影响内存访问权限，但间接影响<br>  内核必须正确设置所有这些<br>每个微处理器都有某种用户&#x2F;内核标志</p>
+</li>
+<li><p>如何进行系统调用——切换CPL<br>问：对于用户程序进行系统调用这样的设计是否合适：<br>  设置 CPL&#x3D;0<br>  jmp sys_open<br>  不合适：CPL&#x3D;0 的用户指定指令，破坏用户态和内核态的隔离<br>问：如何设置 CPL&#x3D;0 的组合指令，<br>  但是<em>需要</em>立即跳转到内核中的某个地方？<br>  不行：用户可能会跳到内核中并破坏系统<br>x86 的设计：<br>  只有几个允许的内核入口点（“中断向量”）<br>  INT 指令设置 CPL&#x3D;0 ：提升权限并跳转到一个入口点<br>  但用户代码不能以其他方式修改 CPL 或跳转到内核中的任何其他地方<br>系统调用返回在返回用户代码之前设置 CPL&#x3D;3：这也是一个组合指令（不能单独设置CPL和jmp）</p>
+</li>
+<li><p>用户与内核的定义需要明确的概念<br>CPL&#x3D;3 并执行用户代码<br>或 CPL&#x3D;0 并从内核代码的入口点执行<br>而不是：<br>  CPL&#x3D;0 并执行用户代码<br>  CPL&#x3D;0 并在用户喜欢的内核中的任何地方执行</p>
+</li>
+<li><p>如何隔离进程内存？<br>想法：“虚拟地址空间”<br>给每个进程一些它可以访问的内存<br>  对于它的代码、变量、堆、堆栈<br>阻止它访问其他内存（内核或其他进程）</p>
+</li>
+<li><p>如何创建隔离的地址空间？<br>xv6 在内存管理单元 (MMU) 中使用 x86“分页硬件”<br>MMU 翻译（或“映射”）程序发出的每个地址<br>  CPU -&gt; MMU -&gt; RAM<br>      |<br>   页表<br>  VA -&gt; PA<br>  MMU 翻译所有内存引用：用户和内核。内核也要页表翻译（防小人也防君子？实际第一次加载内核代码时候ELF给定死了高地址，所以保证虚拟空间分布理论，内核也需要页表翻译）（不同的进程恒等映射公有部分内核地址：虚拟地址进程相同，物理地址更是相同）、指令和数据<br>  指令仅使用 VA，从不使用 PA</p>
+</li>
+<li><p>内核为每个进程设置不同的页表：一般都会有多级页表：PTD&#x2F;PTE来节省内存问题。我们在GDT中，通过CR3的偏移来从页表结构进入进程私有的PTD位置，通过各个划分的虚拟地址作为偏移，进行多级跳转，最终得到物理页地址，和页内偏移一起合成完整的物理地址，当然为了加速访问我们也可以有TLB缓存一部分页表<br>  每个进程的页表只允许访问该进程的 RAM（SRAM&#x2F;DRAM）</p>
+</li>
+</ul>
+<h2 id="xv6系统调用实现"><a href="#xv6系统调用实现" class="headerlink" title="xv6系统调用实现"></a>xv6系统调用实现</h2><h3 id="系统调用进入内核"><a href="#系统调用进入内核" class="headerlink" title="系统调用进入内核"></a>系统调用进入内核</h3><ul>
+<li>xv6 进程&#x2F;堆栈图：<br>  用户进程；内核线程<br>  用户堆栈；内核栈<br>  两种机制：<br>在用户&#x2F;内核之间切换<br>在内核线程之间切换<br>  trapframe<br>  内核函数调用…<br>  结构上下文（内核态&#x2F;用户态）</li>
+</ul>
+<ul>
+<li>简化的 xv6 用户&#x2F;内核虚拟地址空间设置<br>FFFFFFFF：<br>      …内核中进程私有和公有部分<br>80000000：内核<br>      用户堆栈<br>      用户数据<br>00000000：用户说明<br>内核将 MMU 配置为仅允许用户代码访问属于用户的下半部分：通过特权级CPL判断是否合法<br>每个进程拥有独立地址空间但是每个进程的内核（高）映射都是相同的：因为是内核</li>
+</ul>
+<ul>
+<li><p>系统调用起点：<br>  在用户空间执行，sh 写出它的提示<br>  sh.asm, 使用write() 系统接口</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">break *0xb90</span><br><span class="line">x/3i 0xb8b</span><br></pre></td></tr></table></figure>
+
+<p>  其中，eax 中的 0x10 是 write 的系统调用号</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">info reg</span><br></pre></td></tr></table></figure>
+
+<p>​    cs&#x3D;0x1b, B&#x3D;1011 – CPL&#x3D;3 &#x3D;&gt; 用户模式<br>​    esp 和 eip 是低地址——当然是虚拟地址</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">x/4x $esp</span><br></pre></td></tr></table></figure>
+
+<p>​    cc1 是返回地址——在 printf 中<br>​    2 是 fd<br>​    0x3f7a 是堆栈上的缓冲区地址，作为准备写入的虚拟地址<br>​    1 是写入字符个数<br>​    综上，我们可以知道printf中有 wirte（2，0x3f7a，1）这样的调用</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">x/c 0x3f7a</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>INT指令，内核入口（建议理解一下CPL，RPL，DPL（current，request，descriptor））</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">step i</span><br><span class="line">info reg</span><br></pre></td></tr></table></figure>
+
+<p>​    从cs&#x3D;0x8 – CPL&#x3D;3 &#x3D;到&gt; 内核模式<br>​    注意 INT 将 eip 和 esp 更改为高内核地址：jmp和栈都要改</p>
+<p>问题：eip在哪里？</p>
+<p>、</p>
+<p>​    在内核提供的向量处jmp——用户只能通过中断才能进入内核。所以用户程序不能跳转到 CPL&#x3D;0 的内核中的随机位置</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">x/6wx $esp</span><br></pre></td></tr></table></figure>
+
+<p>​    INT 保存了一些用户寄存器：err，eip，cs，eflags，esp，ss<br>  问题：为什么 INT 只保存这些寄存器？<br>​    保护现场：1.会被覆盖2.结束后需要返回<br>  问题：INT 做了什么：<br>​    1.切换到当前进程的内核堆栈：由于中断，暂时允许（RPL，CPL &gt;&#x3D;DPL（int）<br>；RPL，CPL &lt;&#x3D; DPL（dest））保存寄存器到内核栈<br>​    2.在内核堆栈上保存了一些用户寄存器<br>​    3.设置 CPL&#x3D;0<br>​    4.开始在内核提供的“向量”处执行<br>  问题：内核esp 是从哪里来的？<br>​    创建进程时，得到内核堆栈位置，因此内核位置保存在进程表中</p>
+</li>
+</ul>
+<p>问：为什么 INT 需要保存用户状态，感觉很麻烦？应该保存多少状态？<br>    根据情况比较透明度和速度吧。</p>
+<p>​	对于保护现场而言，给出以下部分例子：</p>
+<p>​	比如你的esp不再像返回时esp-n，而是高低地址的隔离。因此你从栈返回的时候应该有esp值。</p>
+<p>​	再比如你的pc本来是不用特地保存在内核栈，因为可以栈先返回内核态，然后pc得到后代码返回，为了安全也可以一并保存。</p>
+<ul>
+<li><p>然后将其余的用户寄存器保存在内核堆栈上：pushal 压入 8 个寄存器：eax .. edi<br>  （Trapasm.S alltraps中看）</p>
+</li>
+<li><p>显示  内核堆栈顶部的 19 个字：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">x/19x $esp</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">ss</span><br><span class="line">  esp</span><br><span class="line">  eflags</span><br><span class="line">  CS</span><br><span class="line">  eip</span><br><span class="line">  err—— INT从这里开始保存？</span><br><span class="line">  trapno//错误码，用来判断中断类型</span><br><span class="line">  ds</span><br><span class="line">  es</span><br><span class="line">  FS</span><br><span class="line">  GS</span><br><span class="line">  eax..edi</span><br></pre></td></tr></table></figure>
+
+<p>  最终会被恢复，当系统调用返回时：现场思考：1.栈切换2.代码切换3.通用寄存器覆盖<br>  同时内核 C 代码有时需要读取&#x2F;写入保存的值比如eax返回值这样，就有可能决定是否恢复保存的寄存器。丢弃也是可能的。<br>  x86.h 中的 struct trapframe</p>
+<p>问题：为什么用户寄存器保存在内核栈中？<br>   为什么不将它们保存在用户堆栈中？</p>
+<p>因为最后需要从内核态切换：栈和代码段，就像函数返回那样，需要提前保存现场，但是比函数返回更复杂：覆盖的CPU里寄存器更多</p>
+</li>
+</ul>
+<h3 id="中断进入内核"><a href="#中断进入内核" class="headerlink" title="中断进入内核"></a>中断进入内核</h3><ul>
+<li><p>让我们看内核 C 代码<br>  pushl %esp 为 trap(struct trapframe *tf) 创建一个参数<br>  现在我们在 trap.c 中的 trap()</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">print tf</span><br><span class="line"> print *tf</span><br></pre></td></tr></table></figure>
+
+
+</li>
+<li><p>内核系统调用处理<br>  设备中断和故障也会进入 trap()<br>  trapno &#x3D;&#x3D; T_SYSCALL<br>  myproc()<br>  proc.h 中的 struct proc<br>  myproc()-&gt;tf – 所以 syscall() 可以得到系统调用号和参数<br>  syscall.c 中的 syscall()<br>查看 tf-&gt;eax 以找出哪个系统调用<br>  syscalls[] 中的 SYS_write 映射到 sys_write<br>  sysfile.c 中的 sys_write()<br>  arg*() 从用户堆栈中读取 write(fd,buf,n) 参数<br>  syscall.c 中的 argint()<br>proc-&gt;tf-&gt;esp + xxx</p>
+</li>
+<li><p>恢复用户寄存器<br>  syscall() 将 tf-&gt;eax 设置为返回值<br>  回到trap（）<br>  完成 – 返回到 trapasm.S</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">info reg </span><br></pre></td></tr></table></figure>
+
+<p>​	仍在内核中，寄存器被内核代码覆盖</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">stepi//直到iret</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">info reg</span><br></pre></td></tr></table></figure>
+
+<p>​    大多数寄存器保存恢复的用户值<br>​    eax 的 write() 返回值为 1：成功写入的字符个数<br>​    esp、eip、cs 仍然有内核值，还未恢复</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">x/5x $esp</span><br></pre></td></tr></table></figure>
+
+<p>​    保存的用户状态：eip、cs、eflags、esp、ss<br>  IRET 从堆栈中弹出这些用户寄存器<br>​    从而以 CPL&#x3D;3 重新进入用户空间</p>
+</li>
+</ul>
+<p>问题：我们真的需要 IRET 吗？否则现场恢复比函数更复杂<br>   我们可以使用普通指令来恢复寄存器吗？不行，见上面<br>   IRET 可以更简单吗？可以，根据系统调用分类，可以放弃有些寄存器恢复</p>
+<ul>
+<li><p>回到用户空间</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">stepi</span><br><span class="line">info reg</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h3 id="fork-系统调用"><a href="#fork-系统调用" class="headerlink" title="fork()系统调用"></a>fork()系统调用</h3><ul>
+<li><p>让我们看看 fork() 如何建立一个新进程<br>尤其是如何第一时间让新进程进入用户空间？<br>想法：<br>  fork() 伪造一个内核堆栈，<em>看起来</em>就像它即将从 trap() 返回：直接一开始就进入了内核Iret附近<br>顶部有一个伪造的trapframe<br>  child 开始在内核中执行——在函数返回指令处<br>  alltraps“恢复”伪造的已保存寄存器<br>  第一次开始执行子进程</p>
+</li>
+<li><p>请注意，有两个单独的操作：<br>  创建一个新进程<br>  执行新进程</p>
+</li>
+<li><pre><code>break fork
+c
+where//来查看fork的过程
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">   proc.c 中的 fork()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">- allocproc（）</span><br><span class="line">    在 proc.c 开始时查看 proc[]</span><br><span class="line">    关注 p-&gt;kstack 的初始内容</span><br><span class="line">    陷阱框架的空间（将是父母的副本）</span><br><span class="line">    指向 trapasm.S 中的 trapret 的伪造保存的 EIP</span><br><span class="line">    “上下文”的内核堆栈空间</span><br><span class="line">      包含*内核*寄存器</span><br><span class="line">      切换到子内核线程时恢复进程</span><br><span class="line">    p-&gt;context-&gt;eip = forkret 设置子进程在内核中的起始位置</span><br><span class="line">     基本上只是一个函数调用指令</span><br><span class="line"></span><br><span class="line">- 回到 fork()</span><br><span class="line">    （请记住，我们仍然以父级身份执行）</span><br><span class="line">    分配物理内存和页表</span><br><span class="line">    将父母的内存复制给子进程（linux下是写时复制，即只复制地址可以访问，写的时候再真正找内存进行复制）</span><br><span class="line">    复制trapframe</span><br><span class="line">    tf-&gt;eax = 0 -- 这将是 fork(): w 的子进程的返回值</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+print *np
+print *np-&gt;tf
+print *np-&gt;context
+x/25x np-&gt;context
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">    state = RUNNABLE -- 现在我们完成了</span><br><span class="line"></span><br><span class="line">- 新进程的内核堆栈内容：</span><br><span class="line">    trapframe -- 父的副本，但 eax=0</span><br><span class="line"></span><br><span class="line">    trapret的地址</span><br><span class="line"></span><br><span class="line">    context</span><br><span class="line">    eip = forkret</span><br><span class="line"></span><br><span class="line">- ```</span><br><span class="line">  break forkret</span><br><span class="line">  x/20x $esp</span><br><span class="line">  next</span><br><span class="line">  finish</span><br></pre></td></tr></table></figure>
+
+（现在在tramasm.S 中的trapret在 sh.S 中的 b6a)
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">info reg</span><br><span class="line">eax 为零——意味着进入子进程</span><br></pre></td></tr></table></figure>
+</code></pre>
+</li>
+<li><p>综上，fork子进程拥有父进程的所有内存，寄存器，并且从内核态返回，除了eax&#x3D;0，紧接着从父进程的代码执行位置继续进行，并且接下来修改内存和父进程基本毫无关系</p>
+</li>
+</ul>
+ 
+      <!-- reward -->
+      
+      <div id="reword-out">
+        <div id="reward-btn">
+          Donate
+        </div>
+      </div>
+      
+    </div>
+    
+
+    <!-- copyright -->
+    
+    <div class="declare">
+      <ul class="post-copyright">
+        <li>
+          <i class="ri-copyright-line"></i>
+          <strong>Copyright： </strong>
+          Copyright is owned by the author. For commercial reprints, please contact the author for authorization. For non-commercial reprints, please indicate the source.
+        </li>
+      </ul>
+    </div>
+    
+    <footer class="article-footer">
+       
+<div class="share-btn">
+      <span class="share-sns share-outer">
+        <i class="ri-share-forward-line"></i>
+        分享
+      </span>
+      <div class="share-wrap">
+        <i class="arrow"></i>
+        <div class="share-icons">
+          
+          <a class="weibo share-sns" href="javascript:;" data-type="weibo">
+            <i class="ri-weibo-fill"></i>
+          </a>
+          <a class="weixin share-sns wxFab" href="javascript:;" data-type="weixin">
+            <i class="ri-wechat-fill"></i>
+          </a>
+          <a class="qq share-sns" href="javascript:;" data-type="qq">
+            <i class="ri-qq-fill"></i>
+          </a>
+          <a class="douban share-sns" href="javascript:;" data-type="douban">
+            <i class="ri-douban-line"></i>
+          </a>
+          <!-- <a class="qzone share-sns" href="javascript:;" data-type="qzone">
+            <i class="icon icon-qzone"></i>
+          </a> -->
+          
+          <a class="facebook share-sns" href="javascript:;" data-type="facebook">
+            <i class="ri-facebook-circle-fill"></i>
+          </a>
+          <a class="twitter share-sns" href="javascript:;" data-type="twitter">
+            <i class="ri-twitter-fill"></i>
+          </a>
+          <a class="google share-sns" href="javascript:;" data-type="google">
+            <i class="ri-google-fill"></i>
+          </a>
+        </div>
+      </div>
+</div>
+
+<div class="wx-share-modal">
+    <a class="modal-close" href="javascript:;"><i class="ri-close-circle-line"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <div class="wx-qrcode">
+      <img src="//api.qrserver.com/v1/create-qr-code/?size=150x150&data=http://sakura-mac.github.io/2024/03/08/L5%EF%BC%9A%E8%B5%84%E6%BA%90%E9%9A%94%E7%A6%BB/" alt="微信分享二维码">
+    </div>
+</div>
+
+<div id="share-mask"></div>  
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Mit-6-828/" rel="tag">Mit-6.828</a></li></ul>
+
+    </footer>
+  </div>
+
+   
+  <nav class="article-nav">
+    
+      <a href="/2024/03/08/L6%EF%BC%9A%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/" class="article-nav-link">
+        <strong class="article-nav-caption">上一篇</strong>
+        <div class="article-nav-title">
+          
+            L6：虚拟内存
+          
+        </div>
+      </a>
+    
+    
+      <a href="/2024/03/08/L4homework%EF%BC%9Ashell/" class="article-nav-link">
+        <strong class="article-nav-caption">下一篇</strong>
+        <div class="article-nav-title">L4 homework：shell</div>
+      </a>
+    
+  </nav>
+
+   
+<!-- valine评论 -->
+<div id="vcomments-box">
+  <div id="vcomments"></div>
+</div>
+<script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/valine@1.4.14/dist/Valine.min.js"></script>
+<script>
+  new Valine({
+    el: "#vcomments",
+    app_id: "bbzBMY2PHFRlbkSCorlYCrRX-gzGzoHsz",
+    app_key: "NMnT9uDCzg2rW4ckm0fpSm5y",
+    path: window.location.pathname,
+    avatar: "monsterid",
+    placeholder: "请留下你此刻脑海中的想法~",
+    recordIP: true,
+  });
+  const infoEle = document.querySelector("#vcomments .info");
+  if (infoEle && infoEle.childNodes && infoEle.childNodes.length > 0) {
+    infoEle.childNodes.forEach(function (item) {
+      item.parentNode.removeChild(item);
+    });
+  }
+</script>
+<style>
+  #vcomments-box {
+    padding: 5px 30px;
+  }
+
+  @media screen and (max-width: 800px) {
+    #vcomments-box {
+      padding: 5px 0px;
+    }
+  }
+
+  #vcomments-box #vcomments {
+    background-color: #fff;
+  }
+
+  .v .vlist .vcard .vh {
+    padding-right: 20px;
+  }
+
+  .v .vlist .vcard {
+    padding-left: 10px;
+  }
+</style>
+
+ 
+     
+</article>
+
+</section>
+      <footer class="footer">
+  <div class="outer">
+    <ul>
+      <li>
+        Copyrights &copy;
+        2020-2024
+        <i class="ri-heart-fill heart_icon"></i> 环烷烃
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        
+        Powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+        <span class="division">|</span>
+        Theme - <a href="https://github.com/Shen-Yu/hexo-theme-ayer" target="_blank">Ayer</a>
+        
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        <span>
+  <span><i class="ri-user-3-fill"></i>Visitors:<span id="busuanzi_value_site_uv"></span></s>
+  <span class="division">|</span>
+  <span><i class="ri-eye-fill"></i>Views:<span id="busuanzi_value_page_pv"></span></span>
+</span>
+        
+      </li>
+    </ul>
+    <ul>
+      
+    </ul>
+    <ul>
+      <li>
+        <!-- cnzz统计 -->
+        
+        <script type="text/javascript" src='https://s9.cnzz.com/z_stat.php?id=1278069914&amp;web_id=1278069914'></script>
+        
+      </li>
+    </ul>
+  </div>
+</footer>
+      <div class="float_btns">
+        <div class="totop" id="totop">
+  <i class="ri-arrow-up-line"></i>
+</div>
+
+      </div>
+    </main>
+    <aside class="sidebar on">
+      <button class="navbar-toggle"></button>
+<nav class="navbar">
+  
+  <div class="logo">
+    <a href="/"><img src="/images/ayer-side.jpg" alt="海猫栖息地"></a>
+  </div>
+  
+  <ul class="nav nav-main">
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/">主页</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/archives">归档</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/tags">标签</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/player/">播放器</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/about">关于我</a>
+    </li>
+    
+  </ul>
+</nav>
+<nav class="navbar navbar-bottom">
+  <ul class="nav">
+    <li class="nav-item">
+      
+      <a class="nav-item-link nav-item-search"  title="Search">
+        <i class="ri-search-line"></i>
+      </a>
+      
+      
+      <a class="nav-item-link" target="_blank" href="/atom.xml" title="RSS Feed">
+        <i class="ri-rss-line"></i>
+      </a>
+      
+    </li>
+  </ul>
+</nav>
+<div class="search-form-wrap">
+  <div class="local-search local-search-plugin">
+  <input type="search" id="local-search-input" class="local-search-input" placeholder="Search...">
+  <div id="local-search-result" class="local-search-result"></div>
+</div>
+</div>
+
+    </aside>
+    <script>
+      if (window.matchMedia("(max-width: 768px)").matches) {
+        document.querySelector('.content').classList.remove('on');
+        document.querySelector('.sidebar').classList.remove('on');
+      }
+    </script>
+    <div id="mask"></div>
+
+<!-- #reward -->
+<div id="reward">
+  <span class="close"><i class="ri-close-line"></i></span>
+  <p class="reward-p"><i class="ri-cup-line"></i>我很可爱，请我喝一瓶怡宝吧~</p>
+  <div class="reward-box">
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/alipay.jpg">
+      <span class="reward-type">支付宝</span>
+    </div>
+    
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/wechat.jpg">
+      <span class="reward-type">微信</span>
+    </div>
+    
+  </div>
+</div>
+    
+<script src="/js/jquery-2.0.3.min.js"></script>
+
+
+<script src="/js/lazyload.min.js"></script>
+
+<!-- Tocbot -->
+
+
+<script src="/js/tocbot.min.js"></script>
+
+<script>
+  tocbot.init({
+    tocSelector: '.tocbot',
+    contentSelector: '.article-entry',
+    headingSelector: 'h1, h2, h3, h4, h5, h6',
+    hasInnerContainers: true,
+    scrollSmooth: true,
+    scrollContainer: 'main',
+    positionFixedSelector: '.tocbot',
+    positionFixedClass: 'is-position-fixed',
+    fixedSidebarOffset: 'auto'
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.css">
+<script src="https://cdn.jsdelivr.net/npm/justifiedGallery@3.7.0/dist/js/jquery.justifiedGallery.min.js"></script>
+
+<script src="/dist/main.js"></script>
+
+<!-- ImageViewer -->
+
+<!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" style="display:none" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css">
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"></script>
+
+<script>
+    function viewer_init() {
+        let pswpElement = document.querySelectorAll('.pswp')[0];
+        let $imgArr = document.querySelectorAll(('.article-entry img:not(.reward-img)'))
+
+        $imgArr.forEach(($em, i) => {
+            $em.onclick = () => {
+                // slider展开状态
+                // todo: 这样不好，后面改成状态
+                if (document.querySelector('.left-col.show')) return
+                let items = []
+                $imgArr.forEach(($em2, i2) => {
+                    let img = $em2.getAttribute('data-idx', i2)
+                    let src = $em2.getAttribute('data-target') || $em2.getAttribute('src')
+                    let title = $em2.getAttribute('alt')
+                    // 获得原图尺寸
+                    const image = new Image()
+                    image.src = src
+                    items.push({
+                        src: src,
+                        w: image.width || $em2.width,
+                        h: image.height || $em2.height,
+                        title: title
+                    })
+                })
+                var gallery = new PhotoSwipe(pswpElement, PhotoSwipeUI_Default, items, {
+                    index: parseInt(i)
+                });
+                gallery.init()
+            }
+        })
+    }
+    viewer_init()
+</script>
+
+<!-- MathJax -->
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+      tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+  });
+
+  MathJax.Hub.Queue(function() {
+      var all = MathJax.Hub.getAllJax(), i;
+      for(i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+      }
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.6/unpacked/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<script>
+  var ayerConfig = {
+    mathjax: true
+  }
+</script>
+
+<!-- Katex -->
+
+<!-- busuanzi  -->
+
+
+<script src="/js/busuanzi-2.3.pure.min.js"></script>
+
+
+<!-- ClickLove -->
+
+<!-- ClickBoom1 -->
+
+<script src="https://cdn.jsdelivr.net/npm/animejs@latest/anime.min.js"></script>
+
+<script src="/js/clickBoom1.js"></script>
+
+
+<!-- ClickBoom2 -->
+
+<!-- CodeCopy -->
+
+
+<link rel="stylesheet" href="/css/clipboard.css">
+
+<script src="https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js"></script>
+<script>
+  function wait(callback, seconds) {
+    var timelag = null;
+    timelag = window.setTimeout(callback, seconds);
+  }
+  !function (e, t, a) {
+    var initCopyCode = function(){
+      var copyHtml = '';
+      copyHtml += '<button class="btn-copy" data-clipboard-snippet="">';
+      copyHtml += '<i class="ri-file-copy-2-line"></i><span>COPY</span>';
+      copyHtml += '</button>';
+      $(".highlight .code pre").before(copyHtml);
+      $(".article pre code").before(copyHtml);
+      var clipboard = new ClipboardJS('.btn-copy', {
+        target: function(trigger) {
+          return trigger.nextElementSibling;
+        }
+      });
+      clipboard.on('success', function(e) {
+        let $btn = $(e.trigger);
+        $btn.addClass('copied');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-checkbox-circle-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPIED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-checkbox-circle-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+      clipboard.on('error', function(e) {
+        e.clearSelection();
+        let $btn = $(e.trigger);
+        $btn.addClass('copy-failed');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-time-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPY FAILED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-time-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+    }
+    initCopyCode();
+  }(window, document);
+</script>
+
+
+<!-- CanvasBackground -->
+
+
+    
+  </div>
+<script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginRootPath":"live2dw/","pluginJsPath":"lib/","pluginModelPath":"assets/","tagMode":false,"debug":false,"model":{"jsonPath":"/live2dw/assets/hijiki.model.json"},"display":{"position":"left","width":150,"height":300,"hOffset":80,"vOffset":-50},"mobile":{"show":true},"log":false});</script></body>
+
+</html>

@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+
+
+<html lang="en">
+
+
+<head>
+  <meta charset="utf-8" />
+    
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>
+    lab4：PartB |  
+  </title>
+  <meta name="generator" content="hexo-theme-ayer">
+  
+  <link rel="shortcut icon" href="/images/ayer.png" />
+  
+  
+<link rel="stylesheet" href="/dist/main.css">
+
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Shen-Yu/cdn/css/remixicon.min.css">
+
+  
+<link rel="stylesheet" href="/css/custom.css">
+
+  
+  
+<script src="https://cdn.jsdelivr.net/npm/pace-js@1.0.2/pace.min.js"></script>
+
+  
+  
+
+  
+<script>
+var _hmt = _hmt || [];
+(function() {
+	var hm = document.createElement("script");
+	hm.src = "https://hm.baidu.com/hm.js?41fc030db57d5570dd22f78997dc4a7e";
+	var s = document.getElementsByTagName("script")[0]; 
+	s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+<link rel="alternate" href="/atom.xml" title="海猫栖息地" type="application/atom+xml">
+</head>
+
+</html>
+
+<body>
+  <div id="app">
+    
+      <canvas class="fireworks"></canvas>
+      <style>
+        .fireworks {
+          position: fixed;
+          left: 0;
+          top: 0;
+          z-index: 99999;
+          pointer-events: none;
+        }
+      </style>
+      
+      
+    <main class="content on">
+      <section class="outer">
+  <article
+  id="post-lab4：PartB"
+  class="article article-type-post"
+  itemscope
+  itemprop="blogPost"
+  data-scroll-reveal
+>
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h1 class="article-title sea-center" style="border-left:0" itemprop="name">
+  lab4：PartB
+</h1>
+ 
+
+    </header>
+     
+    <div class="article-meta">
+      <a href="/2024/03/08/lab4%EF%BC%9APartB/" class="article-date">
+  <time datetime="2024-03-08T13:16:50.333Z" itemprop="datePublished">2024-03-08</time>
+</a>   
+<div class="word_count">
+    <span class="post-time">
+        <span class="post-meta-item-icon">
+            <i class="ri-quill-pen-line"></i>
+            <span class="post-meta-item-text"> Word count:</span>
+            <span class="post-count">2.6k</span>
+        </span>
+    </span>
+
+    <span class="post-time">
+        &nbsp; | &nbsp;
+        <span class="post-meta-item-icon">
+            <i class="ri-book-open-line"></i>
+            <span class="post-meta-item-text"> Reading time≈</span>
+            <span class="post-count">13 min</span>
+        </span>
+    </span>
+</div>
+ 
+    </div>
+      
+    <div class="tocbot"></div>
+
+
+
+
+  
+    <div class="article-entry" itemprop="articleBody">
+       
+  <p>lab通关记录</p>
+<a href="/2024/03/08/MIT-6.828%E5%AE%9E%E9%AA%8C%E9%80%9A%E5%85%B3%E8%AE%B0%E5%BD%95/" title="MIT-6.828实验通关记录">MIT-6.828实验通关记录</a>
+
+<h1 id="B-部分：写时复制fork"><a href="#B-部分：写时复制fork" class="headerlink" title="B 部分：写时复制fork"></a>B 部分：写时复制fork</h1><p>我们这部分实现以下内容</p>
+<ol>
+<li>用户的pgfault 的upcall机制：从内核到用户处理，再返回用户</li>
+<li>COW的流程处理</li>
+</ol>
+<span id="more"></span>
+
+<p>对于fork的写时复制，jos采用了“复制页表”的方式。而我们也可以用“共享页表”的方式：即在内核页目录中增加用户目录映射到父级，而不是前者：映射到新分配的页面作为子进程的页表，并memcpy复制父子页表。</p>
+<p>话说回来，我们的复制页表，这种COW通常设置为read-only，而当我们写时会出现PGFLT，这里给出一些通用（不一定是JOS情况）可能PGFLT的例子：</p>
+<ul>
+<li><p>COW的修改</p>
+</li>
+<li><p>如果exec只映射部分？</p>
+<ul>
+<li>BSS：通常或许先只映射了全为0的一页</li>
+<li>STACK：通常先映射了一页而已</li>
+<li>HEAP：比如linux下mmp和brk</li>
+<li>TEXT：如果代码很长，那么我们有理由考虑先映射部分磁盘内容</li>
+</ul>
+</li>
+</ul>
+<p>上述的映射情况在linux下会增加一个vm_area_struct来维护和记录映射，比如brk只是在这个结构体中增加，并没有进行真正的映射（增加页表项）。</p>
+<p>回到我们的JOS，我们本部分实验最终关注并实现一个fork，我们的fork简化为第一种情况：将父子USTACKTOP下的所有页都COW映射，因此我们将会不断的产生PGFLT来逐页替换为子进程独有部分。</p>
+<h2 id="Exercise8"><a href="#Exercise8" class="headerlink" title="Exercise8"></a>Exercise8</h2><p>我们将注册用户的pagefault处理，我们可以让内核处理，也可以让用户处理，jos使用了用户处理，于是我们的中断流程：当我们pagefault时，中断处理会执行user-mode的exception stack，使用upcall处理，然后在user态下回到中断前的状态。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * UTOP,UENVS ------&gt;  +------------------------------+ 0xeec00000</span></span><br><span class="line"><span class="comment"> * UXSTACKTOP -/       |     User Exception Stack     | RW/RW  PGSIZE</span></span><br><span class="line"><span class="comment"> *                     +------------------------------+ 0xeebff000</span></span><br><span class="line"><span class="comment"> *                     |       Empty Memory (*)       | --/--  PGSIZE</span></span><br><span class="line"><span class="comment"> *    USTACKTOP  ---&gt;  +------------------------------+ 0xeebfe000</span></span><br><span class="line"><span class="comment"> *                     |      Normal User Stack       | RW/RW  PGSIZE</span></span><br><span class="line"><span class="comment"> *                     +------------------------------+ 0xeebfd000</span></span><br><span class="line"><span class="comment"> *                     |                              |</span></span><br><span class="line"><span class="comment"> *                     |                              |</span></span><br><span class="line"><span class="comment"> *                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~</span></span><br><span class="line"><span class="comment"> *                     .                              .</span></span><br><span class="line"><span class="comment"> *                     .                              .</span></span><br><span class="line"><span class="comment"> *                     .                              .</span></span><br><span class="line"><span class="comment"> *                     |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|</span></span><br><span class="line"><span class="comment"> *                     |     Program Data &amp; Heap      |</span></span><br><span class="line"><span class="comment"> *    UTEXT --------&gt;  +------------------------------+ 0x00800000</span></span><br><span class="line"><span class="comment"> */</span></span><br></pre></td></tr></table></figure>
+
+<p>我们在这里进行注册upcall函数。</p>
+<p>所以我们记得权限检查，不要忘记还有syscall的调用添加（在syscall.h里的syscallno）</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span></span><br><span class="line"><span class="title function_">sys_env_set_pgfault_upcall</span><span class="params">(<span class="type">envid_t</span> envid, <span class="type">void</span> *func)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// LAB 4: Your code here.</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">Env</span>* <span class="title">e</span>;</span></span><br><span class="line">	<span class="keyword">if</span>(envid2env(envid, &amp;e, <span class="number">1</span>))<span class="keyword">return</span> -E_BAD_ENV;</span><br><span class="line">	env-&gt;env_pgfault_upcall = func;</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">	<span class="comment">//panic(&quot;sys_env_set_pgfault_upcall not implemented&quot;);</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="Exercise9"><a href="#Exercise9" class="headerlink" title="Exercise9"></a>Exercise9</h2><p>用来处理用户页面错误，我们的内核之前处理时将会直接panic，所以我们现在在用户模式进行处理自己的pgfault，主要是对exception stack的判断处理，lab给的note非常详细</p>
+<p>给出exception stack布局</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">                    &lt;-- UXSTACKTOP </span><br><span class="line">trap-time esp </span><br><span class="line">trap-time eflags </span><br><span class="line">trap-time eip </span><br><span class="line">trap-time eax start of <span class="class"><span class="keyword">struct</span> <span class="title">PushRegs</span> </span></span><br><span class="line"><span class="class"><span class="title">trap</span>-<span class="title">time</span> <span class="title">ecx</span> </span></span><br><span class="line"><span class="class"><span class="title">trap</span>-<span class="title">time</span> <span class="title">edx</span> </span></span><br><span class="line"><span class="class"><span class="title">trap</span>-<span class="title">time</span> <span class="title">ebx</span> </span></span><br><span class="line"><span class="class"><span class="title">trap</span>-<span class="title">time</span> <span class="title">esp</span> </span></span><br><span class="line"><span class="class"><span class="title">trap</span>-<span class="title">time</span> <span class="title">ebp</span> </span></span><br><span class="line"><span class="class"><span class="title">trap</span>-<span class="title">time</span> <span class="title">esi</span> </span></span><br><span class="line"><span class="class"><span class="title">trap</span>- <span class="title">time</span> <span class="title">edi</span> <span class="title">end</span> <span class="title">of</span> <span class="keyword">struct</span> <span class="title">PushRegs</span> </span></span><br><span class="line"><span class="class"><span class="title">tf_err</span> (<span class="title">error</span> <span class="title">code</span>) </span></span><br><span class="line"><span class="class"><span class="title">fault_va</span> &lt;</span>-- %esp 当处理程序运行时</span><br></pre></td></tr></table></figure>
+
+<p>我们让这个用户下单异常栈将会被upcall用来回到中断前的代码，而如果本身pagefault处理递归的话，就会多次插入UTrapframe。为什么预留要32bit（4B）？lab10会给出答案：递归时的eip存放。</p>
+<p>page_fault_handler</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span>(curenv-&gt;env_pgfault_upcall)&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">UTrapframe</span> * <span class="title">utf</span>;</span></span><br><span class="line">	<span class="keyword">if</span>(ROUNDUP(tf-&gt;tf_esp, PGSIZE) == UXSTACKTOP)&#123;</span><br><span class="line">		utf = (<span class="keyword">struct</span> UTrapframe *)((tf-&gt;tf_esp) - <span class="keyword">sizeof</span>(<span class="keyword">struct</span> UTrapframe) - <span class="number">4</span>);</span><br><span class="line">	&#125;<span class="keyword">else</span>&#123;</span><br><span class="line">		utf = (<span class="keyword">struct</span> UTrapframe *)(UXSTACKTOP - <span class="keyword">sizeof</span>(<span class="keyword">struct</span> UTrapframe));</span><br><span class="line">		&#125;</span><br><span class="line">		</span><br><span class="line">	user_mem_assert(curenv, (<span class="type">void</span> *)utf, <span class="keyword">sizeof</span>(<span class="keyword">struct</span> UTrapframe), PTE_W);</span><br><span class="line">	utf-&gt;utf_fault_va = fault_va;</span><br><span class="line">	utf-&gt;utf_err = tf-&gt;tf_err;</span><br><span class="line">	utf-&gt;utf_regs = tf-&gt;tf_regs;</span><br><span class="line">	utf-&gt;utf_eip = tf-&gt;tf_eip;</span><br><span class="line">	utf-&gt;utf_eflags = tf-&gt;tf_eflags;</span><br><span class="line">	utf-&gt;utf_esp = tf-&gt;tf_esp;</span><br><span class="line">	tf-&gt;tf_eip = (<span class="type">uintptr_t</span>)curenv-&gt;env_pgfault_upcall;<span class="comment">//异常处理时的eip记录</span></span><br><span class="line">	tf-&gt;tf_esp = (<span class="type">uintptr_t</span>)utf;<span class="comment">//下一次</span></span><br><span class="line">	env_run(curenv);<span class="comment">//返回user-mode</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Destroy the environment that caused the fault.</span></span><br><span class="line">	cprintf(<span class="string">&quot;[%08x] user fault va %08x ip %08x\n&quot;</span>,</span><br><span class="line">		curenv-&gt;env_id, fault_va, tf-&gt;tf_eip);</span><br><span class="line">	print_trapframe(tf);</span><br><span class="line">	env_destroy(curenv);</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="Exercise10"><a href="#Exercise10" class="headerlink" title="Exercise10"></a>Exercise10</h2><p>我们使用</p>
+<p>lib&#x2F;pfentry.S下_page_fault_upcall</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//  +----------USTACKTOP------+   high</span></span><br><span class="line">  <span class="comment">//  |            ...          |</span></span><br><span class="line">  <span class="comment">//  +-------------------------+</span></span><br><span class="line">  <span class="comment">//  |                         |</span></span><br><span class="line">  <span class="comment">//  +-------------------------+   </span></span><br><span class="line">  <span class="comment">//  |   trap-time-esp    (4B) |</span></span><br><span class="line">  <span class="comment">//  +-------------------------+   </span></span><br><span class="line">  <span class="comment">//  |   trap-time-eflags (4B) |</span></span><br><span class="line">  <span class="comment">//  +-------------------------+   </span></span><br><span class="line">  <span class="comment">//  |   trap-time-eip    (4B) |</span></span><br><span class="line">  <span class="comment">//  +-------------------------|   low</span></span><br><span class="line">  <span class="comment">//  |   trap-time-regs   (32B)|</span></span><br><span class="line">  <span class="comment">//  |   ...                   |</span></span><br><span class="line">  <span class="comment">//  |   ...                   |</span></span><br><span class="line">  <span class="comment">//  +-------------------------+   </span></span><br><span class="line">  <span class="comment">//  |   err              (4B) |</span></span><br><span class="line">  <span class="comment">//  +-------------------------+   </span></span><br><span class="line">  <span class="comment">//  |   fault_va         (4B) | </span></span><br><span class="line">  <span class="comment">//  +-------------------------+   &lt;-- cur_esp </span></span><br><span class="line">  <span class="comment">//            (1)</span></span><br><span class="line">  <span class="comment">//  </span></span><br><span class="line">  <span class="comment">//  +----trap-time-stack------+</span></span><br><span class="line">  <span class="comment">//  |            ...          |</span></span><br><span class="line">  <span class="comment">//  +-------------------------+</span></span><br><span class="line">  <span class="comment">//  |   trap-time-eip    (4B) |</span></span><br><span class="line">  <span class="comment">//  +-------------------------+   &lt;-- trap_time_esp</span></span><br><span class="line">  </span><br><span class="line"><span class="comment">// LAB 4: Your code here</span></span><br><span class="line">	<span class="comment">// Restore the trap-time registers.  After you do this, you</span></span><br><span class="line">	<span class="comment">// can no longer modify any general-purpose registers.</span></span><br><span class="line">	<span class="comment">// LAB 4: Your code here.</span></span><br><span class="line">	<span class="comment">// trap-time esp -= 4 to push trap-time eip into trap-time stack</span></span><br><span class="line">	movl <span class="number">0x30</span>(%esp), %eax</span><br><span class="line">	subl $<span class="number">0x4</span>, %eax</span><br><span class="line">	movl %eax, <span class="number">0x30</span>(%esp)</span><br><span class="line">	<span class="comment">//push trap-time eip into trap-time stack</span></span><br><span class="line">	movl <span class="number">0x28</span>(%esp), %ebx</span><br><span class="line">	mov %ebx, (%eax)</span><br><span class="line">	<span class="comment">//restore trap-time registers</span></span><br><span class="line">	addl $<span class="number">8</span>, %esp</span><br><span class="line">	popal</span><br><span class="line">	<span class="comment">// Restore eflags from the stack.  After you do this, you can</span></span><br><span class="line">	<span class="comment">// no longer use arithmetic operations or anything else that</span></span><br><span class="line">	<span class="comment">// modifies eflags.</span></span><br><span class="line">	<span class="comment">// LAB 4: Your code here.</span></span><br><span class="line">	addl $<span class="number">4</span>, %esp</span><br><span class="line">	popfl</span><br><span class="line">	<span class="comment">// Switch back to the adjusted trap-time stack.</span></span><br><span class="line">	<span class="comment">// LAB 4: Your code here.</span></span><br><span class="line">	popl %esp</span><br><span class="line">	<span class="comment">// Return to re-execute the instruction that faulted.</span></span><br><span class="line">	<span class="comment">// LAB 4: Your code here.</span></span><br><span class="line">	<span class="comment">//ret: popl %eip</span></span><br><span class="line">	ret</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="Exercise11"><a href="#Exercise11" class="headerlink" title="Exercise11"></a>Exercise11</h2><p>lib&#x2F;pgfault.c</p>
+<p>set_pgfault_handler</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span></span><br><span class="line"><span class="title function_">set_pgfault_handler</span><span class="params">(<span class="type">void</span> (*handler)(<span class="keyword">struct</span> UTrapframe *utf))</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> r;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (_pgfault_handler == <span class="number">0</span>) &#123;</span><br><span class="line">		<span class="comment">// First time through!</span></span><br><span class="line">		<span class="comment">// LAB 4: Your code here.</span></span><br><span class="line">		r = sys_page_alloc(<span class="number">0</span>, (<span class="type">void</span> *)(UXSTACKTOP - PGSIZE), PTE_U | PTE_P | PTE_W;</span><br><span class="line">		<span class="keyword">if</span>(r &lt; <span class="number">0</span>)panic(<span class="string">&quot;set_pgfault_handler: page alloc fault!&quot;</span>);</span><br><span class="line">		r = sys_env_set_pgfault_upcall(<span class="number">0</span>, (<span class="type">void</span> *)_pgfault_upcall);</span><br><span class="line">		<span class="keyword">if</span>(r &lt; <span class="number">0</span>)</span><br><span class="line">			panic(<span class="string">&quot;set_pgfault_handler: set pgfault upcall failed!&quot;</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// Save handler pointer for assembly to call.</span></span><br><span class="line">	_pgfault_handler = handler;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="Exercise12"><a href="#Exercise12" class="headerlink" title="Exercise12"></a>Exercise12</h2><p>lib&#x2F;fork.c</p>
+<p>这里解决一个当初理解错误的问题：UVPT是用户映射，并且分配了4MB虚拟内存（inc&#x2F;memlayout.h），刚好对应了1M的页数。所以uvpt里的index应该是PGNUM的宏而不是PTX，而uvpd是页目录也确实没错，并且是以kern_pgdir模板，并且用户只读不可改。只有uvpd的内核相应函数查找时候才用到PTX。这是一个比较绕的设计想法。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">void</span></span><br><span class="line"><span class="title function_">pgfault</span><span class="params">(<span class="keyword">struct</span> UTrapframe *utf)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">void</span> *addr = (<span class="type">void</span> *) utf-&gt;utf_fault_va;</span><br><span class="line">	<span class="type">uint32_t</span> err = utf-&gt;utf_err;</span><br><span class="line">	<span class="type">int</span> r;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Check that the faulting access was (1) a write, and (2) to a</span></span><br><span class="line">	<span class="comment">// copy-on-write page.  If not, panic.</span></span><br><span class="line">	<span class="comment">// Hint:</span></span><br><span class="line">	<span class="comment">//   Use the read-only page table mappings at uvpt</span></span><br><span class="line">	<span class="comment">//   (see &lt;inc/memlayout.h&gt;).</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// LAB 4: Your code here.</span></span><br><span class="line">	<span class="type">uint32_t</span> write_err = err &amp; FEC_WR;</span><br><span class="line">	<span class="type">uint32_t</span> COW = uvpt[PGNUM(addr)] &amp; PTE_COW;</span><br><span class="line">	<span class="keyword">if</span>(!(write_err &amp;&amp; COW))panic(<span class="string">&quot;pgfault: not write to the COW page fault!\n&quot;</span>);</span><br><span class="line">	<span class="comment">// Allocate a new page, map it at a temporary location (PFTEMP),</span></span><br><span class="line">	<span class="comment">// copy the data from the old page to the new page, then move the new</span></span><br><span class="line">	<span class="comment">// page to the old page&#x27;s address.</span></span><br><span class="line">	<span class="comment">// Hint:</span></span><br><span class="line">	<span class="comment">//   You should make three system calls.</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// LAB 4: Your code here.</span></span><br><span class="line">	<span class="comment">//alloc a page by PFTEMP</span></span><br><span class="line"></span><br><span class="line">	addr = ROUNDDOWN(addr, PGSIZE);</span><br><span class="line">	r = sys_page_alloc(<span class="number">0</span>, PFTEMP, PTE_U | PTE_P | PTE_W);</span><br><span class="line">	<span class="keyword">if</span>(r &lt; <span class="number">0</span>)panic(<span class="string">&quot;pgfault: sys_page_alloc failed!\n&quot;</span>);</span><br><span class="line">	<span class="comment">//copy data</span></span><br><span class="line">	memmove(PFTEMP, addr, PGSIZE);</span><br><span class="line">	r = sys_page_map(<span class="number">0</span>, PFTEMP, <span class="number">0</span>, addr, PTE_U | PTE_P | PTE_W);</span><br><span class="line">	<span class="keyword">if</span>(r &lt; <span class="number">0</span>)panic(<span class="string">&quot;pgfault: sys_page_map failed!\n&quot;</span>);</span><br><span class="line">	</span><br><span class="line">	<span class="comment">//remove PTE:PFTEMP</span></span><br><span class="line">	r = sys_page_unmap(<span class="number">0</span>, PFTEMP);</span><br><span class="line">	<span class="keyword">if</span>(r &lt; <span class="number">0</span>)panic(<span class="string">&quot;pgfault: sys_page_unmap failed!\n&quot;</span>);</span><br><span class="line">	<span class="comment">//panic(&quot;pgfault not implemented&quot;);</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// Map our virtual page pn (address pn*PGSIZE) into the target envid</span></span><br><span class="line"><span class="comment">// at the same virtual address.  If the page is writable or copy-on-write,</span></span><br><span class="line"><span class="comment">// the new mapping must be created copy-on-write, and then our mapping must be</span></span><br><span class="line"><span class="comment">// marked copy-on-write as well.  (Exercise: Why do we need to mark ours</span></span><br><span class="line"><span class="comment">// copy-on-write again if it was already copy-on-write at the beginning of</span></span><br><span class="line"><span class="comment">// this function?)</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// Returns: 0 on success, &lt; 0 on error.</span></span><br><span class="line"><span class="comment">// It is also OK to panic on error.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="type">static</span> <span class="type">int</span></span><br><span class="line"><span class="title function_">duppage</span><span class="params">(<span class="type">envid_t</span> envid, <span class="type">unsigned</span> pn)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> r;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// LAB 4: Your code here.</span></span><br><span class="line">	<span class="comment">//COW check, map page</span></span><br><span class="line">	<span class="type">pte_t</span> pte = uvpt[pn];</span><br><span class="line">	<span class="type">void</span> *addr = (<span class="type">void</span> *) (pn * PGSIZE);</span><br><span class="line">	</span><br><span class="line">	<span class="type">uint32_t</span> perm = pte&amp;<span class="number">0xfff</span>;</span><br><span class="line">	<span class="keyword">if</span>(perm &amp; (PTE_W | PTE_COW))&#123;</span><br><span class="line">		perm &amp;= ~PTE_W;</span><br><span class="line">		perm |= PTE_COW;</span><br><span class="line">	&#125;</span><br><span class="line">	</span><br><span class="line">	r = sys_page_map(<span class="number">0</span>, addr, envid, addr, perm &amp; PTE_SYSCALL);</span><br><span class="line">	<span class="keyword">if</span>(r &lt; <span class="number">0</span>)panic(<span class="string">&quot;duppage: sys_map_page child failed\n&quot;</span>);</span><br><span class="line">	<span class="comment">//map self again : freeze parent and child</span></span><br><span class="line">	r = sys_page_map(<span class="number">0</span>, addr, <span class="number">0</span>, addr, perm &amp; PTE_SYSCALL);</span><br><span class="line">	<span class="keyword">if</span>(r &lt; <span class="number">0</span>)panic(<span class="string">&quot;duppage: sys_map_page self failed\n&quot;</span>);</span><br><span class="line">	<span class="comment">//panic(&quot;duppage not implemented&quot;);</span></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// User-level fork with copy-on-write.</span></span><br><span class="line"><span class="comment">// Set up our page fault handler appropriately.</span></span><br><span class="line"><span class="comment">// Create a child.</span></span><br><span class="line"><span class="comment">// Copy our address space and page fault handler setup to the child.</span></span><br><span class="line"><span class="comment">// Then mark the child as runnable and return.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// Returns: child&#x27;s envid to the parent, 0 to the child, &lt; 0 on error.</span></span><br><span class="line"><span class="comment">// It is also OK to panic on error.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// Hint:</span></span><br><span class="line"><span class="comment">//   Use uvpd, uvpt, and duppage.</span></span><br><span class="line"><span class="comment">//   Remember to fix &quot;thisenv&quot; in the child process.</span></span><br><span class="line"><span class="comment">//   Neither user exception stack should ever be marked copy-on-write,</span></span><br><span class="line"><span class="comment">//   so you must allocate a new page for the child&#x27;s user exception stack.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="type">envid_t</span></span><br><span class="line"><span class="title function_">fork</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// LAB 4: Your code here.</span></span><br><span class="line">	<span class="comment">//1.set page fault handler</span></span><br><span class="line">	set_pgfault_handler(pgfault);</span><br><span class="line">	<span class="comment">//2.create a child env	</span></span><br><span class="line">	<span class="type">envid_t</span> envid = sys_exofork();<span class="comment">//just the tf copy	</span></span><br><span class="line">	<span class="keyword">if</span> (envid == <span class="number">0</span>) &#123;<span class="comment">//must after code below excuted</span></span><br><span class="line">		thisenv = &amp;envs[ENVX(sys_getenvid())];<span class="comment">//fix &quot;thisenv&quot; in the child process</span></span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> (envid &lt; <span class="number">0</span>) &#123;</span><br><span class="line">		panic(<span class="string">&quot;fork: sys_exofork: %e failed\n&quot;</span>, envid);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">//COW mapping:duppage(envid, va&#x27;s page):from 0 - USTACKTOP(under UTOP)</span></span><br><span class="line">	<span class="type">uint32_t</span> addr;</span><br><span class="line">	<span class="keyword">for</span> (addr = <span class="number">0</span>; addr &lt; USTACKTOP; addr += PGSIZE)</span><br><span class="line">		<span class="keyword">if</span> ((uvpd[PDX(addr)] &amp; PTE_P) &amp;&amp; (uvpt[PGNUM(addr))] &amp; PTE_P) &amp;&amp; (uvpt[PGNUM(addr)] &amp; PTE_U)) &#123;</span><br><span class="line">			duppage(envid, PGNUM(addr));	<span class="comment">//env already has page directory and page table</span></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">//child&#x27;s exception stack</span></span><br><span class="line">	<span class="type">int</span> r;</span><br><span class="line">	<span class="keyword">if</span> ((r = sys_page_alloc(envid, (<span class="type">void</span> *)(UXSTACKTOP-PGSIZE), PTE_P | PTE_W | PTE_U)) &lt; <span class="number">0</span>)	</span><br><span class="line">		panic(<span class="string">&quot;sys_page_alloc: %e&quot;</span>, r);</span><br><span class="line">	<span class="comment">//set child&#x27;s pgfault_upcall</span></span><br><span class="line">	<span class="keyword">extern</span> <span class="type">void</span> _pgfault_upcall(<span class="type">void</span>);</span><br><span class="line">	sys_env_set_pgfault_upcall(envid, _pgfault_upcall);		</span><br><span class="line">	<span class="comment">//runnable</span></span><br><span class="line">	<span class="keyword">if</span> ((r = sys_env_set_status(envid, ENV_RUNNABLE)) &lt; <span class="number">0</span>)	 </span><br><span class="line">		panic(<span class="string">&quot;sys_env_set_status: %e&quot;</span>, r);</span><br><span class="line">	<span class="keyword">return</span> envid;</span><br><span class="line">	<span class="comment">//panic(&quot;fork not implemented&quot;);</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>总结一下PartB的upcall机制和fork处理</p>
+<p>1.set upcall</p>
+<p><img src="https://bed1.oss-cn-beijing.aliyuncs.com/2021112380526.png"></p>
+<p>2.call upcall </p>
+<p><img src="https://bed1.oss-cn-beijing.aliyuncs.com/2021112381630.png"></p>
+<p>3.COW 机制</p>
+<p>​	1.what in ”lib&#x2F;fork.c“?</p>
+<ul>
+<li>pagefault: user registers <strong>own</strong> handler <strong>supported by syscall</strong></li>
+<li>duppage: copy virtual page into appointed env id(<strong>just modify the page table</strong>)</li>
+<li>fork: create a child(<strong>COW mapping</strong>)</li>
+</ul>
+<p>​	2.what “fork” will do? </p>
+<ul>
+<li>set page fault handler</li>
+<li>cread a child </li>
+<li>fix child thisenv-&gt;env_id to real env id</li>
+<li>COW mapping</li>
+<li>child’s page fault handler</li>
+<li>set child’s state &#x3D; RUNNABLE</li>
+</ul>
+<p>​	3.how  “syscall” support the handler？</p>
+<ul>
+<li>sys_env_set_status</li>
+<li>sys_env_set_pgfault_upcall</li>
+<li>sys_page_alloc(just check va perm and <strong>alloc a ppage</strong>)</li>
+<li>sys_page_map</li>
+<li>sys_page_unmap</li>
+</ul>
+<p>那么问题来了，这个upcall在user-mode下，使kern做出了这么多事情，也让中断的次数增加了很多，到底是为什么？</p>
+<p>给出一些我查阅的资料：</p>
+<p>关于<em>kernel upcall</em> 引用 <strong><a target="_blank" rel="noopener" href="http://lkml.indiana.edu/hypermail/linux/kernel/9809.3/0922.html">lkml</a></strong> 中的一段话 :</p>
+<blockquote>
+<p>An upcall is a mechanism that allows the kernel to execute a function in userspace, and potentially be returned information as a result.</p>
+<p>An upcall is like a signal, except that the kernel may use it at any time, for any purpose, including in an interrupt handler.</p>
+<p>A process asks to use upcalls, and passes the kernel the addresses of a series of stacks to execute upcalls on. The kernel wires down down the stacks. The process registers functions associated with a set of predefined events (such as a page fault or blocking I&#x2F;O). When such an event happens, the thread for which the event occured to doesn’t call schedule(), but instead switches to an upcall stack, constructs a dummy trap return so that on return to user space it will execute the upcall, and returns to user space via a trap return.</p>
+<p>Even Larry will, I hope, admit that this is a pretty fast process, much faster than a context switch, and way faster than a call to <em>any</em> schedule().</p>
+<p>Note however that the function <em>NEVER RETURNS TO THE KERNEL</em>.</p>
+</blockquote>
+<p>在这个邮件列表里面还给出了 upcall 可以用来实现 scheduler activation 和 timing in user space code :</p>
+<blockquote>
+<p>Why would you want upcalls ? Well, we implemented upcalls specifically for a thread package that uses an idea called scheduler activations; every time a kernel thread blocks on I&#x2F;O or suffers a page fault, the kernel “activates” the user level thread scheduler and tells it what happened. This way, the user level thread scheduler can continue to use the processor by deciding to run some other thread.</p>
+<p>It would also allow much more precise timing for Linux user space code, because a process could register a function (and yes, it has to be a very carefully designed process) to be executed <em>by</em> the timer interrupt (probably the timer code BH), not whenever the process gets woken by the timer interrupt and then run.</p>
+</blockquote>
+<p>大意就是：</p>
+<p>1.对于阻塞I&#x2F;O时候，不再上下文切换，会快</p>
+<p>2.对于抢占式切换（时间片），可以随时切换。如果是转到内核处理时，会因为同步问题加锁来禁止切换，导致了时间片效果很差</p>
+<a href="/2024/03/08/lab4%EF%BC%9APartC/" title="lab4：PartC">lab4：PartC</a> 
+      <!-- reward -->
+      
+      <div id="reword-out">
+        <div id="reward-btn">
+          Donate
+        </div>
+      </div>
+      
+    </div>
+    
+
+    <!-- copyright -->
+    
+    <div class="declare">
+      <ul class="post-copyright">
+        <li>
+          <i class="ri-copyright-line"></i>
+          <strong>Copyright： </strong>
+          Copyright is owned by the author. For commercial reprints, please contact the author for authorization. For non-commercial reprints, please indicate the source.
+        </li>
+      </ul>
+    </div>
+    
+    <footer class="article-footer">
+       
+<div class="share-btn">
+      <span class="share-sns share-outer">
+        <i class="ri-share-forward-line"></i>
+        分享
+      </span>
+      <div class="share-wrap">
+        <i class="arrow"></i>
+        <div class="share-icons">
+          
+          <a class="weibo share-sns" href="javascript:;" data-type="weibo">
+            <i class="ri-weibo-fill"></i>
+          </a>
+          <a class="weixin share-sns wxFab" href="javascript:;" data-type="weixin">
+            <i class="ri-wechat-fill"></i>
+          </a>
+          <a class="qq share-sns" href="javascript:;" data-type="qq">
+            <i class="ri-qq-fill"></i>
+          </a>
+          <a class="douban share-sns" href="javascript:;" data-type="douban">
+            <i class="ri-douban-line"></i>
+          </a>
+          <!-- <a class="qzone share-sns" href="javascript:;" data-type="qzone">
+            <i class="icon icon-qzone"></i>
+          </a> -->
+          
+          <a class="facebook share-sns" href="javascript:;" data-type="facebook">
+            <i class="ri-facebook-circle-fill"></i>
+          </a>
+          <a class="twitter share-sns" href="javascript:;" data-type="twitter">
+            <i class="ri-twitter-fill"></i>
+          </a>
+          <a class="google share-sns" href="javascript:;" data-type="google">
+            <i class="ri-google-fill"></i>
+          </a>
+        </div>
+      </div>
+</div>
+
+<div class="wx-share-modal">
+    <a class="modal-close" href="javascript:;"><i class="ri-close-circle-line"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <div class="wx-qrcode">
+      <img src="//api.qrserver.com/v1/create-qr-code/?size=150x150&data=http://sakura-mac.github.io/2024/03/08/lab4%EF%BC%9APartB/" alt="微信分享二维码">
+    </div>
+</div>
+
+<div id="share-mask"></div>  
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Mit-6-828/" rel="tag">Mit-6.828</a></li></ul>
+
+    </footer>
+  </div>
+
+   
+  <nav class="article-nav">
+    
+      <a href="/2024/03/08/lab4%EF%BC%9APartC/" class="article-nav-link">
+        <strong class="article-nav-caption">上一篇</strong>
+        <div class="article-nav-title">
+          
+            lab4：PartC
+          
+        </div>
+      </a>
+    
+    
+      <a href="/2024/03/08/lab4%EF%BC%9APartA/" class="article-nav-link">
+        <strong class="article-nav-caption">下一篇</strong>
+        <div class="article-nav-title">lab4：抢占式多任务处理(PartA)</div>
+      </a>
+    
+  </nav>
+
+   
+<!-- valine评论 -->
+<div id="vcomments-box">
+  <div id="vcomments"></div>
+</div>
+<script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/valine@1.4.14/dist/Valine.min.js"></script>
+<script>
+  new Valine({
+    el: "#vcomments",
+    app_id: "bbzBMY2PHFRlbkSCorlYCrRX-gzGzoHsz",
+    app_key: "NMnT9uDCzg2rW4ckm0fpSm5y",
+    path: window.location.pathname,
+    avatar: "monsterid",
+    placeholder: "请留下你此刻脑海中的想法~",
+    recordIP: true,
+  });
+  const infoEle = document.querySelector("#vcomments .info");
+  if (infoEle && infoEle.childNodes && infoEle.childNodes.length > 0) {
+    infoEle.childNodes.forEach(function (item) {
+      item.parentNode.removeChild(item);
+    });
+  }
+</script>
+<style>
+  #vcomments-box {
+    padding: 5px 30px;
+  }
+
+  @media screen and (max-width: 800px) {
+    #vcomments-box {
+      padding: 5px 0px;
+    }
+  }
+
+  #vcomments-box #vcomments {
+    background-color: #fff;
+  }
+
+  .v .vlist .vcard .vh {
+    padding-right: 20px;
+  }
+
+  .v .vlist .vcard {
+    padding-left: 10px;
+  }
+</style>
+
+ 
+     
+</article>
+
+</section>
+      <footer class="footer">
+  <div class="outer">
+    <ul>
+      <li>
+        Copyrights &copy;
+        2020-2024
+        <i class="ri-heart-fill heart_icon"></i> 环烷烃
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        
+        Powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+        <span class="division">|</span>
+        Theme - <a href="https://github.com/Shen-Yu/hexo-theme-ayer" target="_blank">Ayer</a>
+        
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        <span>
+  <span><i class="ri-user-3-fill"></i>Visitors:<span id="busuanzi_value_site_uv"></span></s>
+  <span class="division">|</span>
+  <span><i class="ri-eye-fill"></i>Views:<span id="busuanzi_value_page_pv"></span></span>
+</span>
+        
+      </li>
+    </ul>
+    <ul>
+      
+    </ul>
+    <ul>
+      <li>
+        <!-- cnzz统计 -->
+        
+        <script type="text/javascript" src='https://s9.cnzz.com/z_stat.php?id=1278069914&amp;web_id=1278069914'></script>
+        
+      </li>
+    </ul>
+  </div>
+</footer>
+      <div class="float_btns">
+        <div class="totop" id="totop">
+  <i class="ri-arrow-up-line"></i>
+</div>
+
+      </div>
+    </main>
+    <aside class="sidebar on">
+      <button class="navbar-toggle"></button>
+<nav class="navbar">
+  
+  <div class="logo">
+    <a href="/"><img src="/images/ayer-side.jpg" alt="海猫栖息地"></a>
+  </div>
+  
+  <ul class="nav nav-main">
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/">主页</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/archives">归档</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/tags">标签</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/player/">播放器</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/about">关于我</a>
+    </li>
+    
+  </ul>
+</nav>
+<nav class="navbar navbar-bottom">
+  <ul class="nav">
+    <li class="nav-item">
+      
+      <a class="nav-item-link nav-item-search"  title="Search">
+        <i class="ri-search-line"></i>
+      </a>
+      
+      
+      <a class="nav-item-link" target="_blank" href="/atom.xml" title="RSS Feed">
+        <i class="ri-rss-line"></i>
+      </a>
+      
+    </li>
+  </ul>
+</nav>
+<div class="search-form-wrap">
+  <div class="local-search local-search-plugin">
+  <input type="search" id="local-search-input" class="local-search-input" placeholder="Search...">
+  <div id="local-search-result" class="local-search-result"></div>
+</div>
+</div>
+
+    </aside>
+    <script>
+      if (window.matchMedia("(max-width: 768px)").matches) {
+        document.querySelector('.content').classList.remove('on');
+        document.querySelector('.sidebar').classList.remove('on');
+      }
+    </script>
+    <div id="mask"></div>
+
+<!-- #reward -->
+<div id="reward">
+  <span class="close"><i class="ri-close-line"></i></span>
+  <p class="reward-p"><i class="ri-cup-line"></i>我很可爱，请我喝一瓶怡宝吧~</p>
+  <div class="reward-box">
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/alipay.jpg">
+      <span class="reward-type">支付宝</span>
+    </div>
+    
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/wechat.jpg">
+      <span class="reward-type">微信</span>
+    </div>
+    
+  </div>
+</div>
+    
+<script src="/js/jquery-2.0.3.min.js"></script>
+
+
+<script src="/js/lazyload.min.js"></script>
+
+<!-- Tocbot -->
+
+
+<script src="/js/tocbot.min.js"></script>
+
+<script>
+  tocbot.init({
+    tocSelector: '.tocbot',
+    contentSelector: '.article-entry',
+    headingSelector: 'h1, h2, h3, h4, h5, h6',
+    hasInnerContainers: true,
+    scrollSmooth: true,
+    scrollContainer: 'main',
+    positionFixedSelector: '.tocbot',
+    positionFixedClass: 'is-position-fixed',
+    fixedSidebarOffset: 'auto'
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.css">
+<script src="https://cdn.jsdelivr.net/npm/justifiedGallery@3.7.0/dist/js/jquery.justifiedGallery.min.js"></script>
+
+<script src="/dist/main.js"></script>
+
+<!-- ImageViewer -->
+
+<!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" style="display:none" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css">
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"></script>
+
+<script>
+    function viewer_init() {
+        let pswpElement = document.querySelectorAll('.pswp')[0];
+        let $imgArr = document.querySelectorAll(('.article-entry img:not(.reward-img)'))
+
+        $imgArr.forEach(($em, i) => {
+            $em.onclick = () => {
+                // slider展开状态
+                // todo: 这样不好，后面改成状态
+                if (document.querySelector('.left-col.show')) return
+                let items = []
+                $imgArr.forEach(($em2, i2) => {
+                    let img = $em2.getAttribute('data-idx', i2)
+                    let src = $em2.getAttribute('data-target') || $em2.getAttribute('src')
+                    let title = $em2.getAttribute('alt')
+                    // 获得原图尺寸
+                    const image = new Image()
+                    image.src = src
+                    items.push({
+                        src: src,
+                        w: image.width || $em2.width,
+                        h: image.height || $em2.height,
+                        title: title
+                    })
+                })
+                var gallery = new PhotoSwipe(pswpElement, PhotoSwipeUI_Default, items, {
+                    index: parseInt(i)
+                });
+                gallery.init()
+            }
+        })
+    }
+    viewer_init()
+</script>
+
+<!-- MathJax -->
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+      tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+  });
+
+  MathJax.Hub.Queue(function() {
+      var all = MathJax.Hub.getAllJax(), i;
+      for(i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+      }
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.6/unpacked/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<script>
+  var ayerConfig = {
+    mathjax: true
+  }
+</script>
+
+<!-- Katex -->
+
+<!-- busuanzi  -->
+
+
+<script src="/js/busuanzi-2.3.pure.min.js"></script>
+
+
+<!-- ClickLove -->
+
+<!-- ClickBoom1 -->
+
+<script src="https://cdn.jsdelivr.net/npm/animejs@latest/anime.min.js"></script>
+
+<script src="/js/clickBoom1.js"></script>
+
+
+<!-- ClickBoom2 -->
+
+<!-- CodeCopy -->
+
+
+<link rel="stylesheet" href="/css/clipboard.css">
+
+<script src="https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js"></script>
+<script>
+  function wait(callback, seconds) {
+    var timelag = null;
+    timelag = window.setTimeout(callback, seconds);
+  }
+  !function (e, t, a) {
+    var initCopyCode = function(){
+      var copyHtml = '';
+      copyHtml += '<button class="btn-copy" data-clipboard-snippet="">';
+      copyHtml += '<i class="ri-file-copy-2-line"></i><span>COPY</span>';
+      copyHtml += '</button>';
+      $(".highlight .code pre").before(copyHtml);
+      $(".article pre code").before(copyHtml);
+      var clipboard = new ClipboardJS('.btn-copy', {
+        target: function(trigger) {
+          return trigger.nextElementSibling;
+        }
+      });
+      clipboard.on('success', function(e) {
+        let $btn = $(e.trigger);
+        $btn.addClass('copied');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-checkbox-circle-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPIED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-checkbox-circle-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+      clipboard.on('error', function(e) {
+        e.clearSelection();
+        let $btn = $(e.trigger);
+        $btn.addClass('copy-failed');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-time-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPY FAILED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-time-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+    }
+    initCopyCode();
+  }(window, document);
+</script>
+
+
+<!-- CanvasBackground -->
+
+
+    
+  </div>
+<script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginRootPath":"live2dw/","pluginJsPath":"lib/","pluginModelPath":"assets/","tagMode":false,"debug":false,"model":{"jsonPath":"/live2dw/assets/hijiki.model.json"},"display":{"position":"left","width":150,"height":300,"hOffset":80,"vOffset":-50},"mobile":{"show":true},"log":false});</script></body>
+
+</html>

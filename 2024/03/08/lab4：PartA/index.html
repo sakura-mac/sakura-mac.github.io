@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+
+
+<html lang="en">
+
+
+<head>
+  <meta charset="utf-8" />
+    
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>
+    lab4：抢占式多任务处理(PartA) |  
+  </title>
+  <meta name="generator" content="hexo-theme-ayer">
+  
+  <link rel="shortcut icon" href="/images/ayer.png" />
+  
+  
+<link rel="stylesheet" href="/dist/main.css">
+
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Shen-Yu/cdn/css/remixicon.min.css">
+
+  
+<link rel="stylesheet" href="/css/custom.css">
+
+  
+  
+<script src="https://cdn.jsdelivr.net/npm/pace-js@1.0.2/pace.min.js"></script>
+
+  
+  
+
+  
+<script>
+var _hmt = _hmt || [];
+(function() {
+	var hm = document.createElement("script");
+	hm.src = "https://hm.baidu.com/hm.js?41fc030db57d5570dd22f78997dc4a7e";
+	var s = document.getElementsByTagName("script")[0]; 
+	s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+<link rel="alternate" href="/atom.xml" title="海猫栖息地" type="application/atom+xml">
+</head>
+
+</html>
+
+<body>
+  <div id="app">
+    
+      <canvas class="fireworks"></canvas>
+      <style>
+        .fireworks {
+          position: fixed;
+          left: 0;
+          top: 0;
+          z-index: 99999;
+          pointer-events: none;
+        }
+      </style>
+      
+      
+    <main class="content on">
+      <section class="outer">
+  <article
+  id="post-lab4：PartA"
+  class="article article-type-post"
+  itemscope
+  itemprop="blogPost"
+  data-scroll-reveal
+>
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h1 class="article-title sea-center" style="border-left:0" itemprop="name">
+  lab4：抢占式多任务处理(PartA)
+</h1>
+ 
+
+    </header>
+     
+    <div class="article-meta">
+      <a href="/2024/03/08/lab4%EF%BC%9APartA/" class="article-date">
+  <time datetime="2024-03-08T13:16:50.331Z" itemprop="datePublished">2024-03-08</time>
+</a>   
+<div class="word_count">
+    <span class="post-time">
+        <span class="post-meta-item-icon">
+            <i class="ri-quill-pen-line"></i>
+            <span class="post-meta-item-text"> Word count:</span>
+            <span class="post-count">4.9k</span>
+        </span>
+    </span>
+
+    <span class="post-time">
+        &nbsp; | &nbsp;
+        <span class="post-meta-item-icon">
+            <i class="ri-book-open-line"></i>
+            <span class="post-meta-item-text"> Reading time≈</span>
+            <span class="post-count">20 min</span>
+        </span>
+    </span>
+</div>
+ 
+    </div>
+      
+    <div class="tocbot"></div>
+
+
+
+
+  
+    <div class="article-entry" itemprop="articleBody">
+       
+  <p>lab通关记录</p>
+<a href="/2024/03/08/MIT-6.828%E5%AE%9E%E9%AA%8C%E9%80%9A%E5%85%B3%E8%AE%B0%E5%BD%95/" title="MIT-6.828实验通关记录">MIT-6.828实验通关记录</a>
+
+<h2 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h2><p>上个实验我们使用内核创建了进程，但是并没有实现进程父子创建，调度，和通信。</p>
+<p>在本实验中，我们将实现多个进程之间的抢占式切换。</p>
+<p>在 A 部分，我们将为 JOS 添加多处理器支持，实现<strong>循环调度</strong>，并添加基本的环境管理系统调用（创建和销毁环境以及分配&#x2F;映射内存的调用）。同时实现了<strong>spinlock</strong>和<strong>sleep lock</strong></p>
+<p>在 B 部分，我们将实现一个类 Unix 的<strong>fork</strong>，它允许用户模式环境创建其自身的副本。</p>
+<p>在 C 部分，我们将添加对<strong>进程间通信</strong> (IPC) 的支持，允许不同的用户模式环境显式地相互通信和同步。您还将添加对硬件时钟中断和抢占的支持。</p>
+<span id="more"></span>
+
+<h2 id="入门"><a href="#入门" class="headerlink" title="入门"></a>入门</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$git</span> checkout lab4</span><br><span class="line"><span class="variable">$git</span> merge lab3</span><br></pre></td></tr></table></figure>
+
+<p>实验 4 包含许多新的源文件，您应该在开始之前浏览其中的一些：</p>
+<table>
+<thead>
+<tr>
+<th><code>kern/cpu.h</code></th>
+<th>多处理器支持的内核私有定义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>kern/mpconfig.c</code></td>
+<td>读取多处理器配置的代码</td>
+</tr>
+<tr>
+<td><code>kern/lapic.c</code></td>
+<td>驱动每个处理器中的LAPIC 单元的内核代码</td>
+</tr>
+<tr>
+<td><code>kern/mpentry.S</code></td>
+<td>非引导 CPU 的汇编语言入口代码</td>
+</tr>
+<tr>
+<td><code>kern/spinlock.h</code></td>
+<td>自旋锁的内核私有定义，包括大内核锁</td>
+</tr>
+<tr>
+<td><code>kern/spinlock.c</code></td>
+<td>实现自旋锁的内核代码</td>
+</tr>
+<tr>
+<td><code>kern/sched.c</code></td>
+<td>您将要实现的调度程序的代码框架</td>
+</tr>
+</tbody></table>
+<h1 id="A-部分：多处理器支持和协作多任务处理"><a href="#A-部分：多处理器支持和协作多任务处理" class="headerlink" title="A 部分：多处理器支持和协作多任务处理"></a>A 部分：多处理器支持和协作多任务处理</h1><h2 id="Exercise-1"><a href="#Exercise-1" class="headerlink" title="Exercise 1"></a>Exercise 1</h2><p>我们将让 JOS 支持“对称多处理”（SMP），这是一种多处理器模型，其中所有 CPU 对系统资源（如内存和 I&#x2F;O 总线）具有同等访问权限。尽管 SMP 中所有 CPU 的功能都相同，但在引导过程中它们可以分为两种类型：</p>
+<ol>
+<li>引导处理器 (BSP) 负责初始化系统和引导操作系统</li>
+<li>并且应用处理器（AP）只有在操作系统启动并运行后才被 BSP 激活。哪个处理器是 BSP 由硬件和 BIOS 决定。到目前为止，您现有的所有 JOS 代码都已在 BSP 上运行。</li>
+</ol>
+<p>在 SMP 系统中，每个 CPU 都有一个伴随的本地 APIC (LAPIC) 单元。LAPIC 单元负责在整个系统中<strong>传送中断</strong>。LAPIC 还为其连接的 CPU 提供唯一标识符。在本实验中，我们使用 LAPIC 单元（在<code>kern/lapic.c 中</code>）的以下基本功能：</p>
+<ul>
+<li>读取 LAPIC 标识符 (APIC ID) 以了解我们的代码当前正在哪个 CPU 上运行（请参阅 参考资料<code>cpunum()</code>）。</li>
+<li>发送<code>STARTUP</code>从BSP到的AP间中断（IPI）带来的其他CPU（见图 <code>lapic_startap()</code>）。</li>
+<li>在 C 部分，我们对 LAPIC 的内置计时器进行编程以触发时钟中断以支持抢占式多任务处理（请参阅 参考资料 <code>apic_init()</code>）。</li>
+</ul>
+<p>处理器使用内存映射 I&#x2F;O (MMIO) 访问其 LAPIC。在 MMIO 中，一部分<em>物理</em>内存硬连线到一些 I&#x2F;O 设备的寄存器，因此通常用于访问内存的相同加载&#x2F;存储指令可用于访问设备寄存器。您已经在物理地址<code>0xA0000</code>处看到了一个 IO 孔 （我们使用它来写入 VGA 显示缓冲区）。LAPIC 位于从物理地址<code>0xFE000000</code>（32MB 比 4GB 短）开始的一个洞中 ，所以它太高了，我们无法使用我们通常在 KERNBASE 的直接映射来访问。JOS 虚拟内存映射在<code>MMIOBASE</code>上留下了 4MB 的空白,所以我们需要有一个地方可以映射这样的设备。由于后面的实验会引入更多的 MMIO 区域，您将编写一个简单的函数来从该区域分配空间并将设备内存映射到它。</p>
+<p>kern&#x2F;lapic中到底什么是有用的</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">- 读取 LAPIC 标识符 (APIC ID) （lapic=mmio_map_region（...））以了解我们的代码当前正在哪个 CPU 上运行（请参阅 参考资料cpunum()）。</span><br><span class="line">- 发送STARTUP从BSP到的AP间中断（IPI）带来的其他CPU</span><br><span class="line">- 在 C 部分，我们对 LAPIC 的内置计时器进行编程以触发时钟中断以支持抢占式多任务处理</span><br></pre></td></tr></table></figure>
+
+<p>mmio_map_region</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> *</span><br><span class="line"><span class="title function_">mmio_map_region</span><span class="params">(<span class="type">physaddr_t</span> pa, <span class="type">size_t</span> size)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// 就像boot_alloc中的nextfree一样，base会在调用之间保存和迭代</span></span><br><span class="line">	<span class="type">static</span> <span class="type">uintptr_t</span> base = MMIOBASE;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 从物理内存[pa,pa+size)映射并分配到虚拟内存[base,base+size)。由于这是设备内存而不是常规的DRAM，所以你应该在页表的位进行“不安全”的设置：PTE_PCD|PTE_PWT(cache-disable and write-through)，添加到PTE_W上。</span></span><br><span class="line">	</span><br><span class="line">	<span class="comment">// Hint: The staff solution uses boot_map_region.</span></span><br><span class="line">	<span class="comment">//</span></span><br><span class="line">	<span class="comment">// Your code here:</span></span><br><span class="line">	<span class="comment">//我们的目的是对CPU进行映射，以便lapic能够被访问和传递中断，所以直接调用boot_map_region就好了</span></span><br><span class="line">	<span class="comment">//size对齐</span></span><br><span class="line">	size = ROUNUP(size+pa, PGSIZE);</span><br><span class="line">	size -= pa;</span><br><span class="line">	<span class="keyword">if</span> (base+size &gt;= MMIOLIM) panic(<span class="string">&quot;mmio_map_region : out of memory&quot;</span>);</span><br><span class="line">	boot_map_region(kern_pgdir, base, size, pa, PTE_PCD|PTE_PWT|PTE_W);</span><br><span class="line">	base += size;</span><br><span class="line">	<span class="keyword">return</span> (<span class="type">void</span>*) (base - size);<span class="comment">//lapic接受这个base</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>BSP到底干了啥：</p>
+<p>在启动 AP 之前，BSP 应首先收集有关多处理器系统的信息，例如 CPU 总数、它们的 APIC ID 和 LAPIC 单元的 MMIO 地址。<code>kern/mpconfig.c 中</code>的<code>mp_init()</code>函数 通过读取驻留在 BIOS 内存区域中的 MP 配置表来检索此信息。&#96;&#96;</p>
+<p>该<code>boot_aps()</code>函数（在<code>kern/init.c 中</code>）驱动 AP 引导程序。AP 以实模式启动，很像引导加载程序在<code>boot/boot.S</code>中<code>启动的方式</code>，因此<code>boot_aps()</code> 将 AP 入口代码 ( <code>kern/mpentry.S</code> )<code>复制</code>到可在实模式下寻址的内存位置。与引导加载程序不同，我们可以控制 AP 开始执行代码的位置；我们将入口代码复制到<code>0x7000</code> ( <code>MPENTRY_PADDR</code>)，但任何未使用的、页面对齐的低于 640KB 的物理地址都可以使用。</p>
+<p>之后<code>boot_aps()</code>，通过向<code>STARTUP</code>相应 AP 的 LAPIC 单元发送IPI 以及<code>CS:IP</code>AP 应开始运行其入口代码（<code>MPENTRY_PADDR</code>在我们的示例中）的初始地址，一个接一个地激活 AP 。<code>kern/mpentry.S 中</code>的入口代码与<code>boot/boot.S 中</code>的入口代码非常相似。经过一些简短的设置后，它会将 AP 置于启用分页的保护模式，然后调用 C 设置例程<code>mp_main()</code>（也在<code>kern/init.c 中</code>）。 在继续唤醒下一个之前，<code>boot_aps()</code>等待 AP<code>CPU_STARTED</code>在<code>cpu_status</code>其字段中发出标志信号 <code>struct CpuInfo</code>。</p>
+<h2 id="Exercise-2"><a href="#Exercise-2" class="headerlink" title="Exercise 2"></a>Exercise 2</h2><p><img src="https://bed1.oss-cn-beijing.aliyuncs.com/2021111993857.png">多CPU来完成多线程的实现：每个AP共享内核部分（比如代码，用户页表)，但是又有独有的栈和寄存器等内容。</p>
+<p>给出Cpu_Info</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">CpuInfo</span> &#123;</span></span><br><span class="line">	<span class="type">uint8_t</span> cpu_id;                 <span class="comment">// Local APIC ID; index into cpus[] below</span></span><br><span class="line">	<span class="keyword">volatile</span> <span class="type">unsigned</span> cpu_status;   <span class="comment">// The status of the CPU</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">Env</span> *<span class="title">cpu_env</span>;</span>            <span class="comment">// The currently-running environment.</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">Taskstate</span> <span class="title">cpu_ts</span>;</span>        <span class="comment">// Used by x86 to find stack for interrupt</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>给出AP需要关注的部分：</p>
+<p>在编写多处理器操作系统时，区分每个处理器私有的每个 CPU 状态和整个系统共享的全局状态很重要。 <code>kern/cpu.h</code>定义了大部分 per-CPU 状态，包括<code>struct CpuInfo</code>存储 per-CPU 变量的 。 <code>cpunum()</code>总是返回调用它的 CPU 的 ID，它可以用作数组的索引，如 <code>cpus</code>. 或者，该宏<code>thiscpu</code>是当前 CPU 的<code>struct CpuInfo</code>.</p>
+<p>以下是应该注意的每个 CPU 状态：</p>
+<ul>
+<li><p>每个<strong>CPU 内核堆栈</strong>。<br>每个处理器使用单独的内核堆栈，以防止它们干扰彼此的执行。该数组 <code>percpu_kstacks[NCPU][KSTKSIZE]</code>为 NCPU 的内核堆栈保留空间。</p>
+<p>将每个 CPU 的内核堆栈映射到该区域，保护页面充当它们之间的缓冲区。CPU 0 的堆栈仍将从<code>KSTACKTOP</code>; CPU 1 的堆栈将从<code>KSTKGAP</code>CPU 0 堆栈底部下方的字节开始，依此类推。<code>inc/memlayout.h</code>显示映射布局。</p>
+</li>
+<li><p><strong>每个CPU TSS 和 TSS 描述符</strong>。<br>每个 CPU 的任务状态段 (TSS) 也需要用于指定每个 CPU 的内核堆栈所在的位置。CPU <em>i</em>的 TSS存储在 中<code>cpus[i].cpu_ts</code>，相应的 TSS 描述符在 GDT 条目中定义<code>gdt[(GD_TSS0 &gt;&gt; 3) + i]</code>。<code>kern/trap.c 中ts</code>定义的全局变量将不再有用。</p>
+</li>
+<li><p><strong>每个 CPU 当前环境指针</strong>。<br>由于每个 CPU 可以同时运行不同的用户进程，我们重新定义了符号<code>curenv</code>来引用 <code>cpus[cpunum()].cpu_env</code>（或<code>thiscpu-&gt;cpu_env</code>），它指向<em>当前</em>在<em>当前</em>CPU（运行代码的 CPU）上执行 的环境。</p>
+</li>
+<li><p><strong>每个 CPU 系统寄存器</strong>。<br>所有寄存器，包括系统寄存器，都是 CPU 私有的。因此，初始化这些寄存器的指令，例如<code>lcr3()</code>， <code>ltr()</code>，<code>lgdt()</code>，<code>lidt()</code>等，必须进行一次各CPU上执行。函数<code>env_init_percpu()</code> 和<code>trap_init_percpu()</code>就是为此目的而定义的。</p>
+</li>
+</ul>
+<p>给出AP初始化的部分</p>
+<p>boot_aps()：</p>
+<ol>
+<li>分配空闲内存给CPU</li>
+<li>按时启动CPU</li>
+<li>给定CPU应该访问栈的位置mpentry</li>
+<li>等待基本设置</li>
+</ol>
+<p>mp_main()：</p>
+<ol>
+<li>为每个在函数里可见的CPU进行kern_pgdir来EIP的切换，并进行独有的lapic，进程，中断初始化</li>
+<li>调用sched_yield()</li>
+<li>当CPU准备好的时候执行进程（用户环境）</li>
+</ol>
+<p>AP 引导期间的控制流传输</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//对于SMP，我们的前面lab都是对这个CPU操作。</span></span><br><span class="line"><span class="comment">//对于AP，我们基本流程为boot_aps-&gt;mpentry.S-&gt;mp_main，</span></span><br><span class="line"><span class="comment">//对于每个AP，我们使用数组来存储cpu，针对每个cpu分配gdt，内存，特定的页表，栈，寄存器，来保证每个cpu陷入内核都是不一样的堆栈。然后我们分配完页表，并检查cpu state之后，我们会执行用户环境。</span></span><br></pre></td></tr></table></figure>
+
+<p>page_init()</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//由于base memroy中需要将MPENTRY_PADDR需要将符合的部分use，所以在修改这部分代码</span></span><br><span class="line"><span class="keyword">if</span>(i == MPENTRY_PADDR / PGSIZE)&#123;</span><br><span class="line">	pages[i].pp_ref = <span class="number">1</span>;</span><br><span class="line">	pages[i].pp_link = <span class="literal">NULL</span>:</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>题</strong></p>
+<ol>
+<li>将<code>kern/mpentry.S</code>与 <code>boot/boot.S 并排比较</code>。记住<code>kern/mpentry.S</code> 被编译并链接到上面运行，<code>KERNBASE</code>就像内核中的其他东西一样，宏的目的是 <code>MPBOOTPHYS</code>什么？为什么需要在<code>kern/mpentry.S 中</code>而不是在 <code>boot/boot.S 中</code>？换句话说，如果在<code>kern/mpentry.S</code>中省略它会出什么问题？<br>提示：回忆一下我们在实验 1 中讨论过的链接地址和加载地址之间的区别。</li>
+</ol>
+<p>和boot.S区别</p>
+<p>1.不开启A20来进入保护模式</p>
+<p>2.不通过linker进行符号表的加载，而是通过.code16来保证实模式下，MPBOOTPHS来计算加载地址</p>
+<p>那么省略到底会有什么问题？首先是加载地址会被转换，而不通过宏，就会被linker加载到高地址，而不是低地址（boot时候进入A20保护模式已经有了一个简单的页表来映射到高地址）。</p>
+<h2 id="Exercise-3"><a href="#Exercise-3" class="headerlink" title="Exercise 3"></a>Exercise 3</h2><p>根据exercise2的理解，可以按照memlayout.h来写出代码</p>
+<p>mem_init_mp()</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">void</span></span><br><span class="line"><span class="title function_">mem_init_mp</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// 从 KSTACKTOP SMP顶开始向下映射每个cpu的内核栈：for &#x27;NCPU&#x27; CPUs.</span></span><br><span class="line">	<span class="comment">//</span></span><br><span class="line">	<span class="comment">// 我们对每个CPU从0开始，但是从顶KSTACKTOP向下映射，同时每个栈分成实际部分和缓冲区，来保证“guard”，因此percpu_kstacks[i] 是内核栈的va我们使用宏转换为pa， 想要映射的部分顶是 KSTACKTOP - i * (KSTKSIZE + KSTKGAP)，权限是内核RW：PTE_W</span></span><br><span class="line">	<span class="comment">// mem_init:</span></span><br><span class="line">	<span class="comment">//     * [kstacktop_i - KSTKSIZE, kstacktop_i)</span></span><br><span class="line">	<span class="comment">//          -- backed by physical memory</span></span><br><span class="line">	<span class="comment">//     * [kstacktop_i - (KSTKSIZE + KSTKGAP), kstacktop_i - KSTKSIZE)</span></span><br><span class="line">	<span class="comment">//          -- not backed; so if the kernel overflows its stack,</span></span><br><span class="line">	<span class="comment">//             it will fault rather than overwrite another CPU&#x27;s stack.</span></span><br><span class="line">	<span class="comment">//             Known as a &quot;guard page&quot;.</span></span><br><span class="line">	<span class="comment">//     Permissions: kernel RW, user NONE</span></span><br><span class="line">	<span class="comment">//</span></span><br><span class="line">	<span class="comment">// LAB 4: Your code here:</span></span><br><span class="line">	<span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; NCPU; i++) &#123;</span><br><span class="line">		boot_map_region(kern_pgdir, KSTACKTOP - KSTKSIZE - i * (KSTKSIZE + KSTKGAP), KSTKSIZE, PADDR(percpu_kstacks[i]), PTE_W);<span class="comment">//这里的va最为0号不必有gap，否则会报错</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="Exercise-4"><a href="#Exercise-4" class="headerlink" title="Exercise 4"></a>Exercise 4</h2><p><code>trap_init_percpu()</code> ( <code>kern/trap.c</code> ) 中 的代码初始化 BSP 的 TSS 和 TSS 描述符。它在实验 3 中工作，但在其他 CPU 上运行时不正确。更改代码，使其可以在所有 CPU 上运行。（注意：您的新代码不应再使用全局 <code>ts</code>变量。）</p>
+<p>完成上述练习后，在带有 4 个 CPU 的 QEMU 中使用make qemu CPUS&#x3D;4(或make qemu-nox CPUS&#x3D;4)运行 JOS ，您应该看到如下输出：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">...</span><br><span class="line">物理内存：<span class="number">66556</span>K 可用，base = <span class="number">640</span>K，extended = <span class="number">65532</span>K </span><br><span class="line">check_page_alloc() 成功！</span><br><span class="line">check_page() 成功！</span><br><span class="line">check_kern_pgdir() 成功！</span><br><span class="line">check_page_installed_pgdir() 成功！</span><br><span class="line">SMP：CPU <span class="number">0</span> 发现 <span class="number">4</span> 个 CPU</span><br><span class="line">启用中断：<span class="number">1</span> <span class="number">2</span> </span><br><span class="line">SMP：CPU <span class="number">1</span> 启动</span><br><span class="line">SMP：CPU <span class="number">2</span> 启动</span><br><span class="line">SMP：CPU <span class="number">3</span> 启动</span><br></pre></td></tr></table></figure>
+
+<p>对于gdt简单总结：gdt存放了cpu的Taskstate里的tss，而用户环境则通过CPUInfo里的env指针来找到，tss顺序存放，而不是linux初版本的那样LDT和TSS成对顺序存放</p>
+<p>trap_init_percpu()</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="type">int</span> i = thiscpu-&gt;cpu_id;</span><br><span class="line">	<span class="comment">// Setup a TSS so that we get the right stack</span></span><br><span class="line">	<span class="comment">// when we trap to the kernel.</span></span><br><span class="line">	<span class="comment">// 对cpu的特定修改</span></span><br><span class="line">	thiscpu-&gt;cpu_ts.ts_esp0 = KSTACKTOP - i * (KSTKSIZE + KSTKGAP);</span><br><span class="line">	thiscpu-&gt;cpu_ts.ts_ss0 = GD_KD;</span><br><span class="line">	thiscpu-&gt;cpu_ts.ts_iomb = <span class="keyword">sizeof</span>(<span class="keyword">struct</span> Taskstate);</span><br><span class="line">	</span><br><span class="line">	<span class="comment">// Initialize the TSS slot of the gdt.</span></span><br><span class="line">	<span class="comment">//对于gdt也要修改，</span></span><br><span class="line">	gdt[(GD_TSS0 &gt;&gt; <span class="number">3</span>)+i] = SEG16(STS_T32A, (<span class="type">uint32_t</span>) (&amp;(thiscpu-&gt;cpu_ts)),</span><br><span class="line">					<span class="keyword">sizeof</span>(<span class="keyword">struct</span> Taskstate)<span class="number">-1</span>, <span class="number">0</span>);</span><br><span class="line">	gdt[(GD_TSS0 &gt;&gt; <span class="number">3</span>)+i].sd_s = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Load the TSS selector (like other segment selectors, the</span></span><br><span class="line">	<span class="comment">// bottom three bits are special; we leave them 0)</span></span><br><span class="line">	<span class="comment">// 加载tss选择子来找到描述符，否则会报错。。。</span></span><br><span class="line">	<span class="comment">// 其中：我们往后加载时会将tss slector &gt;&gt; 3来忽略3bits作为索引，因此前后都要修改初始化的值确保最终加载正确</span></span><br><span class="line">	ltr(GD_TSS0+(i &lt;&lt; <span class="number">3</span>));</span><br></pre></td></tr></table></figure>
+
+<h2 id="Exercise-5"><a href="#Exercise-5" class="headerlink" title="Exercise 5"></a>Exercise 5</h2><p>我们知道通过多CPU来完成多线程，但是由于大内核锁，因此内核线程切换都是用户环境下才能进行切换。若此而言，一个进程可以约等于一个线程。当我们切换进程时，仍然在同一个线程（内核独有部分不变）。</p>
+<p><code>kern/spinlock.h</code>声明了大内核锁，即 <code>kernel_lock</code>. 它还提供<code>lock_kernel()</code> 和<code>unlock_kernel()</code>，获取和释放锁的快捷方式。您应该在四个位置应用大内核锁：</p>
+<ul>
+<li>在 中<code>i386_init()</code>，在 BSP 唤醒其他 CPU 之前获取锁。</li>
+<li>中<code>mp_main()</code>，初始化AP后获取锁，然后调用<code>sched_yield()</code>在该AP上启动运行环境。</li>
+<li>在<code>trap()</code>，从用户模式被困时获取锁。要确定陷阱发生在用户模式还是内核模式，请检查<code>tf_cs</code>.</li>
+<li>在 中<code>env_run()</code>，<em>在</em> 切换到用户模式<em>之前</em>释放锁定。不要太早或太晚这样做，否则你会遇到竞争或僵局。给出锁的实现代码：jos现在并没有实现sleep（协调）</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//我们将要插入代码原型</span></span><br><span class="line"><span class="type">static</span> <span class="keyword">inline</span> <span class="type">void</span> <span class="title function_">lock_kernel</span><span class="params">(<span class="type">void</span>)</span>;</span><br><span class="line"><span class="type">static</span> <span class="keyword">inline</span> <span class="type">void</span> <span class="title function_">unlock_kernel</span><span class="params">(<span class="type">void</span>)</span>;</span><br><span class="line"><span class="comment">//实际上是调用 了spin_lock(&amp;kernel_lock)，给出关键代码实现xchg</span></span><br><span class="line"><span class="comment">//加锁</span></span><br><span class="line"><span class="keyword">while</span> (xchg(&amp;lk-&gt;locked, <span class="number">1</span>) != <span class="number">0</span>)</span><br><span class="line">		<span class="keyword">asm</span> <span class="title function_">volatile</span> <span class="params">(<span class="string">&quot;pause&quot;</span>)</span>;</span><br><span class="line"><span class="comment">//解锁</span></span><br><span class="line">xchg(&amp;lk-&gt;locked, <span class="number">0</span>);</span><br></pre></td></tr></table></figure>
+
+<p>上面的说明很清楚，这里省略代码粘贴</p>
+<p><strong>题</strong></p>
+<ol>
+<li>似乎使用大内核锁可以保证一次只有一个 CPU 可以运行内核代码。为什么我们仍然需要为每个 CPU 使用单独的内核堆栈？描述一个使用共享内核堆栈会出错的场景，即使有大内核锁的保护。</li>
+</ol>
+<p>在trapentry.S中，锁之前就压入了部分寄存器，所以如果共享堆栈，另一个CPU抢占使用就会破坏这部分。</p>
+<h2 id="Exercise-6"><a href="#Exercise-6" class="headerlink" title="Exercise 6"></a>Exercise 6</h2><p>实现循环调度：env数组中选择一个合适的新环境，进行修改状态，然后调度切换</p>
+<p>运行make qemu。在终止之前，您应该看到环境在彼此之间来回切换五次，如下所示。</p>
+<p>还使用多个 CPU 进行测试：make qemu CPUS&#x3D;2.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">...</span><br><span class="line">您好，我是环境 <span class="number">00001000</span>。</span><br><span class="line">您好，我是环境 <span class="number">00001001</span>。</span><br><span class="line">您好，我是环境 <span class="number">00001002</span>。</span><br><span class="line">返回环境 <span class="number">00001000</span>，迭代 <span class="number">0</span>。</span><br><span class="line">返回环境 <span class="number">00001001</span>，迭代 <span class="number">0</span>。</span><br><span class="line">返回环境 <span class="number">00001002</span>，迭代 <span class="number">0</span> </span><br><span class="line">。环境 <span class="number">00001000</span>，迭代 <span class="number">1</span>。</span><br><span class="line">回到环境 <span class="number">00001001</span>，迭代 <span class="number">1</span>。</span><br><span class="line">回到环境 <span class="number">00001002</span>，迭代 <span class="number">1</span> </span><br><span class="line">。...</span><br></pre></td></tr></table></figure>
+
+<p>sched_yield()</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> cur = <span class="number">0</span>;</span><br><span class="line"><span class="keyword">if</span>(curenv)  cur = ENVX(curenv-&gt;env_id);<span class="comment">//这里的curenv无判断即会kernel page fault，原因是env_id不存在，于是内核中断尝试寻找相应的映射，我们的策略应该是从0开始找可运行的进程</span></span><br><span class="line"><span class="keyword">for</span>(<span class="type">int</span> i = <span class="number">0</span>; i &lt; NENV; i++)&#123;</span><br><span class="line">	<span class="type">int</span> j = (i + cur) % NENV;</span><br><span class="line">	<span class="keyword">if</span>(envs[j].env_status == RUNNABLE)&#123;</span><br><span class="line">		env_run(&amp;envs[j]);</span><br><span class="line">		<span class="keyword">break</span>;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">if</span>(curenv &amp;&amp; curenv-&gt;env_status == RUNNING)env_run(curenv);</span><br></pre></td></tr></table></figure>
+
+<p><strong>题</strong></p>
+<ol>
+<li>我们的<code>env_run()</code>调用<code>lcr3()</code>. 在调用之前和之后 <code>lcr3()</code>，您的代码会引用e。加载<code>%cr3</code>寄存器后，MMU 使用的寻址上下文会立即更改。为什么指针<code>e</code>在寻址切换之前和之后都可以解引用？</li>
+</ol>
+<p>e是thiscpu_curenv，对于内核来说不过是对于envs数组的引用。因此kern_pgdir和env_pgdir映射是一样的，实际上编写env_pgdir就是以前者为模板。</p>
+<ol start="2">
+<li>每当内核从一种环境切换到另一种环境时，它必须确保旧环境的寄存器得到保存，以便以后可以正确恢复。为什么？这是在哪里发生的？</li>
+</ol>
+<p>trapframe，在环境进入中断时压入寄存器，在trap从内核栈保存入tf，在env_run前pop_tf来读取然后进入新环境。</p>
+<h2 id="Exercise-7"><a href="#Exercise-7" class="headerlink" title="Exercise 7"></a>Exercise 7</h2><p>创造系统调用来使用户能够创建进程，而不是不同CPU下内核里创建env，善用kern&#x2F;env.c中的函数envid2env()，它额外会进行必要检查</p>
+<ol>
+<li>sys_exofork()：创建子进程，不进行映射，但寄存器复制，使用id和0返回值来区分父子</li>
+<li>sys_env_set_status：设置进程状态为ENV_RUNNABLE或ENV_NOT_RUNNABLE。</li>
+<li>sys_page_alloc：为进程分配物理页</li>
+<li>sys_page_map：拷贝页表来共享映射内存</li>
+<li>sys_page_unmap：释放页面映射</li>
+</ol>
+<p>sys_exofork(void)：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">envid_t</span></span><br><span class="line"><span class="title function_">sys_exofork</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// Create the new environment with env_alloc(), from kern/env.c.</span></span><br><span class="line">	<span class="comment">// It should be left as env_alloc created it, except that</span></span><br><span class="line">	<span class="comment">// status is set to ENV_NOT_RUNNABLE, and the register set is copied</span></span><br><span class="line">	<span class="comment">// from the current environment -- but tweaked so sys_exofork</span></span><br><span class="line">	<span class="comment">// will appear to return 0.</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// LAB 4: Your code here.</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">Env</span> *<span class="title">e</span>;</span></span><br><span class="line">	<span class="type">int</span> ret = env_alloc(&amp;e, curenv-&gt;env_id);    </span><br><span class="line">	<span class="keyword">if</span> (ret &lt; <span class="number">0</span>) &#123;<span class="comment">//bad env_alloc</span></span><br><span class="line">		<span class="keyword">return</span> ret;</span><br><span class="line">	&#125;</span><br><span class="line">	e-&gt;env_tf = curenv-&gt;env_tf;			</span><br><span class="line">	e-&gt;env_status = ENV_NOT_RUNNABLE;   </span><br><span class="line">	e-&gt;env_tf.tf_regs.reg_eax = <span class="number">0</span>;		</span><br><span class="line">	<span class="keyword">return</span> e-&gt;env_id;</span><br><span class="line">	<span class="comment">//返回user-mode时候pop_tf，父进程返回trap_dispatch后eax设置为id,但是子进程通过env_run才从中断返回，所以eax为0</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>sys_env_set_status(envid_t envid, int status):</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span></span><br><span class="line"><span class="title function_">sys_env_set_status</span><span class="params">(<span class="type">envid_t</span> envid, <span class="type">int</span> status)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// Hint: Use the &#x27;envid2env&#x27; function from kern/env.c to translate an</span></span><br><span class="line">	<span class="comment">// envid to a struct Env.</span></span><br><span class="line">	<span class="comment">// You should set envid2env&#x27;s third argument to 1, which will</span></span><br><span class="line">	<span class="comment">// check whether the current environment has permission to set</span></span><br><span class="line">	<span class="comment">// envid&#x27;s status.</span></span><br><span class="line">	<span class="keyword">if</span> (status != ENV_NOT_RUNNABLE &amp;&amp; status != ENV_RUNNABLE) <span class="keyword">return</span> -E_INVAL;</span><br><span class="line"></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">Env</span> *<span class="title">e</span>;</span></span><br><span class="line">	<span class="type">int</span> ret = envid2env(envid, &amp;e, <span class="number">1</span>);</span><br><span class="line">	<span class="keyword">if</span> (ret &lt; <span class="number">0</span>) &#123;</span><br><span class="line">		<span class="keyword">return</span> ret;</span><br><span class="line">	&#125;</span><br><span class="line">	e-&gt;env_status = status;</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>sys_page_alloc(envid_t envid, void *va, int perm):</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span></span><br><span class="line"><span class="title function_">sys_page_alloc</span><span class="params">(<span class="type">envid_t</span> envid, <span class="type">void</span> *va, <span class="type">int</span> perm)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// Hint: This function is a wrapper around page_alloc() and</span></span><br><span class="line">	<span class="comment">//   page_insert() from kern/pmap.c.</span></span><br><span class="line">	<span class="comment">//   Most of the new code you write should be to check the</span></span><br><span class="line">	<span class="comment">//   parameters for correctness.</span></span><br><span class="line">	<span class="comment">//   If page_insert() fails, remember to free the page you</span></span><br><span class="line">	<span class="comment">//   allocated!</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// LAB 4: Your code here.</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">Env</span> *<span class="title">e</span>;</span> 									</span><br><span class="line">	<span class="type">int</span> ret = envid2env(envid, &amp;e, <span class="number">1</span>);</span><br><span class="line">	<span class="keyword">if</span> (ret) <span class="keyword">return</span> ret;	<span class="comment">//bad_env</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> ((va &gt;= (<span class="type">void</span>*)UTOP) || (ROUNDDOWN(va, PGSIZE) != va)) <span class="keyword">return</span> -E_INVAL;		</span><br><span class="line">	<span class="type">int</span> flag = PTE_U | PTE_P;</span><br><span class="line">	<span class="keyword">if</span> ((perm &amp; flag) != flag) <span class="keyword">return</span> -E_INVAL;</span><br><span class="line"></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">PageInfo</span> *<span class="title">pg</span> =</span> page_alloc(<span class="number">1</span>);			</span><br><span class="line">	<span class="keyword">if</span> (!pg) <span class="keyword">return</span> -E_NO_MEM;</span><br><span class="line">	ret = page_insert(e-&gt;env_pgdir, pg, va, perm);	</span><br><span class="line">	<span class="keyword">if</span> (ret) &#123;</span><br><span class="line">		page_free(pg);</span><br><span class="line">		<span class="keyword">return</span> ret;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>sys_page_map(envid_t srcenvid, void *srcva,envid_t dstenvid, void *dstva, int perm):</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span></span><br><span class="line"><span class="title function_">sys_page_map</span><span class="params">(<span class="type">envid_t</span> srcenvid, <span class="type">void</span> *srcva,</span></span><br><span class="line"><span class="params">	     <span class="type">envid_t</span> dstenvid, <span class="type">void</span> *dstva, <span class="type">int</span> perm)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// Hint: This function is a wrapper around page_lookup() and</span></span><br><span class="line">	<span class="comment">//   page_insert() from kern/pmap.c.</span></span><br><span class="line">	<span class="comment">//   Again, most of the new code you write should be to check the</span></span><br><span class="line">	<span class="comment">//   parameters for correctness.</span></span><br><span class="line">	<span class="comment">//   Use the third argument to page_lookup() to</span></span><br><span class="line">	<span class="comment">//   check the current permissions on the page.</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// LAB 4: Your code here.</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">Env</span> *<span class="title">se</span>, *<span class="title">de</span>;</span></span><br><span class="line">	<span class="type">int</span> ret = envid2env(srcenvid, &amp;se, <span class="number">1</span>);</span><br><span class="line">	<span class="keyword">if</span> (ret) <span class="keyword">return</span> ret;	<span class="comment">//bad_env</span></span><br><span class="line">	ret = envid2env(dstenvid, &amp;de, <span class="number">1</span>);</span><br><span class="line">	<span class="keyword">if</span> (ret) <span class="keyword">return</span> ret;	<span class="comment">//bad_env</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">//	-E_INVAL if srcva &gt;= UTOP or srcva is not page-aligned,</span></span><br><span class="line">	<span class="comment">//		or dstva &gt;= UTOP or dstva is not page-aligned.</span></span><br><span class="line">	<span class="keyword">if</span> (srcva &gt;= (<span class="type">void</span>*)UTOP || dstva &gt;= (<span class="type">void</span>*)UTOP || </span><br><span class="line">		ROUNDDOWN(srcva,PGSIZE) != srcva || ROUNDDOWN(dstva,PGSIZE) != dstva) </span><br><span class="line">		<span class="keyword">return</span> -E_INVAL;</span><br><span class="line"></span><br><span class="line">	<span class="comment">//	-E_INVAL is srcva is not mapped in srcenvid&#x27;s address space.</span></span><br><span class="line">	<span class="type">pte_t</span> *pte;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">PageInfo</span> *<span class="title">pg</span> =</span> page_lookup(se-&gt;env_pgdir, srcva, &amp;pte);</span><br><span class="line">	<span class="keyword">if</span> (!pg) <span class="keyword">return</span> -E_INVAL;</span><br><span class="line"></span><br><span class="line">	<span class="comment">//	-E_INVAL if perm is inappropriate (see sys_page_alloc).</span></span><br><span class="line">	<span class="type">int</span> flag = PTE_U|PTE_P;</span><br><span class="line">	<span class="keyword">if</span> ((perm &amp; flag) != flag) <span class="keyword">return</span> -E_INVAL;</span><br><span class="line"></span><br><span class="line">	<span class="comment">//	-E_INVAL if (perm &amp; PTE_W), but srcva is read-only in srcenvid&#x27;s</span></span><br><span class="line">	<span class="comment">//		address space.</span></span><br><span class="line">	<span class="keyword">if</span> (((*pte&amp;PTE_W) == <span class="number">0</span>) &amp;&amp; (perm&amp;PTE_W)) <span class="keyword">return</span> -E_INVAL;</span><br><span class="line"></span><br><span class="line">	<span class="comment">//	-E_NO_MEM if there&#x27;s no memory to allocate any necessary page tables.</span></span><br><span class="line">	ret = page_insert(de-&gt;env_pgdir, pg, dstva, perm);</span><br><span class="line">	<span class="keyword">return</span> ret;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>sys_page_unmap(envid_t envid, void *va):</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span></span><br><span class="line"><span class="title function_">sys_page_unmap</span><span class="params">(<span class="type">envid_t</span> envid, <span class="type">void</span> *va)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// Hint: This function is a wrapper around page_remove().</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// LAB 4: Your code here.</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">Env</span> *<span class="title">env</span>;</span></span><br><span class="line">	<span class="type">int</span> ret = envid2env(envid, &amp;env, <span class="number">1</span>);</span><br><span class="line">	<span class="keyword">if</span> (ret) <span class="keyword">return</span> ret;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> ((va &gt;= (<span class="type">void</span>*)UTOP) || (ROUNDDOWN(va, PGSIZE) != va)) <span class="keyword">return</span> -E_INVAL;</span><br><span class="line">	page_remove(env-&gt;env_pgdir, va);</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<a href="/2024/03/08/lab4%EF%BC%9APartB/" title="lab4：PartB">lab4：PartB</a> 
+      <!-- reward -->
+      
+      <div id="reword-out">
+        <div id="reward-btn">
+          Donate
+        </div>
+      </div>
+      
+    </div>
+    
+
+    <!-- copyright -->
+    
+    <div class="declare">
+      <ul class="post-copyright">
+        <li>
+          <i class="ri-copyright-line"></i>
+          <strong>Copyright： </strong>
+          Copyright is owned by the author. For commercial reprints, please contact the author for authorization. For non-commercial reprints, please indicate the source.
+        </li>
+      </ul>
+    </div>
+    
+    <footer class="article-footer">
+       
+<div class="share-btn">
+      <span class="share-sns share-outer">
+        <i class="ri-share-forward-line"></i>
+        分享
+      </span>
+      <div class="share-wrap">
+        <i class="arrow"></i>
+        <div class="share-icons">
+          
+          <a class="weibo share-sns" href="javascript:;" data-type="weibo">
+            <i class="ri-weibo-fill"></i>
+          </a>
+          <a class="weixin share-sns wxFab" href="javascript:;" data-type="weixin">
+            <i class="ri-wechat-fill"></i>
+          </a>
+          <a class="qq share-sns" href="javascript:;" data-type="qq">
+            <i class="ri-qq-fill"></i>
+          </a>
+          <a class="douban share-sns" href="javascript:;" data-type="douban">
+            <i class="ri-douban-line"></i>
+          </a>
+          <!-- <a class="qzone share-sns" href="javascript:;" data-type="qzone">
+            <i class="icon icon-qzone"></i>
+          </a> -->
+          
+          <a class="facebook share-sns" href="javascript:;" data-type="facebook">
+            <i class="ri-facebook-circle-fill"></i>
+          </a>
+          <a class="twitter share-sns" href="javascript:;" data-type="twitter">
+            <i class="ri-twitter-fill"></i>
+          </a>
+          <a class="google share-sns" href="javascript:;" data-type="google">
+            <i class="ri-google-fill"></i>
+          </a>
+        </div>
+      </div>
+</div>
+
+<div class="wx-share-modal">
+    <a class="modal-close" href="javascript:;"><i class="ri-close-circle-line"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <div class="wx-qrcode">
+      <img src="//api.qrserver.com/v1/create-qr-code/?size=150x150&data=http://sakura-mac.github.io/2024/03/08/lab4%EF%BC%9APartA/" alt="微信分享二维码">
+    </div>
+</div>
+
+<div id="share-mask"></div>  
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Mit-6-828/" rel="tag">Mit-6.828</a></li></ul>
+
+    </footer>
+  </div>
+
+   
+  <nav class="article-nav">
+    
+      <a href="/2024/03/08/lab4%EF%BC%9APartB/" class="article-nav-link">
+        <strong class="article-nav-caption">上一篇</strong>
+        <div class="article-nav-title">
+          
+            lab4：PartB
+          
+        </div>
+      </a>
+    
+    
+      <a href="/2024/03/08/lab3%EF%BC%9APartB/" class="article-nav-link">
+        <strong class="article-nav-caption">下一篇</strong>
+        <div class="article-nav-title">lab3：PartB</div>
+      </a>
+    
+  </nav>
+
+   
+<!-- valine评论 -->
+<div id="vcomments-box">
+  <div id="vcomments"></div>
+</div>
+<script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/valine@1.4.14/dist/Valine.min.js"></script>
+<script>
+  new Valine({
+    el: "#vcomments",
+    app_id: "bbzBMY2PHFRlbkSCorlYCrRX-gzGzoHsz",
+    app_key: "NMnT9uDCzg2rW4ckm0fpSm5y",
+    path: window.location.pathname,
+    avatar: "monsterid",
+    placeholder: "请留下你此刻脑海中的想法~",
+    recordIP: true,
+  });
+  const infoEle = document.querySelector("#vcomments .info");
+  if (infoEle && infoEle.childNodes && infoEle.childNodes.length > 0) {
+    infoEle.childNodes.forEach(function (item) {
+      item.parentNode.removeChild(item);
+    });
+  }
+</script>
+<style>
+  #vcomments-box {
+    padding: 5px 30px;
+  }
+
+  @media screen and (max-width: 800px) {
+    #vcomments-box {
+      padding: 5px 0px;
+    }
+  }
+
+  #vcomments-box #vcomments {
+    background-color: #fff;
+  }
+
+  .v .vlist .vcard .vh {
+    padding-right: 20px;
+  }
+
+  .v .vlist .vcard {
+    padding-left: 10px;
+  }
+</style>
+
+ 
+     
+</article>
+
+</section>
+      <footer class="footer">
+  <div class="outer">
+    <ul>
+      <li>
+        Copyrights &copy;
+        2020-2024
+        <i class="ri-heart-fill heart_icon"></i> 环烷烃
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        
+        Powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+        <span class="division">|</span>
+        Theme - <a href="https://github.com/Shen-Yu/hexo-theme-ayer" target="_blank">Ayer</a>
+        
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        <span>
+  <span><i class="ri-user-3-fill"></i>Visitors:<span id="busuanzi_value_site_uv"></span></s>
+  <span class="division">|</span>
+  <span><i class="ri-eye-fill"></i>Views:<span id="busuanzi_value_page_pv"></span></span>
+</span>
+        
+      </li>
+    </ul>
+    <ul>
+      
+    </ul>
+    <ul>
+      <li>
+        <!-- cnzz统计 -->
+        
+        <script type="text/javascript" src='https://s9.cnzz.com/z_stat.php?id=1278069914&amp;web_id=1278069914'></script>
+        
+      </li>
+    </ul>
+  </div>
+</footer>
+      <div class="float_btns">
+        <div class="totop" id="totop">
+  <i class="ri-arrow-up-line"></i>
+</div>
+
+      </div>
+    </main>
+    <aside class="sidebar on">
+      <button class="navbar-toggle"></button>
+<nav class="navbar">
+  
+  <div class="logo">
+    <a href="/"><img src="/images/ayer-side.jpg" alt="海猫栖息地"></a>
+  </div>
+  
+  <ul class="nav nav-main">
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/">主页</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/archives">归档</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/tags">标签</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/player/">播放器</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/about">关于我</a>
+    </li>
+    
+  </ul>
+</nav>
+<nav class="navbar navbar-bottom">
+  <ul class="nav">
+    <li class="nav-item">
+      
+      <a class="nav-item-link nav-item-search"  title="Search">
+        <i class="ri-search-line"></i>
+      </a>
+      
+      
+      <a class="nav-item-link" target="_blank" href="/atom.xml" title="RSS Feed">
+        <i class="ri-rss-line"></i>
+      </a>
+      
+    </li>
+  </ul>
+</nav>
+<div class="search-form-wrap">
+  <div class="local-search local-search-plugin">
+  <input type="search" id="local-search-input" class="local-search-input" placeholder="Search...">
+  <div id="local-search-result" class="local-search-result"></div>
+</div>
+</div>
+
+    </aside>
+    <script>
+      if (window.matchMedia("(max-width: 768px)").matches) {
+        document.querySelector('.content').classList.remove('on');
+        document.querySelector('.sidebar').classList.remove('on');
+      }
+    </script>
+    <div id="mask"></div>
+
+<!-- #reward -->
+<div id="reward">
+  <span class="close"><i class="ri-close-line"></i></span>
+  <p class="reward-p"><i class="ri-cup-line"></i>我很可爱，请我喝一瓶怡宝吧~</p>
+  <div class="reward-box">
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/alipay.jpg">
+      <span class="reward-type">支付宝</span>
+    </div>
+    
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/wechat.jpg">
+      <span class="reward-type">微信</span>
+    </div>
+    
+  </div>
+</div>
+    
+<script src="/js/jquery-2.0.3.min.js"></script>
+
+
+<script src="/js/lazyload.min.js"></script>
+
+<!-- Tocbot -->
+
+
+<script src="/js/tocbot.min.js"></script>
+
+<script>
+  tocbot.init({
+    tocSelector: '.tocbot',
+    contentSelector: '.article-entry',
+    headingSelector: 'h1, h2, h3, h4, h5, h6',
+    hasInnerContainers: true,
+    scrollSmooth: true,
+    scrollContainer: 'main',
+    positionFixedSelector: '.tocbot',
+    positionFixedClass: 'is-position-fixed',
+    fixedSidebarOffset: 'auto'
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.css">
+<script src="https://cdn.jsdelivr.net/npm/justifiedGallery@3.7.0/dist/js/jquery.justifiedGallery.min.js"></script>
+
+<script src="/dist/main.js"></script>
+
+<!-- ImageViewer -->
+
+<!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" style="display:none" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css">
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"></script>
+
+<script>
+    function viewer_init() {
+        let pswpElement = document.querySelectorAll('.pswp')[0];
+        let $imgArr = document.querySelectorAll(('.article-entry img:not(.reward-img)'))
+
+        $imgArr.forEach(($em, i) => {
+            $em.onclick = () => {
+                // slider展开状态
+                // todo: 这样不好，后面改成状态
+                if (document.querySelector('.left-col.show')) return
+                let items = []
+                $imgArr.forEach(($em2, i2) => {
+                    let img = $em2.getAttribute('data-idx', i2)
+                    let src = $em2.getAttribute('data-target') || $em2.getAttribute('src')
+                    let title = $em2.getAttribute('alt')
+                    // 获得原图尺寸
+                    const image = new Image()
+                    image.src = src
+                    items.push({
+                        src: src,
+                        w: image.width || $em2.width,
+                        h: image.height || $em2.height,
+                        title: title
+                    })
+                })
+                var gallery = new PhotoSwipe(pswpElement, PhotoSwipeUI_Default, items, {
+                    index: parseInt(i)
+                });
+                gallery.init()
+            }
+        })
+    }
+    viewer_init()
+</script>
+
+<!-- MathJax -->
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+      tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+  });
+
+  MathJax.Hub.Queue(function() {
+      var all = MathJax.Hub.getAllJax(), i;
+      for(i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+      }
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.6/unpacked/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<script>
+  var ayerConfig = {
+    mathjax: true
+  }
+</script>
+
+<!-- Katex -->
+
+<!-- busuanzi  -->
+
+
+<script src="/js/busuanzi-2.3.pure.min.js"></script>
+
+
+<!-- ClickLove -->
+
+<!-- ClickBoom1 -->
+
+<script src="https://cdn.jsdelivr.net/npm/animejs@latest/anime.min.js"></script>
+
+<script src="/js/clickBoom1.js"></script>
+
+
+<!-- ClickBoom2 -->
+
+<!-- CodeCopy -->
+
+
+<link rel="stylesheet" href="/css/clipboard.css">
+
+<script src="https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js"></script>
+<script>
+  function wait(callback, seconds) {
+    var timelag = null;
+    timelag = window.setTimeout(callback, seconds);
+  }
+  !function (e, t, a) {
+    var initCopyCode = function(){
+      var copyHtml = '';
+      copyHtml += '<button class="btn-copy" data-clipboard-snippet="">';
+      copyHtml += '<i class="ri-file-copy-2-line"></i><span>COPY</span>';
+      copyHtml += '</button>';
+      $(".highlight .code pre").before(copyHtml);
+      $(".article pre code").before(copyHtml);
+      var clipboard = new ClipboardJS('.btn-copy', {
+        target: function(trigger) {
+          return trigger.nextElementSibling;
+        }
+      });
+      clipboard.on('success', function(e) {
+        let $btn = $(e.trigger);
+        $btn.addClass('copied');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-checkbox-circle-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPIED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-checkbox-circle-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+      clipboard.on('error', function(e) {
+        e.clearSelection();
+        let $btn = $(e.trigger);
+        $btn.addClass('copy-failed');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-time-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPY FAILED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-time-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+    }
+    initCopyCode();
+  }(window, document);
+</script>
+
+
+<!-- CanvasBackground -->
+
+
+    
+  </div>
+<script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginRootPath":"live2dw/","pluginJsPath":"lib/","pluginModelPath":"assets/","tagMode":false,"debug":false,"model":{"jsonPath":"/live2dw/assets/hijiki.model.json"},"display":{"position":"left","width":150,"height":300,"hOffset":80,"vOffset":-50},"mobile":{"show":true},"log":false});</script></body>
+
+</html>

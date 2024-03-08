@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+
+
+<html lang="en">
+
+
+<head>
+  <meta charset="utf-8" />
+    
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>
+    xv6教程笔记 |  
+  </title>
+  <meta name="generator" content="hexo-theme-ayer">
+  
+  <link rel="shortcut icon" href="/images/ayer.png" />
+  
+  
+<link rel="stylesheet" href="/dist/main.css">
+
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Shen-Yu/cdn/css/remixicon.min.css">
+
+  
+<link rel="stylesheet" href="/css/custom.css">
+
+  
+  
+<script src="https://cdn.jsdelivr.net/npm/pace-js@1.0.2/pace.min.js"></script>
+
+  
+  
+
+  
+<script>
+var _hmt = _hmt || [];
+(function() {
+	var hm = document.createElement("script");
+	hm.src = "https://hm.baidu.com/hm.js?41fc030db57d5570dd22f78997dc4a7e";
+	var s = document.getElementsByTagName("script")[0]; 
+	s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+<link rel="alternate" href="/atom.xml" title="海猫栖息地" type="application/atom+xml">
+</head>
+
+</html>
+
+<body>
+  <div id="app">
+    
+      <canvas class="fireworks"></canvas>
+      <style>
+        .fireworks {
+          position: fixed;
+          left: 0;
+          top: 0;
+          z-index: 99999;
+          pointer-events: none;
+        }
+      </style>
+      
+      
+    <main class="content on">
+      <section class="outer">
+  <article
+  id="post-xv6教程笔记"
+  class="article article-type-post"
+  itemscope
+  itemprop="blogPost"
+  data-scroll-reveal
+>
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h1 class="article-title sea-center" style="border-left:0" itemprop="name">
+  xv6教程笔记
+</h1>
+ 
+
+    </header>
+     
+    <div class="article-meta">
+      <a href="/2024/03/08/xv6%E6%95%99%E7%A8%8B%E7%AC%94%E8%AE%B0/" class="article-date">
+  <time datetime="2024-03-08T13:16:50.339Z" itemprop="datePublished">2024-03-08</time>
+</a>   
+<div class="word_count">
+    <span class="post-time">
+        <span class="post-meta-item-icon">
+            <i class="ri-quill-pen-line"></i>
+            <span class="post-meta-item-text"> Word count:</span>
+            <span class="post-count">6.2k</span>
+        </span>
+    </span>
+
+    <span class="post-time">
+        &nbsp; | &nbsp;
+        <span class="post-meta-item-icon">
+            <i class="ri-book-open-line"></i>
+            <span class="post-meta-item-text"> Reading time≈</span>
+            <span class="post-count">22 min</span>
+        </span>
+    </span>
+</div>
+ 
+    </div>
+      
+    <div class="tocbot"></div>
+
+
+
+
+  
+    <div class="article-entry" itemprop="articleBody">
+       
+  <p>lab通关记录</p>
+<a href="/2024/03/08/MIT-6.828%E5%AE%9E%E9%AA%8C%E9%80%9A%E5%85%B3%E8%AE%B0%E5%BD%95/" title="MIT-6.828实验通关记录">MIT-6.828实验通关记录</a>
+
+
+
+<h1 id="xv6教程笔记"><a href="#xv6教程笔记" class="headerlink" title="xv6教程笔记"></a>xv6教程笔记</h1><p><a target="_blank" rel="noopener" href="https://pdos.csail.mit.edu/6.828/2017/xv6/book-rev10.pdf">xv6教程原版</a></p>
+<p><a target="_blank" rel="noopener" href="https://pdos.csail.mit.edu/6.828/2017/xv6/xv6-rev10.pdf">xv6源代码</a></p>
+<p>Todo：剩余部分的翻译</p>
+<h2 id="引论"><a href="#引论" class="headerlink" title="引论"></a>引论</h2><p>我们将会通过学习xv6的内核，来完成对操作系统的通用学习。阅读中有疑问请配合<a target="_blank" rel="noopener" href="https://pdos.csail.mit.edu/6.828/2017/xv6/xv6-rev10.pdf">源代码</a>学习，所有的源代码全部都是由C构成。本个教程涵盖了所有lab的大部分知识，所以请结合实验需求，计划阅读相应章节。</p>
+<span id="more"></span>
+<h2 id="0：操作系统接口"><a href="#0：操作系统接口" class="headerlink" title="0：操作系统接口"></a>0：操作系统接口</h2><p>操作系统接口的设计目的就是通过对硬件的抽象，来获得更好的体验。抽象有以下需求：</p>
+<ol>
+<li><p>对逻辑抽象</p>
+</li>
+<li><p>多路复用硬件</p>
+</li>
+<li><p>程序互动，包括资源共享等</p>
+</li>
+</ol>
+<p>用户通过系统接口来使用操作系统，系统接口的设计有以下需求</p>
+<ol>
+<li><p>KISS原则</p>
+</li>
+<li><p>易实现</p>
+</li>
+<li><p>功能可扩展</p>
+</li>
+</ol>
+<p>xv6是一个类UNIX系统，实际上UNIX更像一个标准而不是一个系统，因此了解xv6，对于Linux，MAC等类UNIX系统有帮助，比如内核中同样的系统调用命名或者实现等等</p>
+<pre><code>//给出一些系统调用，你应该知道这些调用的意义和使用场景
+System call Description
+fork() 											Create a process
+exit() 											Terminate the current process
+wait() 											Wait for a child process to exit
+kill(pid) 									Terminate process pid
+getpid() 										Return the current process’s pid
+sleep(n) 										Sleep for n clock ticks
+exec(filename, *argv) 			Load a file and execute it
+sbrk(n) 										Grow process’s memory by n bytes
+open(filename, flags) 			Open a file; the flags indicate read/write
+read(fd, buf, n) 						Read n bytes from an open file into buf
+write(fd, buf, n) 					Write n bytes to an open file
+close(fd) 									Release open file fd
+dup(fd) 										Duplicate fd
+pipe(p) 										Create a pipe and return fd’s in p
+chdir(dirname) 							Change the current directory
+mkdir(dirname) 							Create a new directory
+mknod(name, major, minor) 	Create a device file
+fstat(fd) 									Return info about an open file
+link(f1, f2) 								Create another name (f2) for the file f1
+unlink(filename) 						Remove a file
+</code></pre>
+<p>进程的概念：进程即运行的程序，所以二者的关系为先有进程后有程序。一个进程包含了程序的指令（代码），数据，栈。而前者通常有相当一部分内容是使用栈来保存。因此一个进程的创建，或者相似概念的某些创建，必须要先开辟一个栈帧，借以组织各种调用和存储。</p>
+<p>用户态和内核态：当一个进程使用内核服务的时候，他会调用系统接口，紧接着从用户态转入内核态，即必须进入”中断“，进而执行内核的指令，最后返回到用户态。因此一个进程的栈包含了用户空间和内核空间。</p>
+<p><img src="https://bed1.oss-cn-beijing.aliyuncs.com/008i3skNgy1gulvk2lo35j60dl0520sp02.jpg"></p>
+<p>CPU的保护模式来确保每个进程可以访问修改自己的一片空间，而不是突然进入其他进程内。这实际上也是一种抽象：即用户态和内核态一层，内存一层。这样的抽象需要地址转换来实现。这涉及到了虚拟内存的知识。留个问题：进程真的完全不同相互访问吗？如果是真的那么不同的进程进入内核态是一致的吗？</p>
+<p>Ps：如果现在不了解很正常，当你理解内存管理和进程后，这个问题就会变的非常简单。</p>
+<p>接下来的章节讲述了xv6的服务：</p>
+<ol>
+<li><p>进程</p>
+</li>
+<li><p>内存</p>
+</li>
+<li><p>描述符（多种）</p>
+</li>
+<li><p>管道</p>
+</li>
+<li><p>文件系统</p>
+<p>并且教会你如何使用shell的代码来使用他们，同时也希望你结合源代码来理解实现逻辑。shell实际上就是你的cmd或者terminal。这是一个用户程序，你通过shell来直观地访问内核服务。</p>
+</li>
+</ol>
+<h3 id="进程和内存"><a href="#进程和内存" class="headerlink" title="进程和内存"></a>进程和内存</h3><p>​	对于多进程来说，调度是一个很正常的事：我们采用的方法是进程之间时间同步，根据时间片来决定调度。在单核（单CPU）前提下，当一个进程切换为另一个进程时，当前进程会被挂起，这意味着CPU的寄存器和一些其他的会被保存，等待接下来的某个时刻，通过pid来辨识，重新切换回来。</p>
+<p>​	进程的创建依赖于一个叫做fork的系统调用，即父进程通过调用fork来创建一个子进程，由于某些历史原因，子进程一开始并不是我们想要的那些程序代码或者数据，而是除了pid，内存部分引用父进程。因此还需要一些其他的系统调用来正确地回到我们要的“进程”中（exec等）。同时我可以保证，子进程只是暂时引用了父进程的内存，很快它便会使用“copy on wirte”技术，得到独立于父进程的内存空间。所以，子进程的活动不影响父进程的内存。</p>
+<pre><code>//给出创建子进程的一个实例：得到同样的进程代码执行，根据pid的不同来识别父，子进程
+int pid = fork();
+if(pid &gt; 0)&#123;
+printf(&quot;parent: child=%d\n&quot;, pid);
+pid = wait();
+printf(&quot;child %d is done\n&quot;, pid);
+&#125; else if(pid == 0)&#123;  //注意
+printf(&quot;child: exiting\n&quot;);
+exit();
+&#125; else &#123;
+printf(&quot;fork error\n&quot;);
+&#125;
+</code></pre>
+<p>我们除了fork还关注两个系统调用</p>
+<ul>
+<li><p>wait：父进程将等待，直到子进程调用exit结束，得到子pid</p>
+</li>
+<li><p>exit：结束进程，释放内存资源</p>
+</li>
+<li><p>exec：执行新的部分</p>
+</li>
+</ul>
+<p>注意：父进程和子进程的输出顺序并不是绝对的，我们可以很简单地认为随机。比如子进程执行了一行，父进程执行了一行，这样。输出往往看上去很混乱。这里也为后面的锁的实现提供了需求。</p>
+<p>同时再强调一遍，虽然fork导致的父子进程几乎完全一样，代码执行位置也一样（所以才只通过pid判断），但是二者的活动互不相关，寄存器，用户态内存，等都可以认为相互独立。</p>
+<p>接下来来讨论exec部分，将子进程执行我们想要的正确程序是一件很重要的事，因此exec就承担了这个责任：</p>
+<ul>
+<li><p>使用ELF格式文件</p>
+</li>
+<li><p>告诉CPU新的代码，数据，执行起点等信息</p>
+</li>
+<li><p>一旦开始执行，就不再返回</p>
+<pre><code>//给出exec实例，其中exec函数接收两个参数：1.文件位置 2.传入的字符串参数
+char *argv[3];
+argv[0] = &quot;echo&quot;;//注意：第一个指针通常被忽略，默认认为是文件名，因此echo执行为“hello”
+argv[1] = &quot;hello&quot;;
+argv[2] = 0;//作为结束
+exec(&quot;/bin/echo&quot;, argv);
+printf(&quot;exec error\n&quot;);
+</code></pre>
+</li>
+</ul>
+<p>最后给出一些小细节来结束本小节</p>
+<ul>
+<li><p>一些系统调用比如echo，将会在执行后自动调用exit，同理wait也是被写入很多系统调用中，更何况还有调度程序使用这些结束的系统调用来管控进程。所以不要担心开始和结束的问题，就算上面的代码不写exit，他们也会自动结束的</p>
+</li>
+<li><p>进程中内存需要并不是一成不变的，fork得到了一些内存，exec也分配了一些内存，但是执行中仍然需要malloc（内调用sbrk（n），n代表字节）来分配新的内存，从而在返回的location中，继续使用内存</p>
+</li>
+<li><p>xv6并没有管理员或者客人模式来设置安全防护，全都是root模式，因此你可以很放心地写关于用户态和内核态的代码交互</p>
+</li>
+</ul>
+<h3 id="I-x2F-O和文件描述符"><a href="#I-x2F-O和文件描述符" class="headerlink" title="I&#x2F;O和文件描述符"></a>I&#x2F;O和文件描述符</h3><p>文件描述符fd是一个int from 0，通常由一个进程独有，通常我们可以通过以下方式得到它</p>
+<ul>
+<li><p>打开文件</p>
+</li>
+<li><p>打开目录</p>
+</li>
+<li><p>打开设备</p>
+</li>
+<li><p>创建管道</p>
+</li>
+<li><p>复制dup</p>
+</li>
+</ul>
+<p>那么文件描述符为什么要和文件名字区分开呢？有两个方面</p>
+<ul>
+<li><p>抽象以上这些文件和非文件动作，最终大家都只通过字节流的方式读写，来达到一个“一切皆文件”的观念</p>
+</li>
+<li><p>进程拥有一个描述符表，不同进程的fd不同，通过多级索引指向文件位置（多级索引是不同系统设计方式中非常常用的一个手段）</p>
+</li>
+</ul>
+<p>fd 中</p>
+<ul>
+<li><p>0代表用来标准输入，就是你的键盘</p>
+</li>
+<li><p>1代表用来标准输出，就是你的屏幕</p>
+</li>
+<li><p>2代表error</p>
+</li>
+</ul>
+<p>其中这三个fd是被printf，scanf这样的系统接口所认定，所以当我们使用管道等工作，重定向fd就非常有必要。其中fd存在于每个进程的文件描述符表中，每次”占用“fd将会使用最小的，比如</p>
+<pre><code>close(0);
+fd=open(...);
+//将会在释放之后fd得到0，作为标准输入
+</code></pre>
+<p>为了保证I&#x2F;O和管道的正常使用，shell保证了这三个fd在shell进程中都能被使用而不被占用</p>
+<p>关于fd有以下系统调用</p>
+<ul>
+<li><p>int fd &#x3D; open(filename, flags, mode)打开文件，返回fd</p>
+</li>
+<li><p>read(fd, buf,n)，返回成功读取的字节数，多个read会维护一个offset来完成顺序读取</p>
+</li>
+<li><p>write(fd, buf, n)，返回成功写入的字节数，同样维护一个offset</p>
+</li>
+</ul>
+<p>具体给出以下例子（实际上是cat的实现），你应该查看代码逻辑，并理解错误时发生的故事</p>
+<pre><code>char buf[512];
+int n;
+
+for(;;)&#123;
+    n = read(0, buf, sizeof buf);//read
+    if(n == 0)
+        break;
+    if(n &lt; 0)&#123;
+        fprintf(2, &quot;read error\n&quot;);
+        exit();
+    &#125;
+    if(write(1, buf, n) != n)&#123;//error
+        fprintf(2, &quot;write error\n&quot;);
+        exit();
+    &#125;
+&#125;
+</code></pre>
+<h3 id="管道"><a href="#管道" class="headerlink" title="管道"></a>管道</h3><p>​	管道是一个小型的内核buffer，实际上是一个文件，进程传递一对fd：R&#x2F;W来使用管道。管道通过重定向标准输入&#x2F;输出的fd，使进程能够不修改读写文件的函数情况下，来访问同一个文件，进而完成进程通信。给出以下例子，来完成以上的功能。</p>
+<pre><code>int p[2];
+char *argv[2];
+argv[0] = &quot;wc&quot;;
+argv[1] = 0;
+pipe(p);
+
+if(fork() == 0) &#123;//作为标准输入
+    close(0);
+    dup(p[0]);
+    close(p[0]);
+    close(p[1]);
+    exec(&quot;/bin/wc&quot;, argv);
+&#125; else &#123;//作为标准输出
+    close(p[0]);
+    write(p[1], &quot;hello world\n&quot;, 12);
+    close(p[1]);
+&#125;
+</code></pre>
+<p>程序调用pipe，给定p创建一个管道，使用p数组来记录fd的读写。fork之后，父子进程都有对pipe的引用。</p>
+<p>子进程：close来释放fd0，保证0不被使用。紧接着复制读端fd就会获得0标准输入，此时0会同样指向fd[0]所在的buffer。此时子进程我们需要调用wc来读，不过pbuffer已经没用了（0已经指向了读buffer），我们可以关闭p所在的管道(释放两个fd)，然后执行wc，当wc读取标准输入，是从p来读取的。</p>
+<p>父进程：我们需要写，于是p的读也没什么用了。关闭管道的读，并写hello world!\n入管道，然后关闭管道写端。</p>
+<p>总之，管道的实现非常抠门，因为fd表非常小，大家记得随时关闭！</p>
+<h3 id="文件系统"><a href="#文件系统" class="headerlink" title="文件系统"></a>文件系统</h3><p>​	xv6提供数据文件，就只是未解释类型的字节数组，并且提供目录，目录包含了指向其他文件和目录的引用。对于目录构造一个树，从一个称为root的特殊目录开始。一个形如“&#x2F;a&#x2F;b&#x2F;c”指向&#x2F;目录下的a目录下的b目录下的文件c。这个例子中，从不是“&#x2F;”目录下开始的目录能够称为进程的当前目录，可以通过chdir（linux下shell命令cd也是如此）系统调用来改变当前目录。给出以下例子，他们打开了相同的文件（假设文件，目录存在）</p>
+<pre><code>chdir(&quot;/a&quot;);
+chdir(&quot;b&quot;);//可以看到目录改变有绝对和相对两种
+open(&quot;c&quot;, O_RDONLY);
+
+open(&quot;/a/b/c&quot;, O_RDONLY);
+</code></pre>
+<p>第一部分改变当前目录为“&#x2F;a&#x2F;b”，第二部分直接给出绝对路径</p>
+<p>​	我们有多种系统调用来产生文件和目录（你会很快体会一切皆文件这个理念）：1.mkdir来创建一个新的目录，以一个“O_CREATE”flag来创建一个文件2.mknod来创建一个新的设备文件，给定以下例子来说明设备文件的细微不同</p>
+<pre><code>mkdir(&quot;/dir&quot;);
+fd = open(&quot;/dir/file&quot;,O_CREATE|O_WRONLY);
+close(fd);
+mknod(&quot;/console&quot;,1,1);
+</code></pre>
+<p>mknode通过创建一个文件系统里的文件，但是没有内容。并且文件metadata标记为一个设备文件，并且记录major和minor设备号（你可以认为是mknod的两个必备参数），这两个参数唯一确定一个内核设别。当一个进程打开文件后，R&#x2F;W系统调用并不操作文件系统（那些字节数组），而是操作设备文件里的内容。</p>
+<p>​	fstat从fd指向的对象中检索信息，信息填充在struct stat中。stat定义在stat.h</p>
+<pre><code>#define T_DIR 1 // 目录
+#define T_FILE 2 // 文件
+#define T_DEV 3 // 设备
+struct stat &#123;
+  short type; // 文件类型
+    int dev; // 容纳文件系统的磁盘设备号，考虑mknod是否创建一个新的文件系统？
+    uint ino; // inode编号
+    short nlink; // 连接的数量
+    uint size; // 以字节为单位的文件大小
+&#125;;
+</code></pre>
+<p>​	目录下的文件名和文件本身不相同：考虑一个抽象概念：filename-&gt;inode(如果打开文件就会有以下结构：fd-&gt;opened_filename&gt;inode)，name对inode是多对一关系，称为links。link系统调用能够创建另一个名字，但是能够指向同样的文件inode，以下例子创建一个文件，他拥有两个名字，即硬链接（问题：软链接是什么？）</p>
+<pre><code>open(&quot;a&quot;, O_CREATE|O_WRONLY);
+link(&quot;a&quot;,&quot;b&quot;);
+</code></pre>
+<p>至此，R&#x2F;W能够通过a&#x2F;b来对同一个文件操作。每个inode有唯一的inode编号。上面的代码完成后，fstat返回相同的inode编号（ino），以此能够决定a和b能够指向同的文件，然后nlink增加为2。（问题：文件名不在stat里，怎么通过filename定向stat？）</p>
+<p>​	unlink从文件系统中删除这个filename，文件inode和磁盘空间里，有关的部分将会在nlink为0，并且没有fd指向的时候</p>
+<pre><code>unlink(&quot;a&quot;);
+</code></pre>
+<p>​	这句代码将会使b唯一指向inode指向文件。玩一个例子：</p>
+<pre><code>fd = open(&quot;/tmp/xyz&quot;, O_CREATE|O_RDWR);
+unlink(&quot;/tmp/xyz&quot;);
+</code></pre>
+<p>在这种情况会创建一个临时的inode，然后在进程结束后关闭fd，或者退出</p>
+<p>​	对于shell里操作文件系统，能够被我们使用并且接手修改的的包括mkdir, ln, rm等。这种设计允许任何人修改命令，而只需要添加用户级别的程序代码。但是后来我们发现，这个想法被其他unix时代设计操作系统摒弃：必须在内核里。</p>
+<p>​	幸运的是，除了cd，cd能够改变shell当前查看的目录，如果cd执行，那么首先fork一个子进程，子进程执行cd，而对于父进程的当前目录未变。</p>
+<h3 id="真实世界"><a href="#真实世界" class="headerlink" title="真实世界"></a>真实世界</h3><p>​	UNIX对于文件描述符，管道和shell这个思想是一个很大的进步，通过这些抽象提供的服务，让我们的软件门槛一下子降低了很多，UNIX思想也流行了起来。shell语言也被称作第一个脚本语言，今天类UNIX，或者UNIX思想的继承，有BSD，MAC OS，LINUX，你可以在里面找到上面说的那些东西。</p>
+<p>UNIX思想的继承由POSIX标准来指定系统接口，XV6不是POSIX实现，因为它只实现了部分的系统接口，更多的需要你来写。你可以通过C标准库来修改内核，来完成这些系统接口。对于更多的现代内核来说，他们完成了更多的部分：网络，图形化界面，用户进程（xv6没有用户&#x2F;内核的概念），设备驱动等。很多东西超越了POSIX标准，所以我们可以说：类UNIX系统满足并超越了UNIX系统。</p>
+<p>对于现代类UNIX系统而言，他们对早期UNIX一个很重要的改动就是不把设备当作”特殊“的文件（包括上面讲的控制台设备文件，当然你看的例子都是现代的），而是引入了一个很重要的概念：“一切皆文件”。即把网络，图形，其他的资源全都当作文件和文件树，通过不同抽象统一为文件（流）。</p>
+<p>文件系统抽象是一个非常有用的想法。尤其对于网络来说，网络接口也如同操作系统的接口一样，就像处理文件（流）一样处理各种类型的网络信息。UNIX把文件存放处理如同内存一般，来使一切变得简单。</p>
+<p>这本书讲的XV6使用了类UNIX接口，但是想法更多一点：就目前的时代而言，你必须实现处理硬件抽象的多进程，进程隔离，进程通信等。学习XV6之后，你应该看看其他系统，寻找关于本课程学习的相同思想部分。</p>
+<h2 id="1：操作系统组织"><a href="#1：操作系统组织" class="headerlink" title="1：操作系统组织"></a>1：操作系统组织</h2><p>​	对于操作系统来说，很重要的一件事就是所有资源能够立即响应。例如：进程中，使用fork产生一个新进程时候，所有的资源都必须时分复用（不是计网的时分复用），意思是操作系统必须保证所有的硬件能够在不同的时间提供不同进程所需要的资源。同时，操作系统必须保证进程之间资源独立，假如一个进程失败了，那么其他进程必须不会被这部分失败的资源所直接影响，最大程度保证运行正常。但是所谓资源独立并不是完全的，因为你必须要保证进程之间能够通信。因此，一个操作系统对于进程方面必须要保证三个要求：</p>
+<ol>
+<li>时分复用（即进程调度）</li>
+<li>进程资源独立</li>
+<li>进程通信</li>
+</ol>
+<p>​	本章节总览式地告诉你操作系统如何组织这三个要求。我们关注设计而不是细节，这些设计在类UNIX中都会用到。通过跟踪一个进程，来告诉你这三个要求的实现，你会同时知道xv6提供的抽象服务。对于xv6来说，进程代码重用代码，这简化了代码量，同时你也被屏蔽了底层的细节，不过接下来的lab中你会看到深入的细节。</p>
+<p>​	xv6通过在80386（x86）的pc平台上运行，因此底层功能都是x86平台架构独有。因此我们假设你会一些x86平台机器级代码知识，并且在需要的时候会给你一些知识扫盲或补充，所以不用担心，这部分内容不多，并且用时再查。</p>
+<h3 id="抽象硬件资源"><a href="#抽象硬件资源" class="headerlink" title="抽象硬件资源"></a>抽象硬件资源</h3><p>​	让我们从日常的软件角度考虑：什么时候需要操作系统？当然是与硬件交互的时候：当你实现某个系统调用作为调用库的时候，它可能访问&#x2F;修改内存，来为更高层的caller来提供服务（比如open为fopen提供服务），或者操作系统能够嵌入硬件（USB），甚至另一个操作系统。(当然我们的实验大部分都是当caller重用代码，即便如此也算在操作系统部分的）、</p>
+<p>​	我们考虑如何复用（进程调度）？，调度系统对于程序员是透明的，因此假设你有一个无限循环的程序，那么其他进程也可以不断的切换进来执行，最大程度保证了整体的正常运转。再比如你一整个早上打开直播授课，但是你仍然可以再开一个窗口微信聊天，这种设计对于早期的单核CPU非常有意义，就算如今是多核时代，仍然非常有用。</p>
+<p>​	如何实现进程资源独立？一个想法是我们的抽象设计需要禁止上层应用直接对硬件资源访问，比如内存访问只允许：read，open，close这样的设计。我们通过路径名，fd这样的东西来访问内存和磁盘，具体的访问硬件细节则不需要考虑，只需要考虑抽象提供的组织和结构即可。</p>
+<p>​	再考虑exec，这个系统调用决定了在从磁盘调来的程序在内存哪里存放，假如内存不够放了，还能把部分内容暂存回磁盘，同时文件系统的实现更方便了exec：找你刚写的程序然后执行，非常自然。</p>
+<p>​	如何实现通信？同样需要文件系统的帮助。用户通常使用fd来访问文件，因此进程通信变得非常简单：通过fd来访问同一个文件（比如pipe管道），假如第一个进程结束，第三个进程就可以使用管道，和第二个进程通过管道连接。</p>
+<p>​	进程资源独立不仅仅是系统调用的设计，更多的抽象方法（看进程总览）我们下面介绍</p>
+<h3 id="用户态，内核态，系统调用"><a href="#用户态，内核态，系统调用" class="headerlink" title="用户态，内核态，系统调用"></a>用户态，内核态，系统调用</h3><p>​	进程资源隔离是非常有必要的：我们不想一个除0错误，让整个电脑死机。我们应该自动退出这个程序，方便我们进行下一个。对于进程，不应该访问操作系统部分的数据（比如调度程序所需要的一些数据），而是仅仅相互通信罢了。</p>
+<p>​	因此我们设计用户态&#x2F;内核态这样的抽象，大部分进程都是在用户态运行，而想要进入内核态，需要系统调用。想象以下过程：你的fread进行后，产生int0x80中断，花费大量开销进入内核态，然后调用system call函数，这个函数如同一个门卫，处理你的参数，决定拒绝，回到用户态，或者根据syscall table来决定跳转到read函数，进行IO处理，然后携带着返回参数eax回到用户态。</p>
+<p>​	我们需要重点关注内核部分。</p>
+<h3 id="内核组织"><a href="#内核组织" class="headerlink" title="内核组织"></a>内核组织</h3><p>​	内核部分是我们的操作系统部分，这部分拥有所有的特权级：不像用户那样受约束。自由地访问和管理所有的硬件资源。这种级别让不同操作系统连接，或者挂载文件系统时候假如需要一段cache，其中的访问就不会像用户态&#x2F;内核态转换那么麻烦，而是非常快。当然缺点就是用户态进程挂了还行，操作系统部分的挂了，整个机子就挂了。</p>
+<p>​	所以为了避免这种问题，我们把大量的操作系统部分尽可能转为用户态，不得不放在内核的部分我们叫做微内核。比如下图中，假设文件系统运行在用户态（linux当然是在内核态），微内核在内核态，我们想要使用shell发送消息，就必须从用户态-&gt;内核态-&gt;用户态，然后shell 等待回应，进行相同的状态转移（问题：状态切换开销很大，有没有办法绕开这个抽象直接映射？），这种微内核结构非常简单，通常需要用户态server来保证正常运转。<img src="https://bed1.oss-cn-beijing.aliyuncs.com/008i3skNly1gvdvcgcg9zj614o0duab602.jpg"></p>
+<p>​	在真实世界中，我们通常可以看到微内核和宏内核的不同使用。对于xv6和linux来说，都是宏内核，不过我们手中已有的xv6因为实现的系统接口非常少，所以甚至比不过微内核，需要你的帮助。</p>
+<h3 id="进程总览"><a href="#进程总览" class="headerlink" title="进程总览"></a>进程总览</h3><p><img src="https://bed1.oss-cn-beijing.aliyuncs.com/008i3skNly1gvdvd46m9cj618c0q8q4j02.jpg"></p>
+<h3 id="代码：第一个空间地址"><a href="#代码：第一个空间地址" class="headerlink" title="代码：第一个空间地址"></a>代码：第一个空间地址</h3><h3 id="代码：创建第一个进程"><a href="#代码：创建第一个进程" class="headerlink" title="代码：创建第一个进程"></a>代码：创建第一个进程</h3><h3 id="代码：运行第一个进程"><a href="#代码：运行第一个进程" class="headerlink" title="代码：运行第一个进程"></a>代码：运行第一个进程</h3><h3 id="第一个系统调用：exec"><a href="#第一个系统调用：exec" class="headerlink" title="第一个系统调用：exec"></a>第一个系统调用：exec</h3><h3 id="真实世界-1"><a href="#真实世界-1" class="headerlink" title="真实世界"></a>真实世界</h3><h3 id="练习"><a href="#练习" class="headerlink" title="练习"></a>练习</h3><ol>
+<li>在 <code>swtch</code> 中设断点。用 gdb 的 <em>stepi</em> 单步调试返回到 <code>forkret</code> 的代码，然后使用 gdb 的 <em>finish</em> 继续执行到 <code>trapret</code>，然后再用 <em>stepi</em> 直到你进入虚拟地址0处的 <code>initicode</code>。</li>
+<li><code>KERNBASE</code> 会限制一个进程能使用的内存量，在一台有着 4GB 内存的机器上，这可能会让人感到不悦。那么提高 <code>KERNBASE</code> 的值是否能让进程使用更多的内存呢？</li>
+</ol>
+<h2 id="2：页表"><a href="#2：页表" class="headerlink" title="2：页表"></a>2：页表</h2><h2 id="3：中断：traps，interrupts，drivers"><a href="#3：中断：traps，interrupts，drivers" class="headerlink" title="3：中断：traps，interrupts，drivers"></a>3：中断：traps，interrupts，drivers</h2><h2 id="4：锁"><a href="#4：锁" class="headerlink" title="4：锁"></a>4：锁</h2><h2 id="5：调度"><a href="#5：调度" class="headerlink" title="5：调度"></a>5：调度</h2><h2 id="6：文件系统"><a href="#6：文件系统" class="headerlink" title="6：文件系统"></a>6：文件系统</h2><h2 id="7：总结"><a href="#7：总结" class="headerlink" title="7：总结"></a>7：总结</h2><h2 id="附录A：PC硬件"><a href="#附录A：PC硬件" class="headerlink" title="附录A：PC硬件"></a>附录A：PC硬件</h2><h2 id="附录B：引导"><a href="#附录B：引导" class="headerlink" title="附录B：引导"></a>附录B：引导</h2> 
+      <!-- reward -->
+      
+      <div id="reword-out">
+        <div id="reward-btn">
+          Donate
+        </div>
+      </div>
+      
+    </div>
+    
+
+    <!-- copyright -->
+    
+    <div class="declare">
+      <ul class="post-copyright">
+        <li>
+          <i class="ri-copyright-line"></i>
+          <strong>Copyright： </strong>
+          Copyright is owned by the author. For commercial reprints, please contact the author for authorization. For non-commercial reprints, please indicate the source.
+        </li>
+      </ul>
+    </div>
+    
+    <footer class="article-footer">
+       
+<div class="share-btn">
+      <span class="share-sns share-outer">
+        <i class="ri-share-forward-line"></i>
+        分享
+      </span>
+      <div class="share-wrap">
+        <i class="arrow"></i>
+        <div class="share-icons">
+          
+          <a class="weibo share-sns" href="javascript:;" data-type="weibo">
+            <i class="ri-weibo-fill"></i>
+          </a>
+          <a class="weixin share-sns wxFab" href="javascript:;" data-type="weixin">
+            <i class="ri-wechat-fill"></i>
+          </a>
+          <a class="qq share-sns" href="javascript:;" data-type="qq">
+            <i class="ri-qq-fill"></i>
+          </a>
+          <a class="douban share-sns" href="javascript:;" data-type="douban">
+            <i class="ri-douban-line"></i>
+          </a>
+          <!-- <a class="qzone share-sns" href="javascript:;" data-type="qzone">
+            <i class="icon icon-qzone"></i>
+          </a> -->
+          
+          <a class="facebook share-sns" href="javascript:;" data-type="facebook">
+            <i class="ri-facebook-circle-fill"></i>
+          </a>
+          <a class="twitter share-sns" href="javascript:;" data-type="twitter">
+            <i class="ri-twitter-fill"></i>
+          </a>
+          <a class="google share-sns" href="javascript:;" data-type="google">
+            <i class="ri-google-fill"></i>
+          </a>
+        </div>
+      </div>
+</div>
+
+<div class="wx-share-modal">
+    <a class="modal-close" href="javascript:;"><i class="ri-close-circle-line"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <div class="wx-qrcode">
+      <img src="//api.qrserver.com/v1/create-qr-code/?size=150x150&data=http://sakura-mac.github.io/2024/03/08/xv6%E6%95%99%E7%A8%8B%E7%AC%94%E8%AE%B0/" alt="微信分享二维码">
+    </div>
+</div>
+
+<div id="share-mask"></div>  
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Mit-6-828/" rel="tag">Mit-6.828</a></li></ul>
+
+    </footer>
+  </div>
+
+   
+  <nav class="article-nav">
+    
+      <a href="/2024/03/08/%E5%9F%BA%E6%9C%AC%E5%B7%A5%E5%85%B7%E4%BD%BF%E7%94%A8/" class="article-nav-link">
+        <strong class="article-nav-caption">上一篇</strong>
+        <div class="article-nav-title">
+          
+            基本工具使用
+          
+        </div>
+      </a>
+    
+    
+      <a href="/2024/03/08/makefile%E7%BC%96%E5%86%99/" class="article-nav-link">
+        <strong class="article-nav-caption">下一篇</strong>
+        <div class="article-nav-title">Makefile编写</div>
+      </a>
+    
+  </nav>
+
+   
+<!-- valine评论 -->
+<div id="vcomments-box">
+  <div id="vcomments"></div>
+</div>
+<script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/valine@1.4.14/dist/Valine.min.js"></script>
+<script>
+  new Valine({
+    el: "#vcomments",
+    app_id: "bbzBMY2PHFRlbkSCorlYCrRX-gzGzoHsz",
+    app_key: "NMnT9uDCzg2rW4ckm0fpSm5y",
+    path: window.location.pathname,
+    avatar: "monsterid",
+    placeholder: "请留下你此刻脑海中的想法~",
+    recordIP: true,
+  });
+  const infoEle = document.querySelector("#vcomments .info");
+  if (infoEle && infoEle.childNodes && infoEle.childNodes.length > 0) {
+    infoEle.childNodes.forEach(function (item) {
+      item.parentNode.removeChild(item);
+    });
+  }
+</script>
+<style>
+  #vcomments-box {
+    padding: 5px 30px;
+  }
+
+  @media screen and (max-width: 800px) {
+    #vcomments-box {
+      padding: 5px 0px;
+    }
+  }
+
+  #vcomments-box #vcomments {
+    background-color: #fff;
+  }
+
+  .v .vlist .vcard .vh {
+    padding-right: 20px;
+  }
+
+  .v .vlist .vcard {
+    padding-left: 10px;
+  }
+</style>
+
+ 
+     
+</article>
+
+</section>
+      <footer class="footer">
+  <div class="outer">
+    <ul>
+      <li>
+        Copyrights &copy;
+        2020-2024
+        <i class="ri-heart-fill heart_icon"></i> 环烷烃
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        
+        Powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+        <span class="division">|</span>
+        Theme - <a href="https://github.com/Shen-Yu/hexo-theme-ayer" target="_blank">Ayer</a>
+        
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        <span>
+  <span><i class="ri-user-3-fill"></i>Visitors:<span id="busuanzi_value_site_uv"></span></s>
+  <span class="division">|</span>
+  <span><i class="ri-eye-fill"></i>Views:<span id="busuanzi_value_page_pv"></span></span>
+</span>
+        
+      </li>
+    </ul>
+    <ul>
+      
+    </ul>
+    <ul>
+      <li>
+        <!-- cnzz统计 -->
+        
+        <script type="text/javascript" src='https://s9.cnzz.com/z_stat.php?id=1278069914&amp;web_id=1278069914'></script>
+        
+      </li>
+    </ul>
+  </div>
+</footer>
+      <div class="float_btns">
+        <div class="totop" id="totop">
+  <i class="ri-arrow-up-line"></i>
+</div>
+
+      </div>
+    </main>
+    <aside class="sidebar on">
+      <button class="navbar-toggle"></button>
+<nav class="navbar">
+  
+  <div class="logo">
+    <a href="/"><img src="/images/ayer-side.jpg" alt="海猫栖息地"></a>
+  </div>
+  
+  <ul class="nav nav-main">
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/">主页</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/archives">归档</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/tags">标签</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/player/">播放器</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/about">关于我</a>
+    </li>
+    
+  </ul>
+</nav>
+<nav class="navbar navbar-bottom">
+  <ul class="nav">
+    <li class="nav-item">
+      
+      <a class="nav-item-link nav-item-search"  title="Search">
+        <i class="ri-search-line"></i>
+      </a>
+      
+      
+      <a class="nav-item-link" target="_blank" href="/atom.xml" title="RSS Feed">
+        <i class="ri-rss-line"></i>
+      </a>
+      
+    </li>
+  </ul>
+</nav>
+<div class="search-form-wrap">
+  <div class="local-search local-search-plugin">
+  <input type="search" id="local-search-input" class="local-search-input" placeholder="Search...">
+  <div id="local-search-result" class="local-search-result"></div>
+</div>
+</div>
+
+    </aside>
+    <script>
+      if (window.matchMedia("(max-width: 768px)").matches) {
+        document.querySelector('.content').classList.remove('on');
+        document.querySelector('.sidebar').classList.remove('on');
+      }
+    </script>
+    <div id="mask"></div>
+
+<!-- #reward -->
+<div id="reward">
+  <span class="close"><i class="ri-close-line"></i></span>
+  <p class="reward-p"><i class="ri-cup-line"></i>我很可爱，请我喝一瓶怡宝吧~</p>
+  <div class="reward-box">
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/alipay.jpg">
+      <span class="reward-type">支付宝</span>
+    </div>
+    
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/wechat.jpg">
+      <span class="reward-type">微信</span>
+    </div>
+    
+  </div>
+</div>
+    
+<script src="/js/jquery-2.0.3.min.js"></script>
+
+
+<script src="/js/lazyload.min.js"></script>
+
+<!-- Tocbot -->
+
+
+<script src="/js/tocbot.min.js"></script>
+
+<script>
+  tocbot.init({
+    tocSelector: '.tocbot',
+    contentSelector: '.article-entry',
+    headingSelector: 'h1, h2, h3, h4, h5, h6',
+    hasInnerContainers: true,
+    scrollSmooth: true,
+    scrollContainer: 'main',
+    positionFixedSelector: '.tocbot',
+    positionFixedClass: 'is-position-fixed',
+    fixedSidebarOffset: 'auto'
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.css">
+<script src="https://cdn.jsdelivr.net/npm/justifiedGallery@3.7.0/dist/js/jquery.justifiedGallery.min.js"></script>
+
+<script src="/dist/main.js"></script>
+
+<!-- ImageViewer -->
+
+<!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" style="display:none" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css">
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"></script>
+
+<script>
+    function viewer_init() {
+        let pswpElement = document.querySelectorAll('.pswp')[0];
+        let $imgArr = document.querySelectorAll(('.article-entry img:not(.reward-img)'))
+
+        $imgArr.forEach(($em, i) => {
+            $em.onclick = () => {
+                // slider展开状态
+                // todo: 这样不好，后面改成状态
+                if (document.querySelector('.left-col.show')) return
+                let items = []
+                $imgArr.forEach(($em2, i2) => {
+                    let img = $em2.getAttribute('data-idx', i2)
+                    let src = $em2.getAttribute('data-target') || $em2.getAttribute('src')
+                    let title = $em2.getAttribute('alt')
+                    // 获得原图尺寸
+                    const image = new Image()
+                    image.src = src
+                    items.push({
+                        src: src,
+                        w: image.width || $em2.width,
+                        h: image.height || $em2.height,
+                        title: title
+                    })
+                })
+                var gallery = new PhotoSwipe(pswpElement, PhotoSwipeUI_Default, items, {
+                    index: parseInt(i)
+                });
+                gallery.init()
+            }
+        })
+    }
+    viewer_init()
+</script>
+
+<!-- MathJax -->
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+      tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+  });
+
+  MathJax.Hub.Queue(function() {
+      var all = MathJax.Hub.getAllJax(), i;
+      for(i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+      }
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.6/unpacked/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<script>
+  var ayerConfig = {
+    mathjax: true
+  }
+</script>
+
+<!-- Katex -->
+
+<!-- busuanzi  -->
+
+
+<script src="/js/busuanzi-2.3.pure.min.js"></script>
+
+
+<!-- ClickLove -->
+
+<!-- ClickBoom1 -->
+
+<script src="https://cdn.jsdelivr.net/npm/animejs@latest/anime.min.js"></script>
+
+<script src="/js/clickBoom1.js"></script>
+
+
+<!-- ClickBoom2 -->
+
+<!-- CodeCopy -->
+
+
+<link rel="stylesheet" href="/css/clipboard.css">
+
+<script src="https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js"></script>
+<script>
+  function wait(callback, seconds) {
+    var timelag = null;
+    timelag = window.setTimeout(callback, seconds);
+  }
+  !function (e, t, a) {
+    var initCopyCode = function(){
+      var copyHtml = '';
+      copyHtml += '<button class="btn-copy" data-clipboard-snippet="">';
+      copyHtml += '<i class="ri-file-copy-2-line"></i><span>COPY</span>';
+      copyHtml += '</button>';
+      $(".highlight .code pre").before(copyHtml);
+      $(".article pre code").before(copyHtml);
+      var clipboard = new ClipboardJS('.btn-copy', {
+        target: function(trigger) {
+          return trigger.nextElementSibling;
+        }
+      });
+      clipboard.on('success', function(e) {
+        let $btn = $(e.trigger);
+        $btn.addClass('copied');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-checkbox-circle-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPIED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-checkbox-circle-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+      clipboard.on('error', function(e) {
+        e.clearSelection();
+        let $btn = $(e.trigger);
+        $btn.addClass('copy-failed');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-time-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPY FAILED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-time-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+    }
+    initCopyCode();
+  }(window, document);
+</script>
+
+
+<!-- CanvasBackground -->
+
+
+    
+  </div>
+<script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginRootPath":"live2dw/","pluginJsPath":"lib/","pluginModelPath":"assets/","tagMode":false,"debug":false,"model":{"jsonPath":"/live2dw/assets/hijiki.model.json"},"display":{"position":"left","width":150,"height":300,"hOffset":80,"vOffset":-50},"mobile":{"show":true},"log":false});</script></body>
+
+</html>

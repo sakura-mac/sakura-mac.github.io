@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+
+
+<html lang="en">
+
+
+<head>
+  <meta charset="utf-8" />
+    
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>
+    L14：Linux_ext3_崩溃恢复 |  
+  </title>
+  <meta name="generator" content="hexo-theme-ayer">
+  
+  <link rel="shortcut icon" href="/images/ayer.png" />
+  
+  
+<link rel="stylesheet" href="/dist/main.css">
+
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Shen-Yu/cdn/css/remixicon.min.css">
+
+  
+<link rel="stylesheet" href="/css/custom.css">
+
+  
+  
+<script src="https://cdn.jsdelivr.net/npm/pace-js@1.0.2/pace.min.js"></script>
+
+  
+  
+
+  
+<script>
+var _hmt = _hmt || [];
+(function() {
+	var hm = document.createElement("script");
+	hm.src = "https://hm.baidu.com/hm.js?41fc030db57d5570dd22f78997dc4a7e";
+	var s = document.getElementsByTagName("script")[0]; 
+	s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+<link rel="alternate" href="/atom.xml" title="海猫栖息地" type="application/atom+xml">
+</head>
+
+</html>
+
+<body>
+  <div id="app">
+    
+      <canvas class="fireworks"></canvas>
+      <style>
+        .fireworks {
+          position: fixed;
+          left: 0;
+          top: 0;
+          z-index: 99999;
+          pointer-events: none;
+        }
+      </style>
+      
+      
+    <main class="content on">
+      <section class="outer">
+  <article
+  id="post-L14：Linux_ext3_崩溃恢复"
+  class="article article-type-post"
+  itemscope
+  itemprop="blogPost"
+  data-scroll-reveal
+>
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h1 class="article-title sea-center" style="border-left:0" itemprop="name">
+  L14：Linux_ext3_崩溃恢复
+</h1>
+ 
+
+    </header>
+     
+    <div class="article-meta">
+      <a href="/2024/03/08/L14%EF%BC%9ALinux_ext3_%E5%B4%A9%E6%BA%83%E6%81%A2%E5%A4%8D/" class="article-date">
+  <time datetime="2024-03-08T13:16:50.304Z" itemprop="datePublished">2024-03-08</time>
+</a>   
+<div class="word_count">
+    <span class="post-time">
+        <span class="post-meta-item-icon">
+            <i class="ri-quill-pen-line"></i>
+            <span class="post-meta-item-text"> Word count:</span>
+            <span class="post-count">3.7k</span>
+        </span>
+    </span>
+
+    <span class="post-time">
+        &nbsp; | &nbsp;
+        <span class="post-meta-item-icon">
+            <i class="ri-book-open-line"></i>
+            <span class="post-meta-item-text"> Reading time≈</span>
+            <span class="post-count">13 min</span>
+        </span>
+    </span>
+</div>
+ 
+    </div>
+      
+    <div class="tocbot"></div>
+
+
+
+
+  
+    <div class="article-entry" itemprop="articleBody">
+       
+  <p>lab通关记录</p>
+<a href="/2024/03/08/MIT-6.828%E5%AE%9E%E9%AA%8C%E9%80%9A%E5%85%B3%E8%AE%B0%E5%BD%95/" title="MIT-6.828实验通关记录">MIT-6.828实验通关记录</a>
+
+
+
+<h1 id="讲课计划"><a href="#讲课计划" class="headerlink" title="讲课计划"></a>讲课计划</h1><p>  记录崩溃恢复<br>    xv6：缓慢且立即耐用<br>    ext3：快速但不立即耐用<br>  权衡：性能与安全</p>
+<span id="more"></span>
+
+<p>示例问题：<br>  附加到文件<br>  两个写：<br>    在位图中标记块非空闲<br>    将块 # 添加到 inode addrs[] 数组<br>  我们想要原子性：两者兼而有之<br>  所以我们不能一次写一个 FS</p>
+<p>为什么要登录？<br> 原子系统调用wrt崩溃<br> 快速恢复（没有长达一小时的 fsck）</p>
+<p>xv6 日志回顾<br>  [缓存、磁盘日志、磁盘文件系统]<br>  每个系统调用都是一个事务<br>  系统调用更新内存中的缓存块<br>  在系统调用结束时：<br>    将修改后的块写入磁盘<br>    写入块 #s 和“完成”以登录磁盘——提交点<br>    在磁盘上的 FS 中安装修改后的块<br>      如果我们中途崩溃，恢复可以重播日志中的所有写入<br>      规则：在日志中提交所有写入之前不要开始 FS 写入<br>            即全有或全无——原子<br>    从登录磁盘上擦除“完成”<br>      所以来自下一个 xaction 的记录块看起来没有提交</p>
+<p>在家工作<br>   回声嗨 &gt; 一个<br>   commit() 被黑客入侵以忽略其中一个写入，在 commit+install 后崩溃<br>   和恢复被禁用<br>   问：为什么“cat a”（崩溃后）会产生“panic: ilock: no type”？<br>      损坏的 commit() 更新了目录条目但不是 i-node<br>      所以 dirent 在磁盘上并包含 inode#<br>      但 i-node 被标记为空闲 (type&#x3D;0)<br>   Q：恢复后，为什么“cat a”会产生一个空文件？<br>      即使我们运行了“echo hi &gt; a”？<br>      恢复将 inode 写入正确的位置<br>        它现在已分配，并且 dirent 有效<br>      但是 create 和 write 是独立的系统调用和事务<br>        echo 从未调用过 write() – 在文件创建过程中崩溃</p>
+<p>xv6 的日志记录有什么问题？它很慢！<br>  每次系统调用后立即提交<br>  提交后立即写入 FS<br>    必须这样做才能重用磁盘日志——即运行下一个系统调用<br>  任何 commit() 期间的所有新系统调用都会阻塞<br>    所以如果有多个进程，并发执行不会太多<br>  每个块两次写入磁盘，一次写入日志，一次写入 FS<br>    对于元数据块来说还不错<br>    大文件的痛苦<br>  所以：<br>    这些写入是同步的——xv6 在继续之前等待每个写入完成<br>    创建一个空文件需要 6 次同步磁盘写入——60 毫秒<br>    所以每秒只有 10 或 20 个磁盘更新系统调用</p>
+<p>Linux的ext3设计<br> 将日志记录添加到文件系统所需的详细信息的案例研究<br> Stephen Tweedie 2000 谈话记录“EXT3，日志文件系统”<br>   <a target="_blank" rel="noopener" href="http://olstrans.sourceforge.net/release/OLS2000-ext3/OLS2000-ext3.html">http://olstrans.sourceforge.net/release/OLS2000-ext3/OLS2000-ext3.html</a><br> ext3 向 ext2（以前的无日志文件系统）添加日志<br> 有很多模式，我将从“日志数据”开始<br>   日志包含元数据和文件内容块</p>
+<p>ext3 结构：<br>  在记忆中：<br>    回写块缓存<br>    每笔交易信息：<br>      要记录的块#s 集<br>      一组出色的“句柄”——每个系统调用一个<br>  在磁盘上：<br>    FS<br>    循环日志</p>
+<p>ext3 日志中有什么？<br> 记录超级块：记录最早有效交易的偏移量和起始序列号<br>   （这不是 FS 超级块；它是日志文件开头的块）<br> 描述符块：magic、seq、块#s<br> 数据块（如描述符所描述的）<br> 提交块：魔术，序列<br> |超级：偏移+序列#| … |描述符 4|…块…|提交 4| |描述符 5|…</p>
+<p>ext3 如何获得良好的性能？<br>  分批<br>    每隔几秒提交一次，而不是在每次系统调用之后<br>    所以每个事务都包含许多系统调用<br>  为什么批处理有助于提高性能？<br>    1. 将固定的交易成本（描述符和数据块）摊销在许多交易上<br>    2.“写吸收”<br>       批处理中的许多系统调用可能会修改同一个块（i-node、bitmap、dirent）<br>       因此一个磁盘写入许多系统调用的更新<br>    3. 更好的并发性——减少等待前一个系统调用完成提交</p>
+<p>注意：系统调用在安全到达磁盘之前返回<br>  这会影响应用程序级别的崩溃恢复情况<br>  例如，邮件服务器接收消息，写入磁盘，然后回复“OK”</p>
+<p>ext3 允许并发事务和系统调用<br>  可能有多个事务：<br>    一些完全提交在磁盘日志中<br>    一些做日志写入作为提交的一部分<br>    <em>一个</em>接受新系统调用的“打开”事务 </p>
+<p>ext3 系统调用代码：<br>  系统打开（）{<br>    h &#x3D; 开始（）<br>    获取（h，块#）<br>    修改缓存中的块<br>    停止（小时）<br>  }<br>  开始（）：<br>    告诉日志系统进行一组写操作，直到 stop() 原子化<br>    日志系统必须知道未完成的系统调用集<br>      在它们全部完成之前不能提交<br>    如果需要，start() 可以阻止这个系统调用<br>  得到（）：<br>    告诉日志系统我们将修改缓存块<br>      添加到要记录的块列表<br>    在 xaction 提交之前阻止将块写入磁盘<br>  停止（）：<br>    stop() 不会<em>不会</em>导致提交<br>    如果所有包含的系统调用都调用了 stop()，则事务可以提交</p>
+<p>将事务提交到磁盘</p>
+<ol>
+<li>阻止新的系统调用</li>
+<li>等待正在进行的系统调用 stop()</li>
+<li>开启一个新的事务，解锁新的系统调用</li>
+<li>写入描述符以登录到带有块列表的磁盘#s</li>
+<li>将缓存中的每个块写入到登录磁盘</li>
+<li>等待所有日志写入完成</li>
+</ol>
+<pre><code>7.写提交记录
+</code></pre>
+<ol start="8">
+<li>现在缓存块允许进入磁盘上的家（但不是强制的）</li>
+</ol>
+<p>系统调用 B 可以读取系统调用 A 的未提交结果吗？<br>  答：rm x<br>  B: echo &gt; y – 重新使用 x 释放的 i-node<br>  B 可以先提交，以便崩溃会显示异常吗？<br>  情况 1：两者都在同一个 xaction 中——好的，两者都不是<br>  case 2: A in T1, B in T2 – ok, ext3 按顺序提交事务<br>  情况 3：T1 中的 B，T2 中的 A<br>    在 T1：|–B–|<br>    在 T2：|–A–|<br>    B 能看到 A 没有 y 的 i 节点吗？<br>      毕竟，A 写入的缓存与 B 读取的缓存相同<br>      坏：T1 后崩溃可能会使用 i 节点同时保留 x 和 y<br>    否：ext3 等待 prev xaction 中的所有系统调用完成<br>      在让任何人进入下一次之前<br>      因此 B（在 T1 中）在 ext3 让 A（在 T2 中）开始之前完成<br>      所以 B 不会看到 A 的任何写入<br>      因此：<br>        T1：|-系统调用-|<br>        T2：|-系统调用-|<br>        T3：|-系统调用-|<br>  更大的一点：<br>    提交顺序必须与提交的顺序一致<br>      系统调用读&#x2F;写状态。<br>    也许 ext3 在这里牺牲了一些性能以获得正确性。</p>
+<p>T2 中的系统调用写入一个也在 T1 中写入的块是否安全？<br>  ext3 允许 T2 在 T1 完成提交之前启动——可能需要一段时间<br>    T1: |-syscalls-|-commitWrites-|<br>    T2：|-syscalls-|-commitWrites-|<br>  危险：<br>    T1 系统调用写入块 17<br>    T1 关闭，开始将缓存块写入日志<br>    T2启动，一个T2系统调用也写入块17<br>    T1 可以将 T2 修改后的第 17 块写入日志中的 T1 事务吗？<br>    坏：不是原子性的，从那以后崩溃会留下一些但不是全部 T2 的写入提交<br>  所以：<br>    ext3 为 T1 提供了块缓存的私有副本，因为它在 T1 关闭时存在<br>    T1 从缓存的这个快照提交<br>    使用写时复制很有效<br>    副本允许 T2 中的系统调用在 T1 提交时继续进行<br>  要点：<br>    正确性需要崩溃后+恢复状态，就像系统调用一样<br>      以原子方式和顺序执行<br>    ext3 使用各种技巧来允许一些并发</p>
+<p>ext3 什么时候可以重用事务 T1 的日志空间？<br>  （日志是圆形的）<br>  一次：<br>    T1 之前的所有事务都已在日志中释放，并且<br>    T1的缓存块已经全部写入磁盘上的FS<br>  自由 &#x3D;&#x3D; 提前记录超级块的起始指针&#x2F;序列</p>
+<p>如果日志中没有足够的可用空间用于系统调用怎么办？<br>  假设我们开始将系统调用的块添加到 T2<br>  中途，意识到 T2 不适合磁盘<br>  我们不能提交 T2，因为系统调用没有完成<br>  我们也不能退出这个系统调用<br>    无法撤消系统调用<br>    T2 中的其他系统调用可能已读取其修改</p>
+<p>解决方案：预订<br>  syscall 预先声明它可能需要多少块日志空间<br>  ext3 的 start() 会阻止系统调用，直到有足够的可用空间<br>  可能需要提交打开的事务，然后释放旧的事务<br>    好的，因为保留意味着所有启动的系统调用都可以完成 + 提交</p>
+<p>表现？<br>  rm * 在一个包含 100 个文件的目录中<br>  xv6：超过 10 秒——每个系统调用六个同步磁盘写入<br>  ext3：总共大约 20 毫秒<br>  rm * 重复写入相同的目录和 inode 块<br>    直到提交，只更新缓存的块，没有磁盘写入<br>  然后提交几个元数据块<br>  多久做一次提交？<br>    记录一些块（inode，dirent）<br>    等待磁盘说写在磁盘上<br>    然后写提交记录<br>    两次旋转，或总共约 20 毫秒<br>    现代磁盘接口可以避免浪费革命</p>
+<p>如果崩溃怎么办？<br>  崩溃可能会中断写入最后一个 xaction 以登录磁盘<br>  所以磁盘可能有一堆完整的 xactions，然后可能有一个部分<br>  也可能将一些块缓存写入磁盘<br>    但仅适用于完全提交的 xactions，而不是部分最后一个</p>
+<p>恢复是如何工作的<br>  1.找到日志的开始——第一个未释放的描述符<br>     日志“超级块”包含第一笔交易的偏移量和序列号<br>     （释放日志空间时高级）<br>  2.找到日志的结尾<br>     扫描直到坏魔法或不是预期的 seq #<br>     返回上次提交记录<br>     提交期间崩溃 -&gt; 没有提交记录，恢复忽略<br>  3.通过最后一个完整的xaction重播所有块，按日志顺序</p>
+<p>如果最后一个有效日志块之后的块看起来像一个日志描述符怎么办？<br>  也许是以前使用日志遗留下来的描述符块？<br>    seq # 会太低<br>  也许某些文件数据恰好看起来像一个描述符？<br>    记录的数据块不能包含幻数！<br>    ext3 禁止记录数据块中的幻数 -&gt; 描述符中的标志</p>
+<p>“有序数据”模式（到目前为止我们一直在谈论“日志数据”模式）<br>  日志文件内容很慢，每个数据块写入两次<br>  我们可以从日志中完全省略文件内容吗？<br>  如果我们这样做了，我们什么时候将文件内容写入 FS？<br>  我们可以随时写入文件内容块吗？<br>    否：如果首先提交元数据，崩溃可能会留下文件指向<br>        使用其他人的数据写入未写入的块<br>  ext3“有序数据”模式：<br>    不要将文件内容写入日志<br>    将内容块写入磁盘 * 之前 * 提交具有新大小和块的 inode #<br>  如果没有崩溃，就没有问题——读者会看到写入的数据<br>  如果在提交前崩溃：<br>    [图表：i-node和位图以及内存中的新数据，磁盘上的新数据，<br>              但磁盘上的 i-node 和位图未更新]<br>    块有新数据<br>    也许不可见，因为 i-node 大小和块列表没有更新<br>    没有元数据不一致<br>      i-node 和空闲位图写入仍然是原子的<br>  大多数人使用 ext3 有序模式</p>
+<p>带有有序模式的正确性挑战：<br>  A. rmdir, 重用块 for write() 到某个文件，<br>       在 rmdir 或写入提交之前崩溃<br>     恢复后，就好像 rmdir 从未发生过一样，<br>       但目录块已被覆盖！<br>     修复：在释放系统调用之前不能重用已释放的块<br>  B. rmdir，提交，重用文件中的块，有序文件写入，提交，<br>       崩溃+恢复，重放 rmdir<br>     文件留下目录内容，例如 . 和 ..<br>       因为不重放文件内容写入<br>     修复：将“撤销”记录放入日志，防止给定块的日志重放<br>  注意：由于更改块的类型（内容与元数据）而导致的两个问题<br>    所以另一个解决方案可能是永远不要这样做</p>
+<p>规则概要<br>  经典的预写日志规则：<br>    在磁盘日志中提交之前，不要将元数据块写入磁盘文件系统<br>  在启动 T2 之前等待 T1 中的所有系统调用完成<br>  在日志中之前不要覆盖缓冲区缓存中的块<br>  在所有块都写入 FS 之前不要释放日志空间<br>  订购模式：<br>    提交前将数据块写入 FS<br>    在提交释放系统调用之前不要重用空闲块<br>    不要重播已撤销的系统调用</p>
+<p>另一个极端情况：打开 fd 并取消链接<br>  打开一个文件，然后取消链接<br>  取消链接提交<br>  文件已打开，因此取消链接会删除目录条目但不会释放块<br>  碰撞<br>  日志中没有什么有趣的东西可以重播<br>  inode 和 blocks 不在空闲列表中，也无法通过任何名称访问<br>    永远不会被释放！哎呀<br>  解决方案：将inode添加到从FS超级块开始的链表中<br>    连同删除目录一起提交<br>  恢复查看该列表，完成删除</p>
+<p>校验和<br>  回想一下：在写入提交块之前，事务的日志块必须在磁盘上<br>    ext3 在开始提交块写入之前等待磁盘说“完成”<br>  风险：磁盘通常具有写入缓存并重新排序写入，以提高性能<br>    有时很难关闭（磁盘位于）<br>    人们经常出于无知而启用重新排序以加快速度<br>    坏消息，如果磁盘在事务的其余部分之前写入提交块<br>  解决方案：提交块包含所有数据块的校验和<br>    恢复时：计算数据块的校验和<br>    如果匹配提交块中的校验和：安装事务<br>    如果不匹配：不安装交易<br>  ext4 有日志校验和</p>
+<p>ext3 是否修复了 xv6 日志性能问题？<br>  同步写入磁盘日志——是的，但 5 秒窗口<br>  微小更新 -&gt; 整个块写入 - 也许（如果系统调用允许写入吸收）<br>  提交后同步写入主位置 - 是<br>  ext3&#x2F;ext4 非常成功！</p>
+ 
+      <!-- reward -->
+      
+      <div id="reword-out">
+        <div id="reward-btn">
+          Donate
+        </div>
+      </div>
+      
+    </div>
+    
+
+    <!-- copyright -->
+    
+    <div class="declare">
+      <ul class="post-copyright">
+        <li>
+          <i class="ri-copyright-line"></i>
+          <strong>Copyright： </strong>
+          Copyright is owned by the author. For commercial reprints, please contact the author for authorization. For non-commercial reprints, please indicate the source.
+        </li>
+      </ul>
+    </div>
+    
+    <footer class="article-footer">
+       
+<div class="share-btn">
+      <span class="share-sns share-outer">
+        <i class="ri-share-forward-line"></i>
+        分享
+      </span>
+      <div class="share-wrap">
+        <i class="arrow"></i>
+        <div class="share-icons">
+          
+          <a class="weibo share-sns" href="javascript:;" data-type="weibo">
+            <i class="ri-weibo-fill"></i>
+          </a>
+          <a class="weixin share-sns wxFab" href="javascript:;" data-type="weixin">
+            <i class="ri-wechat-fill"></i>
+          </a>
+          <a class="qq share-sns" href="javascript:;" data-type="qq">
+            <i class="ri-qq-fill"></i>
+          </a>
+          <a class="douban share-sns" href="javascript:;" data-type="douban">
+            <i class="ri-douban-line"></i>
+          </a>
+          <!-- <a class="qzone share-sns" href="javascript:;" data-type="qzone">
+            <i class="icon icon-qzone"></i>
+          </a> -->
+          
+          <a class="facebook share-sns" href="javascript:;" data-type="facebook">
+            <i class="ri-facebook-circle-fill"></i>
+          </a>
+          <a class="twitter share-sns" href="javascript:;" data-type="twitter">
+            <i class="ri-twitter-fill"></i>
+          </a>
+          <a class="google share-sns" href="javascript:;" data-type="google">
+            <i class="ri-google-fill"></i>
+          </a>
+        </div>
+      </div>
+</div>
+
+<div class="wx-share-modal">
+    <a class="modal-close" href="javascript:;"><i class="ri-close-circle-line"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <div class="wx-qrcode">
+      <img src="//api.qrserver.com/v1/create-qr-code/?size=150x150&data=http://sakura-mac.github.io/2024/03/08/L14%EF%BC%9ALinux_ext3_%E5%B4%A9%E6%BA%83%E6%81%A2%E5%A4%8D/" alt="微信分享二维码">
+    </div>
+</div>
+
+<div id="share-mask"></div>  
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Mit-6-828/" rel="tag">Mit-6.828</a></li></ul>
+
+    </footer>
+  </div>
+
+   
+  <nav class="article-nav">
+    
+      <a href="/2024/03/08/L1%EF%BC%9A%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E6%A6%82%E8%AE%BA/" class="article-nav-link">
+        <strong class="article-nav-caption">上一篇</strong>
+        <div class="article-nav-title">
+          
+            L1：操作系统概论
+          
+        </div>
+      </a>
+    
+    
+      <a href="/2024/03/08/L13%EF%BC%9A%E5%B4%A9%E6%BA%83%E6%81%A2%E5%A4%8D%EF%BC%8C%E6%97%A5%E5%BF%97%E8%AE%B0%E5%BD%95/" class="article-nav-link">
+        <strong class="article-nav-caption">下一篇</strong>
+        <div class="article-nav-title">L13：崩溃恢复，日志记录</div>
+      </a>
+    
+  </nav>
+
+   
+<!-- valine评论 -->
+<div id="vcomments-box">
+  <div id="vcomments"></div>
+</div>
+<script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/valine@1.4.14/dist/Valine.min.js"></script>
+<script>
+  new Valine({
+    el: "#vcomments",
+    app_id: "bbzBMY2PHFRlbkSCorlYCrRX-gzGzoHsz",
+    app_key: "NMnT9uDCzg2rW4ckm0fpSm5y",
+    path: window.location.pathname,
+    avatar: "monsterid",
+    placeholder: "请留下你此刻脑海中的想法~",
+    recordIP: true,
+  });
+  const infoEle = document.querySelector("#vcomments .info");
+  if (infoEle && infoEle.childNodes && infoEle.childNodes.length > 0) {
+    infoEle.childNodes.forEach(function (item) {
+      item.parentNode.removeChild(item);
+    });
+  }
+</script>
+<style>
+  #vcomments-box {
+    padding: 5px 30px;
+  }
+
+  @media screen and (max-width: 800px) {
+    #vcomments-box {
+      padding: 5px 0px;
+    }
+  }
+
+  #vcomments-box #vcomments {
+    background-color: #fff;
+  }
+
+  .v .vlist .vcard .vh {
+    padding-right: 20px;
+  }
+
+  .v .vlist .vcard {
+    padding-left: 10px;
+  }
+</style>
+
+ 
+     
+</article>
+
+</section>
+      <footer class="footer">
+  <div class="outer">
+    <ul>
+      <li>
+        Copyrights &copy;
+        2020-2024
+        <i class="ri-heart-fill heart_icon"></i> 环烷烃
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        
+        Powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+        <span class="division">|</span>
+        Theme - <a href="https://github.com/Shen-Yu/hexo-theme-ayer" target="_blank">Ayer</a>
+        
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        <span>
+  <span><i class="ri-user-3-fill"></i>Visitors:<span id="busuanzi_value_site_uv"></span></s>
+  <span class="division">|</span>
+  <span><i class="ri-eye-fill"></i>Views:<span id="busuanzi_value_page_pv"></span></span>
+</span>
+        
+      </li>
+    </ul>
+    <ul>
+      
+    </ul>
+    <ul>
+      <li>
+        <!-- cnzz统计 -->
+        
+        <script type="text/javascript" src='https://s9.cnzz.com/z_stat.php?id=1278069914&amp;web_id=1278069914'></script>
+        
+      </li>
+    </ul>
+  </div>
+</footer>
+      <div class="float_btns">
+        <div class="totop" id="totop">
+  <i class="ri-arrow-up-line"></i>
+</div>
+
+      </div>
+    </main>
+    <aside class="sidebar on">
+      <button class="navbar-toggle"></button>
+<nav class="navbar">
+  
+  <div class="logo">
+    <a href="/"><img src="/images/ayer-side.jpg" alt="海猫栖息地"></a>
+  </div>
+  
+  <ul class="nav nav-main">
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/">主页</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/archives">归档</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/tags">标签</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/player/">播放器</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/about">关于我</a>
+    </li>
+    
+  </ul>
+</nav>
+<nav class="navbar navbar-bottom">
+  <ul class="nav">
+    <li class="nav-item">
+      
+      <a class="nav-item-link nav-item-search"  title="Search">
+        <i class="ri-search-line"></i>
+      </a>
+      
+      
+      <a class="nav-item-link" target="_blank" href="/atom.xml" title="RSS Feed">
+        <i class="ri-rss-line"></i>
+      </a>
+      
+    </li>
+  </ul>
+</nav>
+<div class="search-form-wrap">
+  <div class="local-search local-search-plugin">
+  <input type="search" id="local-search-input" class="local-search-input" placeholder="Search...">
+  <div id="local-search-result" class="local-search-result"></div>
+</div>
+</div>
+
+    </aside>
+    <script>
+      if (window.matchMedia("(max-width: 768px)").matches) {
+        document.querySelector('.content').classList.remove('on');
+        document.querySelector('.sidebar').classList.remove('on');
+      }
+    </script>
+    <div id="mask"></div>
+
+<!-- #reward -->
+<div id="reward">
+  <span class="close"><i class="ri-close-line"></i></span>
+  <p class="reward-p"><i class="ri-cup-line"></i>我很可爱，请我喝一瓶怡宝吧~</p>
+  <div class="reward-box">
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/alipay.jpg">
+      <span class="reward-type">支付宝</span>
+    </div>
+    
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/wechat.jpg">
+      <span class="reward-type">微信</span>
+    </div>
+    
+  </div>
+</div>
+    
+<script src="/js/jquery-2.0.3.min.js"></script>
+
+
+<script src="/js/lazyload.min.js"></script>
+
+<!-- Tocbot -->
+
+
+<script src="/js/tocbot.min.js"></script>
+
+<script>
+  tocbot.init({
+    tocSelector: '.tocbot',
+    contentSelector: '.article-entry',
+    headingSelector: 'h1, h2, h3, h4, h5, h6',
+    hasInnerContainers: true,
+    scrollSmooth: true,
+    scrollContainer: 'main',
+    positionFixedSelector: '.tocbot',
+    positionFixedClass: 'is-position-fixed',
+    fixedSidebarOffset: 'auto'
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.css">
+<script src="https://cdn.jsdelivr.net/npm/justifiedGallery@3.7.0/dist/js/jquery.justifiedGallery.min.js"></script>
+
+<script src="/dist/main.js"></script>
+
+<!-- ImageViewer -->
+
+<!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" style="display:none" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css">
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"></script>
+
+<script>
+    function viewer_init() {
+        let pswpElement = document.querySelectorAll('.pswp')[0];
+        let $imgArr = document.querySelectorAll(('.article-entry img:not(.reward-img)'))
+
+        $imgArr.forEach(($em, i) => {
+            $em.onclick = () => {
+                // slider展开状态
+                // todo: 这样不好，后面改成状态
+                if (document.querySelector('.left-col.show')) return
+                let items = []
+                $imgArr.forEach(($em2, i2) => {
+                    let img = $em2.getAttribute('data-idx', i2)
+                    let src = $em2.getAttribute('data-target') || $em2.getAttribute('src')
+                    let title = $em2.getAttribute('alt')
+                    // 获得原图尺寸
+                    const image = new Image()
+                    image.src = src
+                    items.push({
+                        src: src,
+                        w: image.width || $em2.width,
+                        h: image.height || $em2.height,
+                        title: title
+                    })
+                })
+                var gallery = new PhotoSwipe(pswpElement, PhotoSwipeUI_Default, items, {
+                    index: parseInt(i)
+                });
+                gallery.init()
+            }
+        })
+    }
+    viewer_init()
+</script>
+
+<!-- MathJax -->
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+      tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+  });
+
+  MathJax.Hub.Queue(function() {
+      var all = MathJax.Hub.getAllJax(), i;
+      for(i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+      }
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.6/unpacked/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<script>
+  var ayerConfig = {
+    mathjax: true
+  }
+</script>
+
+<!-- Katex -->
+
+<!-- busuanzi  -->
+
+
+<script src="/js/busuanzi-2.3.pure.min.js"></script>
+
+
+<!-- ClickLove -->
+
+<!-- ClickBoom1 -->
+
+<script src="https://cdn.jsdelivr.net/npm/animejs@latest/anime.min.js"></script>
+
+<script src="/js/clickBoom1.js"></script>
+
+
+<!-- ClickBoom2 -->
+
+<!-- CodeCopy -->
+
+
+<link rel="stylesheet" href="/css/clipboard.css">
+
+<script src="https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js"></script>
+<script>
+  function wait(callback, seconds) {
+    var timelag = null;
+    timelag = window.setTimeout(callback, seconds);
+  }
+  !function (e, t, a) {
+    var initCopyCode = function(){
+      var copyHtml = '';
+      copyHtml += '<button class="btn-copy" data-clipboard-snippet="">';
+      copyHtml += '<i class="ri-file-copy-2-line"></i><span>COPY</span>';
+      copyHtml += '</button>';
+      $(".highlight .code pre").before(copyHtml);
+      $(".article pre code").before(copyHtml);
+      var clipboard = new ClipboardJS('.btn-copy', {
+        target: function(trigger) {
+          return trigger.nextElementSibling;
+        }
+      });
+      clipboard.on('success', function(e) {
+        let $btn = $(e.trigger);
+        $btn.addClass('copied');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-checkbox-circle-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPIED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-checkbox-circle-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+      clipboard.on('error', function(e) {
+        e.clearSelection();
+        let $btn = $(e.trigger);
+        $btn.addClass('copy-failed');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-time-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPY FAILED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-time-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+    }
+    initCopyCode();
+  }(window, document);
+</script>
+
+
+<!-- CanvasBackground -->
+
+
+    
+  </div>
+<script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginRootPath":"live2dw/","pluginJsPath":"lib/","pluginModelPath":"assets/","tagMode":false,"debug":false,"model":{"jsonPath":"/live2dw/assets/hijiki.model.json"},"display":{"position":"left","width":150,"height":300,"hOffset":80,"vOffset":-50},"mobile":{"show":true},"log":false});</script></body>
+
+</html>

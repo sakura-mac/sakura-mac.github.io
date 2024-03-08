@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+
+
+<html lang="en">
+
+
+<head>
+  <meta charset="utf-8" />
+    
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>
+    L11 ：协调（sleep&amp;wakeup） |  
+  </title>
+  <meta name="generator" content="hexo-theme-ayer">
+  
+  <link rel="shortcut icon" href="/images/ayer.png" />
+  
+  
+<link rel="stylesheet" href="/dist/main.css">
+
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Shen-Yu/cdn/css/remixicon.min.css">
+
+  
+<link rel="stylesheet" href="/css/custom.css">
+
+  
+  
+<script src="https://cdn.jsdelivr.net/npm/pace-js@1.0.2/pace.min.js"></script>
+
+  
+  
+
+  
+<script>
+var _hmt = _hmt || [];
+(function() {
+	var hm = document.createElement("script");
+	hm.src = "https://hm.baidu.com/hm.js?41fc030db57d5570dd22f78997dc4a7e";
+	var s = document.getElementsByTagName("script")[0]; 
+	s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+<link rel="alternate" href="/atom.xml" title="海猫栖息地" type="application/atom+xml">
+</head>
+
+</html>
+
+<body>
+  <div id="app">
+    
+      <canvas class="fireworks"></canvas>
+      <style>
+        .fireworks {
+          position: fixed;
+          left: 0;
+          top: 0;
+          z-index: 99999;
+          pointer-events: none;
+        }
+      </style>
+      
+      
+    <main class="content on">
+      <section class="outer">
+  <article
+  id="post-L11：协调（sleep&amp;wakeup）"
+  class="article article-type-post"
+  itemscope
+  itemprop="blogPost"
+  data-scroll-reveal
+>
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h1 class="article-title sea-center" style="border-left:0" itemprop="name">
+  L11 ：协调（sleep&amp;wakeup）
+</h1>
+ 
+
+    </header>
+     
+    <div class="article-meta">
+      <a href="/2024/03/08/L11%EF%BC%9A%E5%8D%8F%E8%B0%83%EF%BC%88sleep&wakeup%EF%BC%89/" class="article-date">
+  <time datetime="2024-03-08T13:16:50.301Z" itemprop="datePublished">2024-03-08</time>
+</a>   
+<div class="word_count">
+    <span class="post-time">
+        <span class="post-meta-item-icon">
+            <i class="ri-quill-pen-line"></i>
+            <span class="post-meta-item-text"> Word count:</span>
+            <span class="post-count">2k</span>
+        </span>
+    </span>
+
+    <span class="post-time">
+        &nbsp; | &nbsp;
+        <span class="post-meta-item-icon">
+            <i class="ri-book-open-line"></i>
+            <span class="post-meta-item-text"> Reading time≈</span>
+            <span class="post-count">7 min</span>
+        </span>
+    </span>
+</div>
+ 
+    </div>
+      
+    <div class="tocbot"></div>
+
+
+
+
+  
+    <div class="article-entry" itemprop="articleBody">
+       
+  <p>lab通关记录</p>
+<a href="/2024/03/08/MIT-6.828%E5%AE%9E%E9%AA%8C%E9%80%9A%E5%85%B3%E8%AE%B0%E5%BD%95/" title="MIT-6.828实验通关记录">MIT-6.828实验通关记录</a>
+
+<h1 id="笔记计划"><a href="#笔记计划" class="headerlink" title="笔记计划"></a>笔记计划</h1><p>  完成调度<br>  协调<br>        xv6：睡眠和唤醒<br>        丢失唤醒问题<br>        终止睡眠线程</p>
+<span id="more"></span>
+
+<p>  大图：<br>        进程、每个进程的内核堆栈、内核、每个内核的调度堆栈<br>        yield&#x2F;swtch&#x2F;scheduler&#x2F;swtch&#x2F;yield示意图</p>
+<h1 id="调度"><a href="#调度" class="headerlink" title="调度"></a>调度</h1><p>xv6 从内核线程到调度器使用 ptable.lock 和 swtch 是不寻常的</p>
+<p>  大多数情况下，xv6 是一个普通的<strong>并行共享内存程序</strong><br>  但是这种线程切换和锁的使用是非常特定于操作系统的</p>
+<p>关于 xv6 上下文切换与并发的问题</p>
+<p> 1.为什么 yield() 跨 sched&#x2F;swtch 持有 ptable.lock？因为sched&#x2F;swtch必须是原子操作，否则可能出现切换一个线程堆栈，但是sched选择了另一个线程。<br>    如果另一个内核的调度程序立即看到 RUNNABLE 进程怎么办？进入switch<br>    如果在 swtch() 期间发生定时器中断怎么办？关中断<br>  2.我们怎么知道 scheduler() 线程已经准备好让我们 swtch() 进入？锁<br>  3.两个scheduler（）可以选择同一个 RUNNABLE 进程吗？ptable.lock</p>
+<h1 id="为什要协调（coordination）："><a href="#为什要协调（coordination）：" class="headerlink" title="为什要协调（coordination）："></a>为什要协调（coordination）：</h1><p>  线程需要等待特定的事件或条件：<br>    等待磁盘读取完成<br>    等待管道读取器在管道中腾出空间<br>    等待任何子进程退出</p>
+<p>为什么不只是有一个循环直到事件发生？想象死锁：循环等待，所以如果构建一个优先队列，就能破坏这个循环等待</p>
+<p>更好的解决方案：产生 CPU 的协调原语</p>
+<p>  睡眠和唤醒 (xv6)<br>  条件变量（作业）<br>  障碍（家庭作业）<br>  等等。</p>
+<h1 id="协调的实现：睡眠和唤醒"><a href="#协调的实现：睡眠和唤醒" class="headerlink" title="协调的实现：睡眠和唤醒"></a>协调的实现：睡眠和唤醒</h1><p>  sleep（old，lock）<br>    睡在一个“channel”上，一个用来命名我们正在睡觉的条件的地址<br>  wakeup（old）<br>    唤醒所有沉睡在 chan 上的线程<br>    可能会唤醒多个线程：加入磁盘读取完毕，那么我们就会唤醒所有等待磁盘写的线程</p>
+<h1 id="协调的例子"><a href="#协调的例子" class="headerlink" title="协调的例子"></a>协调的例子</h1><h2 id="sleep-x2F-wakeup-的使用示例-–-iderw-x2F-ideintr"><a href="#sleep-x2F-wakeup-的使用示例-–-iderw-x2F-ideintr" class="headerlink" title="sleep&#x2F;wakeup 的使用示例 – iderw() &#x2F; ideintr()"></a>sleep&#x2F;wakeup 的使用示例 – iderw() &#x2F; ideintr()</h2><p>  iderw() 排队阻塞读请求，然后 sleep()s<br>    b 是一个缓冲区，将填充块内容<br>    iderw() 休眠等待 B_VALID——磁盘读取完成<br>    chan 是 b – 这个缓冲区（在 iderw() 中可能还有其他进程）<br>  当前磁盘读取完成后，通过中断调用 ideintr()<br>    标记 b B_VALID<br>    唤醒（b）-与睡眠相同的chan</p>
+<p>图像<br>  iderw() 在调用 sleep 时持有 <strong>idelock</strong><br>  但是 ideintr() 需要获取 <strong>idelock</strong>！<br>  为什么 iderw() 在调用 sleep() 之前不释放 idelock？：ideintr中断需要切换，那么假如未睡眠就先切换，就会可能导致下一个该睡眠的先睡眠，破坏队列的优先级。所以为了保证优先级，必须要睡眠判断（可能是另一个锁）和睡眠操作都在临界区内。</p>
+<h1 id="协调的问题"><a href="#协调的问题" class="headerlink" title="协调的问题"></a>协调的问题</h1><ul>
+<li>丢失唤醒</li>
+<li>终止休眠线程</li>
+</ul>
+<h1 id="协调的第一个问题–丢失唤醒"><a href="#协调的第一个问题–丢失唤醒" class="headerlink" title="协调的第一个问题–丢失唤醒"></a>协调的第一个问题–丢失唤醒</h1><h2 id="丢失唤醒演示"><a href="#丢失唤醒演示" class="headerlink" title="丢失唤醒演示"></a>丢失唤醒演示</h2><p>  修改 iderw() 调用 release ：broken_sleep；acquire<br>  看看broken_sleep()<br>  看看wakeup（）<br>  发生什么了？</p>
+<p>  ideintr() 在 iderw() 没有看到 B_VALID 之后运行<br>    但在 Broken_sleep() 设置 state &#x3D; SLEEPING 之前<br>    wakeup（）扫描可处理但没有线程处于休眠状态<br>  然后 sleep() 将当前线程设置为 SLEEPING 并产生睡眠错过唤醒 -&gt; 死锁</p>
+<p>  这是一个“丢失的唤醒”，简单来说就是wakeup（）执行之后才将state设置为SLEEPING</p>
+<h2 id="xv6-解决方案："><a href="#xv6-解决方案：" class="headerlink" title="xv6 解决方案："></a>xv6 解决方案：</h2><p>  目标：<br>    1）在条件之间的整个时间内锁定wakeup()<br>       检查并state &#x3D; 睡眠<br>    2）在休眠时释放条件锁<br>  xv6 策略：<br>    需要wakeup（）在条件和 ptable.lock 上保持锁定<br>    睡眠者始终持有一个或另一个锁<br>      持有 ptable.lock 后可以释放条件锁<br>  看 ideintr() 对wakeup() 的调用<br>    并唤醒自己<br>    在寻找chan时，两把锁都被持有<br>  看看 iderw() 对 sleep() 的调用<br>    条件锁在调用 sleep() 时被持有<br>    查看 sleep() – 获取 ptable.lock，然后在条件下释放锁<br>  图表：<br>    |—-idelock—-|<br>                  |—ptable.lock—|<br>                                     |—-idelock—-|<br>                                      |-ptable.lock-|<br>  因此：<br>    要么运行完整的 sleep() 序列，然后运行wakeup()，<br>      睡觉的人会被吵醒<br>    或唤醒（）首先运行，在潜在的睡眠者检查条件之前，<br>      但唤醒将设置条件为真<br>  要求 sleep() 接受一个锁定参数</p>
+<p>人们已经开发了许多序列协调原语，</p>
+<p>  所有这些都必须解决丢失唤醒问题。<br>  例如<strong>条件变量</strong>（类似于睡眠&#x2F;唤醒）<br>  例如计数<strong>信号量</strong></p>
+<h2 id="另一个例子：piperead"><a href="#另一个例子：piperead" class="headerlink" title="另一个例子：piperead()"></a>另一个例子：piperead()</h2><p>  while 循环正在等待缓冲区中多于零字节的数据<br>    唤醒在 pipewrite() 结束时<br>    old线程是&amp;p-&gt;nread<br>  如果 piperead() 使用了broken_sleep()，那么竞争是什么？write和read，read和read<br>  为什么在 sleep() 周围有一个循环？每个字节读取之后睡眠等待<br>  为什么在 piperead() 的末尾有 wakeup()？因为唤醒之后读取，</p>
+<h1 id="协调第二个问题–如何终止一个休眠线程？"><a href="#协调第二个问题–如何终止一个休眠线程？" class="headerlink" title="协调第二个问题–如何终止一个休眠线程？"></a>协调第二个问题–如何终止一个休眠线程？</h1><p>首先，kill(target_pid) 是如何工作的？</p>
+<p>  问题：强行终止进程可能不安全<br>    它可能在内核中执行<br>      使用其内核堆栈、页表、proc[] 条目<br>    可能处于临界区，需要完成以恢复不变量<br>    所以我们不能立即终止它<br>  <strong>解决方案</strong>：目标在下一个方便的点退出<br>    kill() 设置 p-&gt;killed 标志<br>    目标线程在 trap() 和 exit()s 中检查 p-&gt;killed<br>      所以 kill() 不会干扰例如临界区<br>    <strong>exit() 关闭 FD，设置 state&#x3D;ZOMBIE，让出 CPU</strong><br>      为什么它不能释放内核堆栈和页表？<br>    父级 wait() 释放内核堆栈、页表和 proc[] 槽</p>
+<h2 id="如果kill-目标是sleep-呢？"><a href="#如果kill-目标是sleep-呢？" class="headerlink" title="如果kill() 目标是sleep() 呢？"></a>如果kill() 目标是sleep() 呢？</h2><p>  例如等待控制台输入，或在 wait() 或 iderw()<br>  我们希望目标停止sleep并exit（）：想想终端命令的ctrl-C<br>  但这并不总是合理的<br>    也许目标是在复杂操作的中途睡眠（）<br>      （为了一致性）必须完成<br>    例如创建一个文件</p>
+<h2 id="xv6-解决方案"><a href="#xv6-解决方案" class="headerlink" title="xv6 解决方案"></a>xv6 解决方案</h2><p>  参见 proc.c 中的 kill()<br>    将 SLEEPING 更改为 RUNNABLE – 就像 wakeup()<br>  <strong>一些睡眠循环检查 p-&gt;killed</strong><br>    例如piperead()<br>    <strong>sleep() 将由于 kill 的 state&#x3D;RUNNABLE 而返回</strong><br>    在一个循环中，所以重新检查<br>      条件为真 -&gt; 读取一些字节，然后陷阱 ret 调用 exit()<br>      条件 false -&gt; 看到 p-&gt;killed、return、trap ret 调用 exit()<br>    无论哪种方式，对 piperead() 中线程的 kill() 的近乎即时响应<br>  一些睡眠循环不检查 p-&gt;killed<br>    问：为什么不修改 iderw() 来检查睡眠循环中的 p-&gt;killed 并返回？<br>    A：如果读取，调用sFS代码期望看到磁盘缓冲区中的数据！<br>       如果写（或读），可能是 create() 的一半<br>       现在exit会使磁盘 FS 不一致。<br>  因此 iderw() 中的线程可能会在内核中继续执行一段时间<br>    trap() 将在系统调用完成后退出()</p>
+<p>简单来说，对于kill会对state检查，将sleeping改为runnable，然后像正常退出子线程一样操作</p>
+<h1 id="xv6-kill规范"><a href="#xv6-kill规范" class="headerlink" title="xv6 kill规范"></a>xv6 kill规范</h1><p>  如果目标在用户空间：立即放弃使用CPU，但是放弃内存在<br>    将在下次进行系统调用或接受定时器中断时死亡<br>  如果目标在内核中：并不直接放弃使用CPU<br>    目标永远不会执行另一个用户指令<br>    但可能会在内核中花费相当长的时间</p>
+<h1 id="JOS-是如何应对这些问题的？"><a href="#JOS-是如何应对这些问题的？" class="headerlink" title="JOS 是如何应对这些问题的？"></a>JOS 是如何应对这些问题的？</h1><p>  失去了唤醒？<br>    JOS 是单处理器，内核中禁止中断<br>    所以唤醒不能在条件检查和睡眠之间潜行<br>  阻塞时终止？<br>    JOS 只有几个系统调用，而且它们相当简单<br>      没有像 create() 这样的阻塞多步操作<br>      因为内核中没有 FS 和磁盘驱动程序<br>    实际上只有一个阻塞调用——IPC recv()<br>      如果 env_destroy() 正在运行，则目标线程未运行<br>      recv() 使 env 处于可以安全销毁的状态</p>
+<h1 id="概括"><a href="#概括" class="headerlink" title="概括"></a>概括</h1><p>  睡眠&#x2F;唤醒让线程等待特定事件<br>  并发和中断意味着我们必须担心丢失的唤醒<br>  终止是线程系统中的痛苦<br>    上下文切换 vs 进程退出<br>    sleep vs kill</p>
+ 
+      <!-- reward -->
+      
+      <div id="reword-out">
+        <div id="reward-btn">
+          Donate
+        </div>
+      </div>
+      
+    </div>
+    
+
+    <!-- copyright -->
+    
+    <div class="declare">
+      <ul class="post-copyright">
+        <li>
+          <i class="ri-copyright-line"></i>
+          <strong>Copyright： </strong>
+          Copyright is owned by the author. For commercial reprints, please contact the author for authorization. For non-commercial reprints, please indicate the source.
+        </li>
+      </ul>
+    </div>
+    
+    <footer class="article-footer">
+       
+<div class="share-btn">
+      <span class="share-sns share-outer">
+        <i class="ri-share-forward-line"></i>
+        分享
+      </span>
+      <div class="share-wrap">
+        <i class="arrow"></i>
+        <div class="share-icons">
+          
+          <a class="weibo share-sns" href="javascript:;" data-type="weibo">
+            <i class="ri-weibo-fill"></i>
+          </a>
+          <a class="weixin share-sns wxFab" href="javascript:;" data-type="weixin">
+            <i class="ri-wechat-fill"></i>
+          </a>
+          <a class="qq share-sns" href="javascript:;" data-type="qq">
+            <i class="ri-qq-fill"></i>
+          </a>
+          <a class="douban share-sns" href="javascript:;" data-type="douban">
+            <i class="ri-douban-line"></i>
+          </a>
+          <!-- <a class="qzone share-sns" href="javascript:;" data-type="qzone">
+            <i class="icon icon-qzone"></i>
+          </a> -->
+          
+          <a class="facebook share-sns" href="javascript:;" data-type="facebook">
+            <i class="ri-facebook-circle-fill"></i>
+          </a>
+          <a class="twitter share-sns" href="javascript:;" data-type="twitter">
+            <i class="ri-twitter-fill"></i>
+          </a>
+          <a class="google share-sns" href="javascript:;" data-type="google">
+            <i class="ri-google-fill"></i>
+          </a>
+        </div>
+      </div>
+</div>
+
+<div class="wx-share-modal">
+    <a class="modal-close" href="javascript:;"><i class="ri-close-circle-line"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <div class="wx-qrcode">
+      <img src="//api.qrserver.com/v1/create-qr-code/?size=150x150&data=http://sakura-mac.github.io/2024/03/08/L11%EF%BC%9A%E5%8D%8F%E8%B0%83%EF%BC%88sleep&wakeup%EF%BC%89/" alt="微信分享二维码">
+    </div>
+</div>
+
+<div id="share-mask"></div>  
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Mit-6-828/" rel="tag">Mit-6.828</a></li></ul>
+
+    </footer>
+  </div>
+
+   
+  <nav class="article-nav">
+    
+      <a href="/2024/03/08/L12%EF%BC%9A%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/" class="article-nav-link">
+        <strong class="article-nav-caption">上一篇</strong>
+        <div class="article-nav-title">
+          
+            L12：文件系统
+          
+        </div>
+      </a>
+    
+    
+      <a href="/2024/03/08/L10%EF%BC%9A%E8%BF%9B%E7%A8%8B%EF%BC%8C%E7%BA%BF%E7%A8%8B%E5%92%8C%E8%B0%83%E5%BA%A6/" class="article-nav-link">
+        <strong class="article-nav-caption">下一篇</strong>
+        <div class="article-nav-title">L10：进程，线程和调度</div>
+      </a>
+    
+  </nav>
+
+   
+<!-- valine评论 -->
+<div id="vcomments-box">
+  <div id="vcomments"></div>
+</div>
+<script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/valine@1.4.14/dist/Valine.min.js"></script>
+<script>
+  new Valine({
+    el: "#vcomments",
+    app_id: "bbzBMY2PHFRlbkSCorlYCrRX-gzGzoHsz",
+    app_key: "NMnT9uDCzg2rW4ckm0fpSm5y",
+    path: window.location.pathname,
+    avatar: "monsterid",
+    placeholder: "请留下你此刻脑海中的想法~",
+    recordIP: true,
+  });
+  const infoEle = document.querySelector("#vcomments .info");
+  if (infoEle && infoEle.childNodes && infoEle.childNodes.length > 0) {
+    infoEle.childNodes.forEach(function (item) {
+      item.parentNode.removeChild(item);
+    });
+  }
+</script>
+<style>
+  #vcomments-box {
+    padding: 5px 30px;
+  }
+
+  @media screen and (max-width: 800px) {
+    #vcomments-box {
+      padding: 5px 0px;
+    }
+  }
+
+  #vcomments-box #vcomments {
+    background-color: #fff;
+  }
+
+  .v .vlist .vcard .vh {
+    padding-right: 20px;
+  }
+
+  .v .vlist .vcard {
+    padding-left: 10px;
+  }
+</style>
+
+ 
+     
+</article>
+
+</section>
+      <footer class="footer">
+  <div class="outer">
+    <ul>
+      <li>
+        Copyrights &copy;
+        2020-2024
+        <i class="ri-heart-fill heart_icon"></i> 环烷烃
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        
+        Powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+        <span class="division">|</span>
+        Theme - <a href="https://github.com/Shen-Yu/hexo-theme-ayer" target="_blank">Ayer</a>
+        
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        <span>
+  <span><i class="ri-user-3-fill"></i>Visitors:<span id="busuanzi_value_site_uv"></span></s>
+  <span class="division">|</span>
+  <span><i class="ri-eye-fill"></i>Views:<span id="busuanzi_value_page_pv"></span></span>
+</span>
+        
+      </li>
+    </ul>
+    <ul>
+      
+    </ul>
+    <ul>
+      <li>
+        <!-- cnzz统计 -->
+        
+        <script type="text/javascript" src='https://s9.cnzz.com/z_stat.php?id=1278069914&amp;web_id=1278069914'></script>
+        
+      </li>
+    </ul>
+  </div>
+</footer>
+      <div class="float_btns">
+        <div class="totop" id="totop">
+  <i class="ri-arrow-up-line"></i>
+</div>
+
+      </div>
+    </main>
+    <aside class="sidebar on">
+      <button class="navbar-toggle"></button>
+<nav class="navbar">
+  
+  <div class="logo">
+    <a href="/"><img src="/images/ayer-side.jpg" alt="海猫栖息地"></a>
+  </div>
+  
+  <ul class="nav nav-main">
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/">主页</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/archives">归档</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/tags">标签</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/player/">播放器</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/about">关于我</a>
+    </li>
+    
+  </ul>
+</nav>
+<nav class="navbar navbar-bottom">
+  <ul class="nav">
+    <li class="nav-item">
+      
+      <a class="nav-item-link nav-item-search"  title="Search">
+        <i class="ri-search-line"></i>
+      </a>
+      
+      
+      <a class="nav-item-link" target="_blank" href="/atom.xml" title="RSS Feed">
+        <i class="ri-rss-line"></i>
+      </a>
+      
+    </li>
+  </ul>
+</nav>
+<div class="search-form-wrap">
+  <div class="local-search local-search-plugin">
+  <input type="search" id="local-search-input" class="local-search-input" placeholder="Search...">
+  <div id="local-search-result" class="local-search-result"></div>
+</div>
+</div>
+
+    </aside>
+    <script>
+      if (window.matchMedia("(max-width: 768px)").matches) {
+        document.querySelector('.content').classList.remove('on');
+        document.querySelector('.sidebar').classList.remove('on');
+      }
+    </script>
+    <div id="mask"></div>
+
+<!-- #reward -->
+<div id="reward">
+  <span class="close"><i class="ri-close-line"></i></span>
+  <p class="reward-p"><i class="ri-cup-line"></i>我很可爱，请我喝一瓶怡宝吧~</p>
+  <div class="reward-box">
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/alipay.jpg">
+      <span class="reward-type">支付宝</span>
+    </div>
+    
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/wechat.jpg">
+      <span class="reward-type">微信</span>
+    </div>
+    
+  </div>
+</div>
+    
+<script src="/js/jquery-2.0.3.min.js"></script>
+
+
+<script src="/js/lazyload.min.js"></script>
+
+<!-- Tocbot -->
+
+
+<script src="/js/tocbot.min.js"></script>
+
+<script>
+  tocbot.init({
+    tocSelector: '.tocbot',
+    contentSelector: '.article-entry',
+    headingSelector: 'h1, h2, h3, h4, h5, h6',
+    hasInnerContainers: true,
+    scrollSmooth: true,
+    scrollContainer: 'main',
+    positionFixedSelector: '.tocbot',
+    positionFixedClass: 'is-position-fixed',
+    fixedSidebarOffset: 'auto'
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.css">
+<script src="https://cdn.jsdelivr.net/npm/justifiedGallery@3.7.0/dist/js/jquery.justifiedGallery.min.js"></script>
+
+<script src="/dist/main.js"></script>
+
+<!-- ImageViewer -->
+
+<!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" style="display:none" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css">
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"></script>
+
+<script>
+    function viewer_init() {
+        let pswpElement = document.querySelectorAll('.pswp')[0];
+        let $imgArr = document.querySelectorAll(('.article-entry img:not(.reward-img)'))
+
+        $imgArr.forEach(($em, i) => {
+            $em.onclick = () => {
+                // slider展开状态
+                // todo: 这样不好，后面改成状态
+                if (document.querySelector('.left-col.show')) return
+                let items = []
+                $imgArr.forEach(($em2, i2) => {
+                    let img = $em2.getAttribute('data-idx', i2)
+                    let src = $em2.getAttribute('data-target') || $em2.getAttribute('src')
+                    let title = $em2.getAttribute('alt')
+                    // 获得原图尺寸
+                    const image = new Image()
+                    image.src = src
+                    items.push({
+                        src: src,
+                        w: image.width || $em2.width,
+                        h: image.height || $em2.height,
+                        title: title
+                    })
+                })
+                var gallery = new PhotoSwipe(pswpElement, PhotoSwipeUI_Default, items, {
+                    index: parseInt(i)
+                });
+                gallery.init()
+            }
+        })
+    }
+    viewer_init()
+</script>
+
+<!-- MathJax -->
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+      tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+  });
+
+  MathJax.Hub.Queue(function() {
+      var all = MathJax.Hub.getAllJax(), i;
+      for(i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+      }
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.6/unpacked/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<script>
+  var ayerConfig = {
+    mathjax: true
+  }
+</script>
+
+<!-- Katex -->
+
+<!-- busuanzi  -->
+
+
+<script src="/js/busuanzi-2.3.pure.min.js"></script>
+
+
+<!-- ClickLove -->
+
+<!-- ClickBoom1 -->
+
+<script src="https://cdn.jsdelivr.net/npm/animejs@latest/anime.min.js"></script>
+
+<script src="/js/clickBoom1.js"></script>
+
+
+<!-- ClickBoom2 -->
+
+<!-- CodeCopy -->
+
+
+<link rel="stylesheet" href="/css/clipboard.css">
+
+<script src="https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js"></script>
+<script>
+  function wait(callback, seconds) {
+    var timelag = null;
+    timelag = window.setTimeout(callback, seconds);
+  }
+  !function (e, t, a) {
+    var initCopyCode = function(){
+      var copyHtml = '';
+      copyHtml += '<button class="btn-copy" data-clipboard-snippet="">';
+      copyHtml += '<i class="ri-file-copy-2-line"></i><span>COPY</span>';
+      copyHtml += '</button>';
+      $(".highlight .code pre").before(copyHtml);
+      $(".article pre code").before(copyHtml);
+      var clipboard = new ClipboardJS('.btn-copy', {
+        target: function(trigger) {
+          return trigger.nextElementSibling;
+        }
+      });
+      clipboard.on('success', function(e) {
+        let $btn = $(e.trigger);
+        $btn.addClass('copied');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-checkbox-circle-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPIED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-checkbox-circle-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+      clipboard.on('error', function(e) {
+        e.clearSelection();
+        let $btn = $(e.trigger);
+        $btn.addClass('copy-failed');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-time-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPY FAILED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-time-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+    }
+    initCopyCode();
+  }(window, document);
+</script>
+
+
+<!-- CanvasBackground -->
+
+
+    
+  </div>
+<script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginRootPath":"live2dw/","pluginJsPath":"lib/","pluginModelPath":"assets/","tagMode":false,"debug":false,"model":{"jsonPath":"/live2dw/assets/hijiki.model.json"},"display":{"position":"left","width":150,"height":300,"hOffset":80,"vOffset":-50},"mobile":{"show":true},"log":false});</script></body>
+
+</html>

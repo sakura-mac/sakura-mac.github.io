@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+
+
+<html lang="en">
+
+
+<head>
+  <meta charset="utf-8" />
+    
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>
+    L4：shell和os |  
+  </title>
+  <meta name="generator" content="hexo-theme-ayer">
+  
+  <link rel="shortcut icon" href="/images/ayer.png" />
+  
+  
+<link rel="stylesheet" href="/dist/main.css">
+
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Shen-Yu/cdn/css/remixicon.min.css">
+
+  
+<link rel="stylesheet" href="/css/custom.css">
+
+  
+  
+<script src="https://cdn.jsdelivr.net/npm/pace-js@1.0.2/pace.min.js"></script>
+
+  
+  
+
+  
+<script>
+var _hmt = _hmt || [];
+(function() {
+	var hm = document.createElement("script");
+	hm.src = "https://hm.baidu.com/hm.js?41fc030db57d5570dd22f78997dc4a7e";
+	var s = document.getElementsByTagName("script")[0]; 
+	s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+<link rel="alternate" href="/atom.xml" title="海猫栖息地" type="application/atom+xml">
+</head>
+
+</html>
+
+<body>
+  <div id="app">
+    
+      <canvas class="fireworks"></canvas>
+      <style>
+        .fireworks {
+          position: fixed;
+          left: 0;
+          top: 0;
+          z-index: 99999;
+          pointer-events: none;
+        }
+      </style>
+      
+      
+    <main class="content on">
+      <section class="outer">
+  <article
+  id="post-L4：shell&amp;os"
+  class="article article-type-post"
+  itemscope
+  itemprop="blogPost"
+  data-scroll-reveal
+>
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h1 class="article-title sea-center" style="border-left:0" itemprop="name">
+  L4：shell和os
+</h1>
+ 
+
+    </header>
+     
+    <div class="article-meta">
+      <a href="/2024/03/08/L4%EF%BC%9Ashell&os/" class="article-date">
+  <time datetime="2024-03-08T13:16:50.309Z" itemprop="datePublished">2024-03-08</time>
+</a>   
+<div class="word_count">
+    <span class="post-time">
+        <span class="post-meta-item-icon">
+            <i class="ri-quill-pen-line"></i>
+            <span class="post-meta-item-text"> Word count:</span>
+            <span class="post-count">3.1k</span>
+        </span>
+    </span>
+
+    <span class="post-time">
+        &nbsp; | &nbsp;
+        <span class="post-meta-item-icon">
+            <i class="ri-book-open-line"></i>
+            <span class="post-meta-item-text"> Reading time≈</span>
+            <span class="post-count">11 min</span>
+        </span>
+    </span>
+</div>
+ 
+    </div>
+      
+    <div class="tocbot"></div>
+
+
+
+
+  
+    <div class="article-entry" itemprop="articleBody">
+       
+  <p>lab通关记录</p>
+<a href="/2024/03/08/MIT-6.828%E5%AE%9E%E9%AA%8C%E9%80%9A%E5%85%B3%E8%AE%B0%E5%BD%95/" title="MIT-6.828实验通关记录">MIT-6.828实验通关记录</a>
+
+<h1 id="视频课第-4-讲：Shell-amp-OS-组织"><a href="#视频课第-4-讲：Shell-amp-OS-组织" class="headerlink" title="视频课第 4 讲：Shell &amp; OS 组织"></a>视频课第 4 讲：Shell &amp; OS 组织</h1><h2 id="讲座主题："><a href="#讲座主题：" class="headerlink" title="讲座主题："></a>讲座主题：</h2><ol>
+<li><p>内核系统调用API</p>
+</li>
+<li><p>细节和设计</p>
+</li>
+<li><p>通过shell和作业2说明</p>
+</li>
+</ol>
+<span id="more"></span>
+
+<h2 id="概览图"><a href="#概览图" class="headerlink" title="概览图"></a>概览图</h2><ol>
+<li><p>系统程序根据权级分为：用户态&#x2F;内核态</p>
+</li>
+<li><p>进程 &#x3D; 隔离的地址空间 + 线程</p>
+</li>
+<li><p>进入内核态过程：打开应用 -&gt; printf() -&gt; 系统接口write() -&gt; 调用SYSTEM CALL函数 -&gt; sys_write() -&gt; …</p>
+</li>
+<li><p>用户级库是应用的私有业务</p>
+</li>
+<li><p>内核内部函数不能被用户调用，只能通过调用接口来间接使用</p>
+</li>
+<li><p>xv6 有几十个系统调用；Linux 几百个左右</p>
+</li>
+<li><p>今天的细节主要是关于 UNIX 系统调用 API：xv6、Linux、OSX、POSIX 标准等的基础。 jos 有非常不同的系统调用；您将通过 jos 自己构建 UNIX 调用</p>
+</li>
+</ol>
+<h2 id="作业解决方案"><a href="#作业解决方案" class="headerlink" title="作业解决方案"></a>作业解决方案</h2><ul>
+<li>让我们复习视频课 2 (sh.c)<ul>
+<li><p>执行<br>为什么有两个 execv() 参数？：执行文件定位和文件所需参数列表<br>参数会发生什么？被定位，然后第二个传入执行程序<br>当 exec’d 进程完成时会发生什么？执行加载的文件<br>execv() 可以返回吗？失败会返回，成功不会<br>命令完成后shell如何继续？子shell进程转为所需进程，主shell不被影响</p>
+</li>
+<li><p>重定向<br>exec’d 进程如何了解重定向？ 不同的fd 表中，使用自己的fd来引用同一个文件<br>重定向（或错误退出）是否会影响主 shell？不会，通过子进程执行这一过程</p>
+</li>
+<li><p>管道<br>ls | wc -l<br>如果 ls 产生输出的速度比 wc 消耗它的速度快怎么办？管道buffer的多余的东西避免丢失ls输出<br>如果 ls 比 wc 慢怎么办？wc等待ls产生，就立即进行<br>每个命令如何决定何时退出？执行后退出<br>如果读者没有关闭写端怎么办？无所谓，每个进程的端并不互相影响，进程退出后消失<br>如果作者没有关闭读取端怎么办？无所谓，每个进程的端并不互相影响，进程退出后消失<br>内核如何知道何时释放管道缓冲区？当内核结束</p>
+</li>
+<li><p>shell 如何知道管道已完成？wc执行成功后子进程退出，返回信号给shell父进程<br>例如 ls | sort | tail -1</p>
+</li>
+<li><p>什么是进程树？</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">给定命令的进程树: ls | (sort | tail -1)</span><br><span class="line">          sh进程</span><br><span class="line">          sh1进程</span><br><span class="line">      （ls进程      sh2进程）</span><br><span class="line">               （sort进程   tail进程）</span><br><span class="line">我们可以认为：自左向右执行命令（实际的进程切换不影响这个简单的”认为“，只是提高了效率）</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>shell 需要分叉这么多次吗？</p>
+<ul>
+<li>如果 sh 没有为 pcmd-&gt;left fork 怎么办？[尝试一下]<br>即调用 runcmd() 而不分叉?sh2进程下的子进程会无限等待管道的输入区</li>
+<li>如果 sh 没有为 pcmd -&gt; right fork怎么办？[尝试一下]<br>用户可见的行为会改变吗？会仅仅执行ls<br>sleep 10 | echo hi你会发现hi之后等待了十秒，说明进程是交错执行，造成了并行假象，而不是左边进程执行完毕后右边才执行</li>
+</ul>
+</li>
+<li><p>为什么只有在进程都启动后才使用wait()？为了子进程交错执行成功，否则父进程和左进程执行，右进程不执行。<br>如果 sh wait()ed for pcmd-&gt;left 在第二个 fork 之前会怎样？[尝试一下]可能第一个进程创造了很多buf但是第二个进程没有及时执行，造成效率低下<br>  ls | wc -l<br>  cat &lt; big | wc -l&#x2F;&#x2F;将big输入到cat，输出流重定向屏幕到管道，wc -l执行使用管道，最后得到统计结果而不是文件内容</p>
+</li>
+<li><p>重点：系统调用可以有多种组合方式<br>获得不同的行为。</p>
+</li>
+<li><p>综上所述，管道｜不仅完成了进程通信，即使不使用缓冲区，这个命令也规定了子进程运行顺序：并行</p>
+</li>
+</ul>
+</li>
+</ul>
+<h2 id="shell挑战题"><a href="#shell挑战题" class="headerlink" title="shell挑战题"></a>shell挑战题</h2><ul>
+<li>如何用“;”实现自定义子进程执行顺序？<br>gcc sh.c; .&#x2F;a.out<br>echo a; echo<br>为什么在 scmd-&gt; 之前等待（）？[尝试一下]：如果并行，那么文件执行失败，等同于&amp;&amp;命令</li>
+<li>如何实现“&amp;”？<br>$ sleep 5 &amp; &#x2F;&#x2F;&amp;在命令后代表后台执行：和父进程并行</li>
+<li>$wait&#x2F;&#x2F;父进程等待sleep子进程：改变后台执行状态<br>&amp; 和 wait 的实现是主要的——为什么？见上面回答<br>如果后台进程退出而 sh 等待前台进程怎么办？子进程退出会给父进程发送一些信息，因此wait后会在sleep进程输出结果多+done ，还有sleep 5这样的字眼</li>
+<li>如何实现嵌套？<br> (echo a; echo b) | wc -l<br>*我的 ( … ) 实现仅在 sh 的解析器中，而不是 runcmd()<br>sh 管道代码不必知道它适用于序列，这很巧妙，只需要知道和buffer的动作交互即可</li>
+<li>这些有什么不同？<br>echo a &gt; x ; echo b &gt; x&#x2F;&#x2F;字符a输入文件（没有就新建）x,然后b再输入x，覆盖a的内容<br>( echo a ; echo b ) &gt; x&#x2F;&#x2F;将a和b的输出流一起使用&gt;重定向到文件x<br>避免覆盖的机制是什么？括号。</li>
+<li>ps：如果你想要在第一行命令基础上完成目标，对b替换&gt;为&gt;&gt;，变为append模式即可</li>
+</ul>
+<h2 id="UNIX-系统调用观察"><a href="#UNIX-系统调用观察" class="headerlink" title="UNIX 系统调用观察"></a>UNIX 系统调用观察</h2><ul>
+<li><p>fork&#x2F;exec 拆分看起来很浪费——fork() 复制 mem，exec() 丢弃。<br>为什么不例如 pid &#x3D; forkexec(path, argv, fd0, fd1) ？<br>因为fork&#x2F;exec 拆分很有用：<br>  fork（）; I&#x2F;O 重定向；runcmd（）<br>或者fork（）; 复杂的嵌套命令；exit。<br>如 ( cmd1 ; cmd2 ) | cmd3<br>  fork() 单独：并行处理<br>  exec() 单独： &#x2F;bin&#x2F;login … exec(“&#x2F;bin&#x2F;sh”)<br>fork 对于小程序来说效率高——在我的机器上：<br>  fork+exec 需要 400 微秒（2500&#x2F;秒）<br>  单独 fork 需要 80 微秒（12000 &#x2F; 秒）<br>  涉及到一些技巧——您将在 jos 中实现它们！</p>
+</li>
+<li><p>文件描述符设计：</p>
+<ul>
+<li>FD 是一个句柄的间接级别：就是作为偏移的多级指针啦<ul>
+<li>进程的真实 I&#x2F;O 环境隐藏在内核中</li>
+<li>保留在 fork 和 exec 上</li>
+<li>将 I&#x2F;O 设置与使用分开</li>
+<li>想象写文件（文件名，偏移量，缓冲区大小）</li>
+</ul>
+</li>
+<li>FD 有助于使程序更通用：不需要特殊情况<br>文件 vs 控制台 vs 管道</li>
+</ul>
+</li>
+<li><p>理念：一小组概念上简单的调用，它们结合得很好<br>例如 fork()、open()、dup()、exec()<br>命令行设计有类似的方法<br>  ls | wc -l</p>
+</li>
+<li><p>为什么内核必须支持管道——为什么不用 sh 模拟它们，例如<br>ls &gt; 临时文件；wc -l &lt; 临时文件：进程不同，临时文件没法传递</p>
+</li>
+<li><p>系统调用接口简单，只有整数和字符缓冲区。为什么没有 open()<br>返回指向内核文件对象的指针引用？open调用系统接口，如果返回指针就破坏了内核态和用户态的隔离，容易操作不当破坏内核区</p>
+</li>
+<li><p>核心 UNIX 系统调用是古老的；他们坚持得好吗？<br>是的; 非常成功，并且经过多年的发展<br>历史：设计迎合命令行和软件开发<br>  系统调用接口方便程序员使用命令行用户，如命名文件、管道等，对开发、调试、服务器维护很重要。<br>但是 UNIX 的想法并不完美：<br>  程序员对于系统调用 API 的便利性来说通常不是很好<br>  程序员使用诸如 Python 之类的库来隐藏系统调用的详细信息<br>  应用程序可能与文件和c几乎没有关系，例如在智能手机上<br>  一些 UNIX 抽象不是很有效<br>  用于多 GB 进程的 fork() 非常慢<br>FD 隐藏了可能很重要的细节：<br>  例如磁盘文件的块大小<br>  例如网络消息的时间和大小<br>所以有很多关于替代计划的工作<br>  有时为现有的类 UNIX 内核提供新的系统调用和抽象<br>  有时内核应该做什么的全新方法<br>*在学习的时候你应该问“为什么这样？设计 X 不是更好吗？”</p>
+</li>
+</ul>
+<h2 id="操作系统组织"><a href="#操作系统组织" class="headerlink" title="操作系统组织"></a>操作系统组织</h2><ul>
+<li><p>如何实现系统调用接口？</p>
+</li>
+<li><p>为什么不只是一个lib库？<br>即没有内核，直接在硬件上运行app+library。<br>灵活：如果不需要，应用程序可以绕过库<br>应用程序可以直接与硬件交互<br>库适用于单一用途的设备<br>但是如果计算机用于多项活动呢？</p>
+</li>
+<li><p>内核的关键要求：<br>隔离：内核态和用户态隔离，用户进程之间也隔离<br>多路复用：多个进程执行合为一个cpu来做<br>相互作用：进程通信</p>
+</li>
+<li><p>有用的方法：抽象资源而不是原始硬件交互：你想写软件的时候写硬件交互代码吗？<br>文件系统，而不是原始磁盘：你想自己计算磁盘扇区位置吗？<br>进程，而不是原始 CPU&#x2F;内存：你想小心翼翼不要让机子爆炸吗？<br>TCP，而不是以太网数据包：你想手动解析，思考数据包的内容吗<br>抽象通常可以实现隔离、多路复用和交互<br>也更方便便携：即计算机领域，任何一个问题都可以加一个抽象层来实现：）</p>
+</li>
+<li><p>从隔离开始，因为这通常是最困难的要求。</p>
+</li>
+<li><p>隔离目标：<br>应用程序不能直接与硬件交互<br>应用程序不会损害操作系统<br>应用之间不能直接影响<br>应用程序只能通过操作系统界面与世界交互</p>
+</li>
+<li><p>处理器提供有助于隔离的机制</p>
+<ul>
+<li>硬件提供用户模式和内核模式<ul>
+<li>某些指令只能在内核模式下执行<br>设备访问、处理器配置、隔离机制</li>
+</ul>
+</li>
+<li>硬件禁止应用程序执行特权指令<ul>
+<li>而是陷入内核模式</li>
+<li>内核可以清理（例如，终止进程）</li>
+</ul>
+</li>
+<li>硬件让内核模式在用户模式上配置各种约束<br>最关键：页表将用户软件限制在其自己的地址空间</li>
+</ul>
+</li>
+<li><p>内核建立在硬件隔离机制之上</p>
+<ul>
+<li><p>操作系统以内核模式运行</p>
+<ul>
+<li>内核是一个大程序<br>服务：进程、文件系统、网络<br>低级：设备、虚拟内存<br>所有内核都以完整的硬件特权运行（方便）</li>
+</ul>
+</li>
+<li><p>应用程序在用户模式下运行</p>
+<ul>
+<li>内核设置每个进程隔离的地址空间</li>
+<li>系统调用在用户模式和内核模式之间切换<br>应用程序执行特殊指令进入内核<br>硬件切换到内核模式<br>但仅限于内核指定的入口点</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>在内核中放什么？</p>
+<ul>
+<li><p>xv6 遵循传统设计：所有操作系统都在内核模式下运行</p>
+<ul>
+<li>一个带有文件系统、驱动程序等的大程序</li>
+<li>这种设计称为单片内核</li>
+<li>内核接口 &#x3D;&#x3D; 系统调用接口</li>
+<li>好：易于子系统协作<br>文件系统和虚拟内存共享一个缓存</li>
+<li>不好：交互很复杂<br>导致错误<br>内核中没有隔离</li>
+</ul>
+</li>
+<li><p>微内核设计</p>
+<ul>
+<li>许多操作系统服务作为普通用户程序运行<br>文件服务器中的文件系统</li>
+<li>内核实现了在用户空间运行服务的最小机制<br>有记忆的进程<br>进程间通信（IPC）</li>
+<li>内核接口 !&#x3D; 系统调用接口		</li>
+<li>好：更多隔离</li>
+<li>差：可能很难获得良好的性能</li>
+</ul>
+</li>
+<li><p>exokernel：没有抽象<br>应用程序可以半直接使用硬件，但 O&#x2F;S 隔离<br>例如应用程序可以读&#x2F;写自己的页表，但 O&#x2F;S 审计<br>例如应用程序可以读&#x2F;写磁盘块，但 O&#x2F;S 跟踪块所有者<br>好：对于要求苛刻的应用程序具有更大的灵活性<br>jos 将是微内核和外内核的混合体</p>
+</li>
+</ul>
+</li>
+<li><p>可以在没有硬件支持的内核&#x2F;用户模式的情况下进行进程隔离吗？<br>是的！<br>见 Singularity O&#x2F;S，在学习的后期<br>但硬件用户&#x2F;内核模式是最受欢迎的计划</p>
+</li>
+</ul>
+<p>下一讲：x86 硬件隔离机制以及 xv6 的使用</p>
+ 
+      <!-- reward -->
+      
+      <div id="reword-out">
+        <div id="reward-btn">
+          Donate
+        </div>
+      </div>
+      
+    </div>
+    
+
+    <!-- copyright -->
+    
+    <div class="declare">
+      <ul class="post-copyright">
+        <li>
+          <i class="ri-copyright-line"></i>
+          <strong>Copyright： </strong>
+          Copyright is owned by the author. For commercial reprints, please contact the author for authorization. For non-commercial reprints, please indicate the source.
+        </li>
+      </ul>
+    </div>
+    
+    <footer class="article-footer">
+       
+<div class="share-btn">
+      <span class="share-sns share-outer">
+        <i class="ri-share-forward-line"></i>
+        分享
+      </span>
+      <div class="share-wrap">
+        <i class="arrow"></i>
+        <div class="share-icons">
+          
+          <a class="weibo share-sns" href="javascript:;" data-type="weibo">
+            <i class="ri-weibo-fill"></i>
+          </a>
+          <a class="weixin share-sns wxFab" href="javascript:;" data-type="weixin">
+            <i class="ri-wechat-fill"></i>
+          </a>
+          <a class="qq share-sns" href="javascript:;" data-type="qq">
+            <i class="ri-qq-fill"></i>
+          </a>
+          <a class="douban share-sns" href="javascript:;" data-type="douban">
+            <i class="ri-douban-line"></i>
+          </a>
+          <!-- <a class="qzone share-sns" href="javascript:;" data-type="qzone">
+            <i class="icon icon-qzone"></i>
+          </a> -->
+          
+          <a class="facebook share-sns" href="javascript:;" data-type="facebook">
+            <i class="ri-facebook-circle-fill"></i>
+          </a>
+          <a class="twitter share-sns" href="javascript:;" data-type="twitter">
+            <i class="ri-twitter-fill"></i>
+          </a>
+          <a class="google share-sns" href="javascript:;" data-type="google">
+            <i class="ri-google-fill"></i>
+          </a>
+        </div>
+      </div>
+</div>
+
+<div class="wx-share-modal">
+    <a class="modal-close" href="javascript:;"><i class="ri-close-circle-line"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <div class="wx-qrcode">
+      <img src="//api.qrserver.com/v1/create-qr-code/?size=150x150&data=http://sakura-mac.github.io/2024/03/08/L4%EF%BC%9Ashell&os/" alt="微信分享二维码">
+    </div>
+</div>
+
+<div id="share-mask"></div>  
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Mit-6-828/" rel="tag">Mit-6.828</a></li></ul>
+
+    </footer>
+  </div>
+
+   
+  <nav class="article-nav">
+    
+      <a href="/2024/03/08/L4homework%EF%BC%9Ashell/" class="article-nav-link">
+        <strong class="article-nav-caption">上一篇</strong>
+        <div class="article-nav-title">
+          
+            L4 homework：shell
+          
+        </div>
+      </a>
+    
+    
+      <a href="/2024/03/08/L2%EF%BC%9Ax86%E5%92%8CPC%E6%9E%B6%E6%9E%84/" class="article-nav-link">
+        <strong class="article-nav-caption">下一篇</strong>
+        <div class="article-nav-title">L2：x86和PC架构</div>
+      </a>
+    
+  </nav>
+
+   
+<!-- valine评论 -->
+<div id="vcomments-box">
+  <div id="vcomments"></div>
+</div>
+<script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/valine@1.4.14/dist/Valine.min.js"></script>
+<script>
+  new Valine({
+    el: "#vcomments",
+    app_id: "bbzBMY2PHFRlbkSCorlYCrRX-gzGzoHsz",
+    app_key: "NMnT9uDCzg2rW4ckm0fpSm5y",
+    path: window.location.pathname,
+    avatar: "monsterid",
+    placeholder: "请留下你此刻脑海中的想法~",
+    recordIP: true,
+  });
+  const infoEle = document.querySelector("#vcomments .info");
+  if (infoEle && infoEle.childNodes && infoEle.childNodes.length > 0) {
+    infoEle.childNodes.forEach(function (item) {
+      item.parentNode.removeChild(item);
+    });
+  }
+</script>
+<style>
+  #vcomments-box {
+    padding: 5px 30px;
+  }
+
+  @media screen and (max-width: 800px) {
+    #vcomments-box {
+      padding: 5px 0px;
+    }
+  }
+
+  #vcomments-box #vcomments {
+    background-color: #fff;
+  }
+
+  .v .vlist .vcard .vh {
+    padding-right: 20px;
+  }
+
+  .v .vlist .vcard {
+    padding-left: 10px;
+  }
+</style>
+
+ 
+     
+</article>
+
+</section>
+      <footer class="footer">
+  <div class="outer">
+    <ul>
+      <li>
+        Copyrights &copy;
+        2020-2024
+        <i class="ri-heart-fill heart_icon"></i> 环烷烃
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        
+        Powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+        <span class="division">|</span>
+        Theme - <a href="https://github.com/Shen-Yu/hexo-theme-ayer" target="_blank">Ayer</a>
+        
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        <span>
+  <span><i class="ri-user-3-fill"></i>Visitors:<span id="busuanzi_value_site_uv"></span></s>
+  <span class="division">|</span>
+  <span><i class="ri-eye-fill"></i>Views:<span id="busuanzi_value_page_pv"></span></span>
+</span>
+        
+      </li>
+    </ul>
+    <ul>
+      
+    </ul>
+    <ul>
+      <li>
+        <!-- cnzz统计 -->
+        
+        <script type="text/javascript" src='https://s9.cnzz.com/z_stat.php?id=1278069914&amp;web_id=1278069914'></script>
+        
+      </li>
+    </ul>
+  </div>
+</footer>
+      <div class="float_btns">
+        <div class="totop" id="totop">
+  <i class="ri-arrow-up-line"></i>
+</div>
+
+      </div>
+    </main>
+    <aside class="sidebar on">
+      <button class="navbar-toggle"></button>
+<nav class="navbar">
+  
+  <div class="logo">
+    <a href="/"><img src="/images/ayer-side.jpg" alt="海猫栖息地"></a>
+  </div>
+  
+  <ul class="nav nav-main">
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/">主页</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/archives">归档</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/tags">标签</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/player/">播放器</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/about">关于我</a>
+    </li>
+    
+  </ul>
+</nav>
+<nav class="navbar navbar-bottom">
+  <ul class="nav">
+    <li class="nav-item">
+      
+      <a class="nav-item-link nav-item-search"  title="Search">
+        <i class="ri-search-line"></i>
+      </a>
+      
+      
+      <a class="nav-item-link" target="_blank" href="/atom.xml" title="RSS Feed">
+        <i class="ri-rss-line"></i>
+      </a>
+      
+    </li>
+  </ul>
+</nav>
+<div class="search-form-wrap">
+  <div class="local-search local-search-plugin">
+  <input type="search" id="local-search-input" class="local-search-input" placeholder="Search...">
+  <div id="local-search-result" class="local-search-result"></div>
+</div>
+</div>
+
+    </aside>
+    <script>
+      if (window.matchMedia("(max-width: 768px)").matches) {
+        document.querySelector('.content').classList.remove('on');
+        document.querySelector('.sidebar').classList.remove('on');
+      }
+    </script>
+    <div id="mask"></div>
+
+<!-- #reward -->
+<div id="reward">
+  <span class="close"><i class="ri-close-line"></i></span>
+  <p class="reward-p"><i class="ri-cup-line"></i>我很可爱，请我喝一瓶怡宝吧~</p>
+  <div class="reward-box">
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/alipay.jpg">
+      <span class="reward-type">支付宝</span>
+    </div>
+    
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/wechat.jpg">
+      <span class="reward-type">微信</span>
+    </div>
+    
+  </div>
+</div>
+    
+<script src="/js/jquery-2.0.3.min.js"></script>
+
+
+<script src="/js/lazyload.min.js"></script>
+
+<!-- Tocbot -->
+
+
+<script src="/js/tocbot.min.js"></script>
+
+<script>
+  tocbot.init({
+    tocSelector: '.tocbot',
+    contentSelector: '.article-entry',
+    headingSelector: 'h1, h2, h3, h4, h5, h6',
+    hasInnerContainers: true,
+    scrollSmooth: true,
+    scrollContainer: 'main',
+    positionFixedSelector: '.tocbot',
+    positionFixedClass: 'is-position-fixed',
+    fixedSidebarOffset: 'auto'
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.css">
+<script src="https://cdn.jsdelivr.net/npm/justifiedGallery@3.7.0/dist/js/jquery.justifiedGallery.min.js"></script>
+
+<script src="/dist/main.js"></script>
+
+<!-- ImageViewer -->
+
+<!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" style="display:none" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css">
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"></script>
+
+<script>
+    function viewer_init() {
+        let pswpElement = document.querySelectorAll('.pswp')[0];
+        let $imgArr = document.querySelectorAll(('.article-entry img:not(.reward-img)'))
+
+        $imgArr.forEach(($em, i) => {
+            $em.onclick = () => {
+                // slider展开状态
+                // todo: 这样不好，后面改成状态
+                if (document.querySelector('.left-col.show')) return
+                let items = []
+                $imgArr.forEach(($em2, i2) => {
+                    let img = $em2.getAttribute('data-idx', i2)
+                    let src = $em2.getAttribute('data-target') || $em2.getAttribute('src')
+                    let title = $em2.getAttribute('alt')
+                    // 获得原图尺寸
+                    const image = new Image()
+                    image.src = src
+                    items.push({
+                        src: src,
+                        w: image.width || $em2.width,
+                        h: image.height || $em2.height,
+                        title: title
+                    })
+                })
+                var gallery = new PhotoSwipe(pswpElement, PhotoSwipeUI_Default, items, {
+                    index: parseInt(i)
+                });
+                gallery.init()
+            }
+        })
+    }
+    viewer_init()
+</script>
+
+<!-- MathJax -->
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+      tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+  });
+
+  MathJax.Hub.Queue(function() {
+      var all = MathJax.Hub.getAllJax(), i;
+      for(i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+      }
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.6/unpacked/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<script>
+  var ayerConfig = {
+    mathjax: true
+  }
+</script>
+
+<!-- Katex -->
+
+<!-- busuanzi  -->
+
+
+<script src="/js/busuanzi-2.3.pure.min.js"></script>
+
+
+<!-- ClickLove -->
+
+<!-- ClickBoom1 -->
+
+<script src="https://cdn.jsdelivr.net/npm/animejs@latest/anime.min.js"></script>
+
+<script src="/js/clickBoom1.js"></script>
+
+
+<!-- ClickBoom2 -->
+
+<!-- CodeCopy -->
+
+
+<link rel="stylesheet" href="/css/clipboard.css">
+
+<script src="https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js"></script>
+<script>
+  function wait(callback, seconds) {
+    var timelag = null;
+    timelag = window.setTimeout(callback, seconds);
+  }
+  !function (e, t, a) {
+    var initCopyCode = function(){
+      var copyHtml = '';
+      copyHtml += '<button class="btn-copy" data-clipboard-snippet="">';
+      copyHtml += '<i class="ri-file-copy-2-line"></i><span>COPY</span>';
+      copyHtml += '</button>';
+      $(".highlight .code pre").before(copyHtml);
+      $(".article pre code").before(copyHtml);
+      var clipboard = new ClipboardJS('.btn-copy', {
+        target: function(trigger) {
+          return trigger.nextElementSibling;
+        }
+      });
+      clipboard.on('success', function(e) {
+        let $btn = $(e.trigger);
+        $btn.addClass('copied');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-checkbox-circle-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPIED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-checkbox-circle-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+      clipboard.on('error', function(e) {
+        e.clearSelection();
+        let $btn = $(e.trigger);
+        $btn.addClass('copy-failed');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-time-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPY FAILED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-time-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+    }
+    initCopyCode();
+  }(window, document);
+</script>
+
+
+<!-- CanvasBackground -->
+
+
+    
+  </div>
+<script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginRootPath":"live2dw/","pluginJsPath":"lib/","pluginModelPath":"assets/","tagMode":false,"debug":false,"model":{"jsonPath":"/live2dw/assets/hijiki.model.json"},"display":{"position":"left","width":150,"height":300,"hOffset":80,"vOffset":-50},"mobile":{"show":true},"log":false});</script></body>
+
+</html>

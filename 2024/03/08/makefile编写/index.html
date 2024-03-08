@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+
+
+<html lang="en">
+
+
+<head>
+  <meta charset="utf-8" />
+    
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>
+    Makefile编写 |  
+  </title>
+  <meta name="generator" content="hexo-theme-ayer">
+  
+  <link rel="shortcut icon" href="/images/ayer.png" />
+  
+  
+<link rel="stylesheet" href="/dist/main.css">
+
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Shen-Yu/cdn/css/remixicon.min.css">
+
+  
+<link rel="stylesheet" href="/css/custom.css">
+
+  
+  
+<script src="https://cdn.jsdelivr.net/npm/pace-js@1.0.2/pace.min.js"></script>
+
+  
+  
+
+  
+<script>
+var _hmt = _hmt || [];
+(function() {
+	var hm = document.createElement("script");
+	hm.src = "https://hm.baidu.com/hm.js?41fc030db57d5570dd22f78997dc4a7e";
+	var s = document.getElementsByTagName("script")[0]; 
+	s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+<link rel="alternate" href="/atom.xml" title="海猫栖息地" type="application/atom+xml">
+</head>
+
+</html>
+
+<body>
+  <div id="app">
+    
+      <canvas class="fireworks"></canvas>
+      <style>
+        .fireworks {
+          position: fixed;
+          left: 0;
+          top: 0;
+          z-index: 99999;
+          pointer-events: none;
+        }
+      </style>
+      
+      
+    <main class="content on">
+      <section class="outer">
+  <article
+  id="post-makefile编写"
+  class="article article-type-post"
+  itemscope
+  itemprop="blogPost"
+  data-scroll-reveal
+>
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h1 class="article-title sea-center" style="border-left:0" itemprop="name">
+  Makefile编写
+</h1>
+ 
+
+    </header>
+     
+    <div class="article-meta">
+      <a href="/2024/03/08/makefile%E7%BC%96%E5%86%99/" class="article-date">
+  <time datetime="2024-03-08T13:16:50.337Z" itemprop="datePublished">2024-03-08</time>
+</a>   
+<div class="word_count">
+    <span class="post-time">
+        <span class="post-meta-item-icon">
+            <i class="ri-quill-pen-line"></i>
+            <span class="post-meta-item-text"> Word count:</span>
+            <span class="post-count">2.3k</span>
+        </span>
+    </span>
+
+    <span class="post-time">
+        &nbsp; | &nbsp;
+        <span class="post-meta-item-icon">
+            <i class="ri-book-open-line"></i>
+            <span class="post-meta-item-text"> Reading time≈</span>
+            <span class="post-count">9 min</span>
+        </span>
+    </span>
+</div>
+ 
+    </div>
+      
+    <div class="tocbot"></div>
+
+
+
+
+  
+    <div class="article-entry" itemprop="articleBody">
+       
+  <p>TODO：完成所有整理</p>
+<h1 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h1><h2 id="基本规则"><a href="#基本规则" class="headerlink" title="基本规则"></a>基本规则</h2><figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">target  : prerequisites </span><br><span class="line">	command<span class="comment">#shell command,并且所有命令都需要tab来空出格子：也可以用空格四格</span></span><br></pre></td></tr></table></figure>
+
+<p>例子：</p>
+<span id="more"></span>
+
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">/* c文件及其头文件</span><br><span class="line">* main.c: defs.h</span><br><span class="line">* command.c: defs.h command.h</span><br><span class="line">* diplay.c: defs.h display.h buffer.h</span><br><span class="line">*/</span><br><span class="line"></span><br><span class="line"><span class="comment">#链接所有文件生成edit可执行文件</span></span><br><span class="line"><span class="section">edit: main.o command.o diplay.o</span></span><br><span class="line">	cc -o edit main.o command.o \</span><br><span class="line">diplay.o</span><br><span class="line"></span><br><span class="line"><span class="section">main.o: main.c defs.h</span></span><br><span class="line">	cc -c main.o</span><br><span class="line"></span><br><span class="line"><span class="section">command.o: defs.h command.h</span></span><br><span class="line">	cc -c command.c</span><br><span class="line"></span><br><span class="line"><span class="section">diplay.o: defs.h diplay.h buffer.h</span></span><br><span class="line">	cc -c diplay.c</span><br><span class="line"></span><br><span class="line"><span class="comment">#clean：为了重新编译可链接文件,放在文件最后，如果放在头会变成make执行的命令</span></span><br><span class="line"><span class="section">clean:</span></span><br><span class="line">	rm -f edit main.o command.o display.o</span><br></pre></td></tr></table></figure>
+
+<p>编译过程为依赖自顶向下：</p>
+<ul>
+<li>如果中途失败，很可能会残留已经成功的部分.o文件：比如diplay.o编译失败，但是main.o command.o会被生成</li>
+<li>如果修改了.h文件，那么引入头文件的.c文件也会被重新编译为.o文件</li>
+<li>假如新增一个.c文件，那么修改地方一般为三个：目标文件，.o生成，clean命令</li>
+</ul>
+<h2 id="使用变量"><a href="#使用变量" class="headerlink" title="使用变量"></a>使用变量</h2><p>使用变量来减少编写,规则类似shell里的 命令输出定向为参数</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">/* c文件及其头文件</span><br><span class="line">* main.c: defs.h</span><br><span class="line">* command.c: defs.h command.h</span><br><span class="line">* diplay.c: defs.h display.h buffer.h</span><br><span class="line">*/</span><br><span class="line"></span><br><span class="line"><span class="comment">#链接所有文件生成edit可执行文件</span></span><br><span class="line">objs = main.o command.o diplay.o</span><br><span class="line"><span class="section">edit: <span class="variable">$(objs)</span></span></span><br><span class="line">	cc -o edit <span class="variable">$(objs)</span></span><br><span class="line"></span><br><span class="line"><span class="section">main.o: main.c defs.h</span></span><br><span class="line">	cc -c main.o</span><br><span class="line"></span><br><span class="line"><span class="section">command.o:command.o defs.h command.h</span></span><br><span class="line">	cc -c command.c</span><br><span class="line"></span><br><span class="line"><span class="section">diplay.o:diplay.o defs.h diplay.h buffer.h</span></span><br><span class="line">	cc -c diplay.c</span><br><span class="line"></span><br><span class="line"><span class="comment">#clean：为了重新编译可链接文件</span></span><br><span class="line"><span class="section">clean:</span></span><br><span class="line">	rm -f edit <span class="variable">$(objs)</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="自动推导"><a href="#自动推导" class="headerlink" title="自动推导"></a>自动推导</h2><p>GNU的make会自动根据.o文件推导.c文件，生成相应的cc命令，同时头文件也可以共有推导</p>
+<p>问题：为什么需要写.c文件的头文件依赖？include已经包含了，那么执行cc也不需要才对，实际上我的测试也是没有问题。。。或许是路径的问题，makefile可以保证不在同一个目录下的引入？</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">/* c文件及其头文件</span><br><span class="line">* main.c: defs.h</span><br><span class="line">* command.c: defs.h command.h</span><br><span class="line">* diplay.c: defs.h display.h buffer.h</span><br><span class="line">*/</span><br><span class="line"></span><br><span class="line"><span class="comment">#链接所有文件生成edit可执行文件</span></span><br><span class="line">objs = main.o command.o diplay.o</span><br><span class="line"><span class="section">edit: <span class="variable">$(objs)</span></span></span><br><span class="line">	cc -o edit <span class="variable">$(objs)</span></span><br><span class="line">	</span><br><span class="line"><span class="comment">#或许你不需要这部分书写</span></span><br><span class="line"><span class="variable">$(objs)</span>: defs.h</span><br><span class="line"><span class="section">command.o:command.h</span></span><br><span class="line"><span class="section">diplay.o:diplay.h buffer.h</span></span><br><span class="line"></span><br><span class="line"><span class="comment">#clean：为了重新编译可链接文件</span></span><br><span class="line"><span class="section">clean:</span></span><br><span class="line">	rm -f edit <span class="variable">$(objs)</span></span><br></pre></td></tr></table></figure>
+
+<h1 id="总述"><a href="#总述" class="headerlink" title="总述"></a>总述</h1><h2 id="内容"><a href="#内容" class="headerlink" title="内容"></a>内容</h2><p>主要包含了五个东西：显式规则、隐晦规则、变量定义、文件指示和注释</p>
+<ul>
+<li>显式规则：目标文件，依赖，命令</li>
+<li>隐晦规则：自动推导部分</li>
+<li>变量定义：变量简化字符串书写</li>
+<li>文件指示：makefile之间的引入</li>
+<li>注释：#作为注释</li>
+</ul>
+<h2 id="文件名"><a href="#文件名" class="headerlink" title="文件名"></a>文件名</h2><p>一般make识为文件为当前目录下的“makefile“或者”Makefile“，而如果自定义了”makefile.Linux“, 则使用”-f”参数来指定文件</p>
+<h2 id="引用"><a href="#引用" class="headerlink" title="引用"></a>引用</h2><p>项目中很可能的一种情况：由于makefile只能考虑一级子目录，所以常在一级子目录content下也创建一个makefile；同时如果考虑makefile内容太多需要分开，则会在当前目录下新增一些诸如：makeconfig.mk之类，则可以通过总的makefile引入来覆盖整个项目。</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#1.*作为通配符使用</span></span><br><span class="line"><span class="keyword">include</span> *.mk content/makefile</span><br><span class="line"><span class="comment">#2如果写的目录没有找到,可以在命令中引入 -I参数来指定目录</span></span><br><span class="line"><span class="comment">#3.还没有，会在usr/local/bin和usr/include中找</span></span><br><span class="line"><span class="keyword">-include</span> *.mk<span class="comment">#4.代表如果没找到也不要报错，忽略它</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h2 id="环境变量"><a href="#环境变量" class="headerlink" title="环境变量"></a>环境变量</h2><p>先不要使用，但是如果有问题，可以看看环境变量是否有MAEKFILES，在执行的时候会因此执行其他的makefile脚本</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">echo MAKEFILES</span><br></pre></td></tr></table></figure>
+
+<h2 id="工作方式"><a href="#工作方式" class="headerlink" title="工作方式"></a>工作方式</h2><ol>
+<li>读入所有的makefile</li>
+<li>读入被include的makefile</li>
+<li>初始化变量:展开宏</li>
+<li>推导隐晦规则</li>
+<li>创建依赖链</li>
+<li>根据依赖关系决定生成的文件</li>
+<li>自顶向下执行命令</li>
+</ol>
+<h2 id="书写规则"><a href="#书写规则" class="headerlink" title="书写规则"></a>书写规则</h2><p>根据自顶向下的生成规则，你应该把第一个目标文件作为最终目标；同时目标文件一定是比依赖文件日期新，以此来判断是否重新编译</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">targets: prerequisites</span></span><br><span class="line">command</span><br><span class="line"><span class="comment">#其中，targets可以是使用通配符来产生的多个目标文件</span></span><br><span class="line"><span class="comment">#紧凑型书写也可以：</span></span><br><span class="line"><span class="section">targets: prerequisites; command</span></span><br></pre></td></tr></table></figure>
+
+<p>对于通配符，make支持三种：“*”， “？”，“…”；还有一个Unix下的”~”</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">clean:</span></span><br><span class="line">	rm -f *.o</span><br><span class="line"></span><br><span class="line"><span class="section">print: *.c</span></span><br><span class="line">	lpr -p <span class="variable">$?</span></span><br><span class="line">	touch print</span><br><span class="line"></span><br><span class="line">objs = *.o<span class="comment">#变量作为宏展开得到的还是*.o</span></span><br><span class="line">objs = <span class="variable">$(<span class="built_in">wildcard</span> *.o)</span><span class="comment">#使用关键字来保证查找</span></span><br></pre></td></tr></table></figure>
+
+<p>搜寻文件可以有多个途径：</p>
+<ul>
+<li>指定的文件路径名（无论是相对还是绝对）</li>
+<li>当前文件夹下</li>
+<li>默认的一些文件夹</li>
+<li>*类比于环境变量的VPATH：从左到右根据“：”分割开的文件夹里去找</li>
+</ul>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#常见</span></span><br><span class="line">VPATH = src : ../headers<span class="comment">#src优先于headers</span></span><br><span class="line"></span><br><span class="line"><span class="comment">#还有三种使用vpath关键字的：可以在不同文件目录查找</span></span><br><span class="line"><span class="comment">#1</span></span><br><span class="line"><span class="keyword">vpath</span> &lt;pattern&gt; &lt;directories&gt;<span class="comment">#为符合模式&lt;pattern&gt;的文件指定搜索目录&lt;directories&gt;</span></span><br><span class="line"><span class="keyword">vpath</span> %.h ../headers<span class="comment">#如果没指定，当前文件夹也没有，那么：在headers目录下查找所有以.h结尾的文件</span></span><br><span class="line"><span class="comment">#2</span></span><br><span class="line"><span class="keyword">vpath</span> &lt;pattern&gt;<span class="comment">#清除符合模式&lt;pattern&gt;的文件的搜索目录</span></span><br><span class="line"><span class="comment">#3</span></span><br><span class="line"><span class="keyword">vpath</span><span class="comment">#清除所有已被设置好了的文件搜索目录</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">#如果多个vpath的重复pattern，那么就会形成顺序查找，直到找到</span></span><br><span class="line"><span class="comment">#1</span></span><br><span class="line"><span class="keyword">vpath</span> %.c foo </span><br><span class="line"><span class="keyword">vpath</span> % blish </span><br><span class="line"><span class="keyword">vpath</span> %.c bar</span><br><span class="line"><span class="comment">#2</span></span><br><span class="line"><span class="keyword">vpath</span> %.c foo:bar </span><br><span class="line"><span class="keyword">vpath</span> % blish</span><br></pre></td></tr></table></figure>
+
+<p>伪目标</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#ps：make clean查找所有的cleanall 和clean</span></span><br><span class="line"><span class="comment">#增加一行，因此make clean来代表生成clean这个文件,我还不知道使用有啥区别。。。</span></span><br><span class="line"><span class="meta"><span class="keyword">.PHONY</span>: clean</span></span><br><span class="line"><span class="section">clean:</span></span><br><span class="line">	rm -f *.o</span><br><span class="line"></span><br><span class="line"><span class="comment">#同样,将all放在开头，那么就可以依此生成多个文件的依赖链，一次make生成多个目标文件</span></span><br><span class="line"><span class="section">all: main command diplay</span></span><br><span class="line"><span class="meta"><span class="keyword">.PHONY</span>:all</span></span><br><span class="line"></span><br><span class="line"><span class="comment">#同样，伪目标也可以成为依赖,但是还是感觉没了.PHONY没啥差别，比如命令:make cleanall或者上面例子的make all都可以在没有.PHONY这一行情况下正常执行（目前为止）</span></span><br><span class="line"><span class="section">cleanall: cleanobj cleanprog</span></span><br><span class="line"><span class="meta"><span class="keyword">.PHONY</span>:cleanall</span></span><br><span class="line"></span><br><span class="line"><span class="section">cleanobj:</span></span><br><span class="line">	rm -f *.o</span><br><span class="line"><span class="section">cleanprog:</span></span><br><span class="line">	rm -f edit</span><br></pre></td></tr></table></figure>
+
+<p>多文件：$@代表所有目标集，$&lt;代表所有依赖集</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#相同依赖的多个目标生成简写</span></span><br><span class="line">bigoutput littleoutput : text.g </span><br><span class="line">generate text.g -<span class="variable">$(<span class="built_in">subst</span> output,,<span class="variable">$@</span>)</span> &gt; <span class="variable">$@</span> </span><br><span class="line"></span><br><span class="line"><span class="comment">#上述规则等价于： </span></span><br><span class="line">bigoutput : text.g </span><br><span class="line">generate text.g -big &gt; bigoutput </span><br><span class="line">littleoutput : text.g </span><br><span class="line">generate text.g -little &gt; littleoutput</span><br></pre></td></tr></table></figure>
+
+<p>静态模式：更加方便定义多目标</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#格式</span></span><br><span class="line">&lt;targets ...&gt;: &lt;target-pattern&gt;: &lt;prereq-patterns ...&gt; </span><br><span class="line">&lt;commands&gt; </span><br><span class="line">....</span><br><span class="line"><span class="comment">#给出两个例子</span></span><br><span class="line"></span><br><span class="line"><span class="comment">#1</span></span><br><span class="line">objects = foo.o bar.o </span><br><span class="line"><span class="section">all: <span class="variable">$(objects)</span> #作为最终目标</span></span><br><span class="line"><span class="comment">#静态模式：看看这两个“:”，他们决定了$@,$&lt;，并且保证扩展的部分一一对应</span></span><br><span class="line"><span class="variable">$(objects)</span>: %.o: %.c </span><br><span class="line"><span class="variable">$(CC)</span> -c <span class="variable">$(CFLAGS)</span> <span class="variable">$&lt;</span> -o <span class="variable">$@</span></span><br><span class="line"><span class="comment">#上述规则等价于： </span></span><br><span class="line">foo.o : foo.c </span><br><span class="line"><span class="variable">$(CC)</span> -c <span class="variable">$(CFLAGS)</span> foo.c -o foo.o </span><br><span class="line">bar.o : bar.c </span><br><span class="line"><span class="variable">$(CC)</span> -c <span class="variable">$(CFLAGS)</span> bar.c -o bar.o</span><br><span class="line"></span><br><span class="line"><span class="comment">#2</span></span><br><span class="line">files = foo.elc bar.o lose.o </span><br><span class="line"><span class="comment">#静态模式：看看这两个“:”</span></span><br><span class="line"><span class="comment">#第一个filter，得到新的$(files)</span></span><br><span class="line"><span class="variable">$(<span class="built_in">filter</span> %.o,<span class="variable">$(files)</span>)</span>: %.o: %.c </span><br><span class="line"><span class="variable">$(CC)</span> -c <span class="variable">$(CFLAGS)</span> <span class="variable">$&lt;</span> -o <span class="variable">$@</span> </span><br><span class="line"><span class="comment">#第二个filter，得到新的$(files)</span></span><br><span class="line"><span class="variable">$(<span class="built_in">filter</span> %.elc,<span class="variable">$(files)</span>)</span>: %.elc: %.el </span><br><span class="line">emacs -f batch-byte-compile <span class="variable">$&lt;</span></span><br><span class="line"><span class="comment">#上述规则等价于：</span></span><br><span class="line">bar.o : bar.c </span><br><span class="line"><span class="variable">$(CC)</span> -c <span class="variable">$(CFLAGS)</span> bar.c -o bar.o </span><br><span class="line">lose.o : lose.c </span><br><span class="line"><span class="variable">$(CC)</span> -c <span class="variable">$(CFLAGS)</span> lose.c -o lose.o</span><br><span class="line">foo.elc : foo.el</span><br><span class="line">emacs -f batch-byte-compile foo.el</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>自动生成依赖性</p>
+<p>假如，不管自动推导.c以来和cc命令，也不管.c的.h依赖问题（见前面我的include问题）。</p>
+<p>那么我们还有以下方式来化简书写</p>
+<ul>
+<li><p>自动生成.h依赖</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">	cc -MM main.c#GNU如此，非GNU编译器参数为-M</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">等价于</span></span><br><span class="line">main.o: main.c defs.h</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://bed1.oss-cn-beijing.aliyuncs.com/202201091804951.png"></p>
+</li>
+<li><p>为每个.c文件生成依赖文件.d</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">写出.c和.d依赖，让makefile自动生成.d文件</span></span><br><span class="line"><span class="meta prompt_">%</span><span class="language-bash">.d: %.c</span> </span><br><span class="line">@set -e; rm -f $@; \ </span><br><span class="line"><span class="meta prompt_">$</span><span class="language-bash">(CC) -M $(CPPFLAGS) $&lt; &gt; <span class="variable">$@</span>.$$$$; \ </span></span><br><span class="line">sed &#x27;s,\($*\)\.o[ :]*,\1.o $@ : ,g&#x27; &lt; $@.$$$$ &gt; $@; \ </span><br><span class="line">rm -f $@.$$$$</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">这个规则的意思是，所有的[.d]文件依赖于[.c]文件，“<span class="built_in">rm</span> -f <span class="variable">$@</span>”的意思是删除所有的目标，也就是[.d]文件，第二行的意思是，为每个依赖文件“$&lt;”，也就是[.c]文件生成依赖文件，“<span class="variable">$@</span>”表示模式“%.d”文件，如果有一个 C 文件是 name.c，那么“%”就是“name”，“$$$$”意为一个随机编号，第二行生成的文件有可能是“name.d.12345”，第三行使用 sed 命令做了一个替换，第四行就是删除临时文件。</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">上述规则等价于：</span></span><br><span class="line">main.o : main.c defs.h </span><br><span class="line">转成： </span><br><span class="line">main.o main.d : main.c defs.h</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">因此得到了.d文件，存放了依赖关系，我们因此可以在接下来的编译中引入.d文件</span></span><br><span class="line">sources = foo.c bar.c </span><br><span class="line">include $(sources:.c=.d) </span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">上述语句中的“$(sources:.c=.d)”中的“.c=.d”的意思是做一个替换，把变量$(sources)所有[.c]的字串都替换成[.d]，关于这个“替换”的内容，在后面我会有更为详细的讲述。当然，你得注意次序，因为 include 是按次来载入文件，最先载入的[.d]文件中的目标会成为默认目标</span></span><br></pre></td></tr></table></figure></li>
+</ul>
+<h1 id="Make运行"><a href="#Make运行" class="headerlink" title="Make运行"></a>Make运行</h1><p>make 3个推出码</p>
+<ul>
+<li>0：成功</li>
+<li>1：错误</li>
+<li>2：”-q”参数，表示部分更新</li>
+</ul>
+<h2 id="指定Make"><a href="#指定Make" class="headerlink" title="指定Make"></a>指定Make</h2><p>对于makeconfig.mk这样的分层makefile，使用参数“-f”来找到</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">make –f hchen.mk</span><br></pre></td></tr></table></figure>
+
+<p>。。。很多参数和惯例，用到时再说</p>
+<h1 id="参考文献"><a href="#参考文献" class="headerlink" title="参考文献"></a>参考文献</h1><p>[1]《跟我一起学makefile》-陈皓</p>
+ 
+      <!-- reward -->
+      
+      <div id="reword-out">
+        <div id="reward-btn">
+          Donate
+        </div>
+      </div>
+      
+    </div>
+    
+
+    <!-- copyright -->
+    
+    <div class="declare">
+      <ul class="post-copyright">
+        <li>
+          <i class="ri-copyright-line"></i>
+          <strong>Copyright： </strong>
+          Copyright is owned by the author. For commercial reprints, please contact the author for authorization. For non-commercial reprints, please indicate the source.
+        </li>
+      </ul>
+    </div>
+    
+    <footer class="article-footer">
+       
+<div class="share-btn">
+      <span class="share-sns share-outer">
+        <i class="ri-share-forward-line"></i>
+        分享
+      </span>
+      <div class="share-wrap">
+        <i class="arrow"></i>
+        <div class="share-icons">
+          
+          <a class="weibo share-sns" href="javascript:;" data-type="weibo">
+            <i class="ri-weibo-fill"></i>
+          </a>
+          <a class="weixin share-sns wxFab" href="javascript:;" data-type="weixin">
+            <i class="ri-wechat-fill"></i>
+          </a>
+          <a class="qq share-sns" href="javascript:;" data-type="qq">
+            <i class="ri-qq-fill"></i>
+          </a>
+          <a class="douban share-sns" href="javascript:;" data-type="douban">
+            <i class="ri-douban-line"></i>
+          </a>
+          <!-- <a class="qzone share-sns" href="javascript:;" data-type="qzone">
+            <i class="icon icon-qzone"></i>
+          </a> -->
+          
+          <a class="facebook share-sns" href="javascript:;" data-type="facebook">
+            <i class="ri-facebook-circle-fill"></i>
+          </a>
+          <a class="twitter share-sns" href="javascript:;" data-type="twitter">
+            <i class="ri-twitter-fill"></i>
+          </a>
+          <a class="google share-sns" href="javascript:;" data-type="google">
+            <i class="ri-google-fill"></i>
+          </a>
+        </div>
+      </div>
+</div>
+
+<div class="wx-share-modal">
+    <a class="modal-close" href="javascript:;"><i class="ri-close-circle-line"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <div class="wx-qrcode">
+      <img src="//api.qrserver.com/v1/create-qr-code/?size=150x150&data=http://sakura-mac.github.io/2024/03/08/makefile%E7%BC%96%E5%86%99/" alt="微信分享二维码">
+    </div>
+</div>
+
+<div id="share-mask"></div>  
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/C-C/" rel="tag">C/C++</a></li></ul>
+
+    </footer>
+  </div>
+
+   
+  <nav class="article-nav">
+    
+      <a href="/2024/03/08/xv6%E6%95%99%E7%A8%8B%E7%AC%94%E8%AE%B0/" class="article-nav-link">
+        <strong class="article-nav-caption">上一篇</strong>
+        <div class="article-nav-title">
+          
+            xv6教程笔记
+          
+        </div>
+      </a>
+    
+    
+      <a href="/2024/03/08/lab6/" class="article-nav-link">
+        <strong class="article-nav-caption">下一篇</strong>
+        <div class="article-nav-title">实验 6：网络</div>
+      </a>
+    
+  </nav>
+
+   
+<!-- valine评论 -->
+<div id="vcomments-box">
+  <div id="vcomments"></div>
+</div>
+<script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/valine@1.4.14/dist/Valine.min.js"></script>
+<script>
+  new Valine({
+    el: "#vcomments",
+    app_id: "bbzBMY2PHFRlbkSCorlYCrRX-gzGzoHsz",
+    app_key: "NMnT9uDCzg2rW4ckm0fpSm5y",
+    path: window.location.pathname,
+    avatar: "monsterid",
+    placeholder: "请留下你此刻脑海中的想法~",
+    recordIP: true,
+  });
+  const infoEle = document.querySelector("#vcomments .info");
+  if (infoEle && infoEle.childNodes && infoEle.childNodes.length > 0) {
+    infoEle.childNodes.forEach(function (item) {
+      item.parentNode.removeChild(item);
+    });
+  }
+</script>
+<style>
+  #vcomments-box {
+    padding: 5px 30px;
+  }
+
+  @media screen and (max-width: 800px) {
+    #vcomments-box {
+      padding: 5px 0px;
+    }
+  }
+
+  #vcomments-box #vcomments {
+    background-color: #fff;
+  }
+
+  .v .vlist .vcard .vh {
+    padding-right: 20px;
+  }
+
+  .v .vlist .vcard {
+    padding-left: 10px;
+  }
+</style>
+
+ 
+     
+</article>
+
+</section>
+      <footer class="footer">
+  <div class="outer">
+    <ul>
+      <li>
+        Copyrights &copy;
+        2020-2024
+        <i class="ri-heart-fill heart_icon"></i> 环烷烃
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        
+        Powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+        <span class="division">|</span>
+        Theme - <a href="https://github.com/Shen-Yu/hexo-theme-ayer" target="_blank">Ayer</a>
+        
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        <span>
+  <span><i class="ri-user-3-fill"></i>Visitors:<span id="busuanzi_value_site_uv"></span></s>
+  <span class="division">|</span>
+  <span><i class="ri-eye-fill"></i>Views:<span id="busuanzi_value_page_pv"></span></span>
+</span>
+        
+      </li>
+    </ul>
+    <ul>
+      
+    </ul>
+    <ul>
+      <li>
+        <!-- cnzz统计 -->
+        
+        <script type="text/javascript" src='https://s9.cnzz.com/z_stat.php?id=1278069914&amp;web_id=1278069914'></script>
+        
+      </li>
+    </ul>
+  </div>
+</footer>
+      <div class="float_btns">
+        <div class="totop" id="totop">
+  <i class="ri-arrow-up-line"></i>
+</div>
+
+      </div>
+    </main>
+    <aside class="sidebar on">
+      <button class="navbar-toggle"></button>
+<nav class="navbar">
+  
+  <div class="logo">
+    <a href="/"><img src="/images/ayer-side.jpg" alt="海猫栖息地"></a>
+  </div>
+  
+  <ul class="nav nav-main">
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/">主页</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/archives">归档</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/tags">标签</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/player/">播放器</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/about">关于我</a>
+    </li>
+    
+  </ul>
+</nav>
+<nav class="navbar navbar-bottom">
+  <ul class="nav">
+    <li class="nav-item">
+      
+      <a class="nav-item-link nav-item-search"  title="Search">
+        <i class="ri-search-line"></i>
+      </a>
+      
+      
+      <a class="nav-item-link" target="_blank" href="/atom.xml" title="RSS Feed">
+        <i class="ri-rss-line"></i>
+      </a>
+      
+    </li>
+  </ul>
+</nav>
+<div class="search-form-wrap">
+  <div class="local-search local-search-plugin">
+  <input type="search" id="local-search-input" class="local-search-input" placeholder="Search...">
+  <div id="local-search-result" class="local-search-result"></div>
+</div>
+</div>
+
+    </aside>
+    <script>
+      if (window.matchMedia("(max-width: 768px)").matches) {
+        document.querySelector('.content').classList.remove('on');
+        document.querySelector('.sidebar').classList.remove('on');
+      }
+    </script>
+    <div id="mask"></div>
+
+<!-- #reward -->
+<div id="reward">
+  <span class="close"><i class="ri-close-line"></i></span>
+  <p class="reward-p"><i class="ri-cup-line"></i>我很可爱，请我喝一瓶怡宝吧~</p>
+  <div class="reward-box">
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/alipay.jpg">
+      <span class="reward-type">支付宝</span>
+    </div>
+    
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/wechat.jpg">
+      <span class="reward-type">微信</span>
+    </div>
+    
+  </div>
+</div>
+    
+<script src="/js/jquery-2.0.3.min.js"></script>
+
+
+<script src="/js/lazyload.min.js"></script>
+
+<!-- Tocbot -->
+
+
+<script src="/js/tocbot.min.js"></script>
+
+<script>
+  tocbot.init({
+    tocSelector: '.tocbot',
+    contentSelector: '.article-entry',
+    headingSelector: 'h1, h2, h3, h4, h5, h6',
+    hasInnerContainers: true,
+    scrollSmooth: true,
+    scrollContainer: 'main',
+    positionFixedSelector: '.tocbot',
+    positionFixedClass: 'is-position-fixed',
+    fixedSidebarOffset: 'auto'
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.css">
+<script src="https://cdn.jsdelivr.net/npm/justifiedGallery@3.7.0/dist/js/jquery.justifiedGallery.min.js"></script>
+
+<script src="/dist/main.js"></script>
+
+<!-- ImageViewer -->
+
+<!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" style="display:none" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css">
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"></script>
+
+<script>
+    function viewer_init() {
+        let pswpElement = document.querySelectorAll('.pswp')[0];
+        let $imgArr = document.querySelectorAll(('.article-entry img:not(.reward-img)'))
+
+        $imgArr.forEach(($em, i) => {
+            $em.onclick = () => {
+                // slider展开状态
+                // todo: 这样不好，后面改成状态
+                if (document.querySelector('.left-col.show')) return
+                let items = []
+                $imgArr.forEach(($em2, i2) => {
+                    let img = $em2.getAttribute('data-idx', i2)
+                    let src = $em2.getAttribute('data-target') || $em2.getAttribute('src')
+                    let title = $em2.getAttribute('alt')
+                    // 获得原图尺寸
+                    const image = new Image()
+                    image.src = src
+                    items.push({
+                        src: src,
+                        w: image.width || $em2.width,
+                        h: image.height || $em2.height,
+                        title: title
+                    })
+                })
+                var gallery = new PhotoSwipe(pswpElement, PhotoSwipeUI_Default, items, {
+                    index: parseInt(i)
+                });
+                gallery.init()
+            }
+        })
+    }
+    viewer_init()
+</script>
+
+<!-- MathJax -->
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+      tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+  });
+
+  MathJax.Hub.Queue(function() {
+      var all = MathJax.Hub.getAllJax(), i;
+      for(i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+      }
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.6/unpacked/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<script>
+  var ayerConfig = {
+    mathjax: true
+  }
+</script>
+
+<!-- Katex -->
+
+<!-- busuanzi  -->
+
+
+<script src="/js/busuanzi-2.3.pure.min.js"></script>
+
+
+<!-- ClickLove -->
+
+<!-- ClickBoom1 -->
+
+<script src="https://cdn.jsdelivr.net/npm/animejs@latest/anime.min.js"></script>
+
+<script src="/js/clickBoom1.js"></script>
+
+
+<!-- ClickBoom2 -->
+
+<!-- CodeCopy -->
+
+
+<link rel="stylesheet" href="/css/clipboard.css">
+
+<script src="https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js"></script>
+<script>
+  function wait(callback, seconds) {
+    var timelag = null;
+    timelag = window.setTimeout(callback, seconds);
+  }
+  !function (e, t, a) {
+    var initCopyCode = function(){
+      var copyHtml = '';
+      copyHtml += '<button class="btn-copy" data-clipboard-snippet="">';
+      copyHtml += '<i class="ri-file-copy-2-line"></i><span>COPY</span>';
+      copyHtml += '</button>';
+      $(".highlight .code pre").before(copyHtml);
+      $(".article pre code").before(copyHtml);
+      var clipboard = new ClipboardJS('.btn-copy', {
+        target: function(trigger) {
+          return trigger.nextElementSibling;
+        }
+      });
+      clipboard.on('success', function(e) {
+        let $btn = $(e.trigger);
+        $btn.addClass('copied');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-checkbox-circle-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPIED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-checkbox-circle-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+      clipboard.on('error', function(e) {
+        e.clearSelection();
+        let $btn = $(e.trigger);
+        $btn.addClass('copy-failed');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-time-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPY FAILED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-time-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+    }
+    initCopyCode();
+  }(window, document);
+</script>
+
+
+<!-- CanvasBackground -->
+
+
+    
+  </div>
+<script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginRootPath":"live2dw/","pluginJsPath":"lib/","pluginModelPath":"assets/","tagMode":false,"debug":false,"model":{"jsonPath":"/live2dw/assets/hijiki.model.json"},"display":{"position":"left","width":150,"height":300,"hOffset":80,"vOffset":-50},"mobile":{"show":true},"log":false});</script></body>
+
+</html>

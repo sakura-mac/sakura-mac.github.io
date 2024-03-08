@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+
+
+<html lang="en">
+
+
+<head>
+  <meta charset="utf-8" />
+    
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>
+    L9：锁 |  
+  </title>
+  <meta name="generator" content="hexo-theme-ayer">
+  
+  <link rel="shortcut icon" href="/images/ayer.png" />
+  
+  
+<link rel="stylesheet" href="/dist/main.css">
+
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Shen-Yu/cdn/css/remixicon.min.css">
+
+  
+<link rel="stylesheet" href="/css/custom.css">
+
+  
+  
+<script src="https://cdn.jsdelivr.net/npm/pace-js@1.0.2/pace.min.js"></script>
+
+  
+  
+
+  
+<script>
+var _hmt = _hmt || [];
+(function() {
+	var hm = document.createElement("script");
+	hm.src = "https://hm.baidu.com/hm.js?41fc030db57d5570dd22f78997dc4a7e";
+	var s = document.getElementsByTagName("script")[0]; 
+	s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+<link rel="alternate" href="/atom.xml" title="海猫栖息地" type="application/atom+xml">
+</head>
+
+</html>
+
+<body>
+  <div id="app">
+    
+      <canvas class="fireworks"></canvas>
+      <style>
+        .fireworks {
+          position: fixed;
+          left: 0;
+          top: 0;
+          z-index: 99999;
+          pointer-events: none;
+        }
+      </style>
+      
+      
+    <main class="content on">
+      <section class="outer">
+  <article
+  id="post-L9：锁"
+  class="article article-type-post"
+  itemscope
+  itemprop="blogPost"
+  data-scroll-reveal
+>
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h1 class="article-title sea-center" style="border-left:0" itemprop="name">
+  L9：锁
+</h1>
+ 
+
+    </header>
+     
+    <div class="article-meta">
+      <a href="/2024/03/08/L9%EF%BC%9A%E9%94%81/" class="article-date">
+  <time datetime="2024-03-08T13:16:50.314Z" itemprop="datePublished">2024-03-08</time>
+</a>   
+<div class="word_count">
+    <span class="post-time">
+        <span class="post-meta-item-icon">
+            <i class="ri-quill-pen-line"></i>
+            <span class="post-meta-item-text"> Word count:</span>
+            <span class="post-count">2.8k</span>
+        </span>
+    </span>
+
+    <span class="post-time">
+        &nbsp; | &nbsp;
+        <span class="post-meta-item-icon">
+            <i class="ri-book-open-line"></i>
+            <span class="post-meta-item-text"> Reading time≈</span>
+            <span class="post-count">10 min</span>
+        </span>
+    </span>
+</div>
+ 
+    </div>
+      
+    <div class="tocbot"></div>
+
+
+
+
+  
+    <div class="article-entry" itemprop="articleBody">
+       
+  <p>lab通关记录</p>
+<a href="/2024/03/08/MIT-6.828%E5%AE%9E%E9%AA%8C%E9%80%9A%E5%85%B3%E8%AE%B0%E5%BD%95/" title="MIT-6.828实验通关记录">MIT-6.828实验通关记录</a>
+
+<h1 id="为什么要谈论锁？"><a href="#为什么要谈论锁？" class="headerlink" title="为什么要谈论锁？"></a>为什么要谈论锁？</h1><p>  流水线指令的<strong>并行</strong>以加速<br>  所以内核必须处理并行系统调用<br>  从而并行访问内核数据（缓冲区缓存、进程等）<br>  锁有助于<strong>协调共享数据</strong></p>
+<span id="more"></span>
+
+<h1 id="思考锁的问题"><a href="#思考锁的问题" class="headerlink" title="思考锁的问题"></a>思考锁的问题</h1><h2 id="锁抽象："><a href="#锁抽象：" class="headerlink" title="锁抽象："></a>锁抽象：</h2><p>  锁</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">acquire(lock)</span><br><span class="line">    x = x + 1 -- “临界区”，即共享区的修改，需要用锁变为为原子操作</span><br><span class="line">release(lock)</span><br></pre></td></tr></table></figure>
+
+<p>  锁本身就是一个对象<br>  如果多个线程调用acquire(l)<br>    只有一个会执行临界区<br>    其他人将等待 release() – “block”<br>  一个程序通常有很多数据，很多锁<br>    如果不同的线程使用不同的数据，<br>    那么他们可能持有不同的锁，<br>    所以他们可以并行执行——完成更多的工作。<br>  请注意，锁 lock 没有专门绑定到数据 x<br>    程序员有一个线程&#x2F;进程通信计划：每当需要数据x修改时候，查看锁</p>
+<p>决定<strong>何时需要锁</strong>的保守规则：<br>  任何时候两个线程使用一个内存位置，并且至少一个是写<br>  除非您持有正确的锁，否则不要接触共享数据！<br>  （太严格：程序逻辑有时可能会排除共享；无锁）<br>  （太松散：printf()；并不总是简单的锁&#x2F;数据对应）</p>
+<p>可以自动锁定吗？<br>  也许该语言可以将锁与每个数据对象相关联<br>    编译器在每次使用时添加获取&#x2F;释放<br>    这样的想法很省事！<br>  这个想法往往过于僵化：</p>
+<h3 id="1-确定何时需要锁："><a href="#1-确定何时需要锁：" class="headerlink" title="1.确定何时需要锁："></a>1.确定何时需要锁：</h3><p><strong>就是确定何时需要操作数据的原子性</strong></p>
+<p>​    rename（“d1&#x2F;x”，“d2&#x2F;y”）：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">lock d1，erase x，unlock d1</span><br><span class="line">lock d2，add y，unlock d2</span><br></pre></td></tr></table></figure>
+
+<p>​    问题：该文件暂时不存在！<br>​      rename() 应该是原子的<br>​        其他系统调用应该在之前或之后看到，而不是在两者之间<br>​      否则写程序太难了<br>​    我们需要：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">lock d1 ; lock d2</span><br><span class="line">      erase x，add y</span><br><span class="line">unlock d2；unlcok d1</span><br></pre></td></tr></table></figure>
+
+<p>  也就是说，程序员经常需要显式控制<br>    持有锁的代码区域<br>    为了隐藏尴尬的中间状态：保证原子性</p>
+<p>  锁有助于<strong>避免丢失更新</strong><br>  锁帮助你创建原子多步操作——隐藏中间状态<br>  锁帮助操作维护数据结构的不变量<br>    假设不变量在操作开始时为真<br>    操作使用锁来隐藏对不变量的临时违反<br>    操作在释放锁之前恢复不变量</p>
+<h3 id="2-确定保证没有死锁："><a href="#2-确定保证没有死锁：" class="headerlink" title="2.确定保证没有死锁："></a>2.确定保证没有死锁：</h3><p>所谓死锁就是多（次）锁循环等待</p>
+<p>问题：死锁<br>  通知 rename() 持有两个锁<br>  如果：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">core A                 core B</span><br><span class="line">renmae(d1/x, d2/y)     rename(d2/a, d1/b)</span><br><span class="line">lock d1                lock d2</span><br><span class="line">lock d2 ...            lock d1 ...</span><br></pre></td></tr></table></figure>
+
+<p>我们可以看到，并行的操作前提下，锁只能保证操作原子性（或者说临界区的互斥），但是这里的core A和core B互相等待，不仅如此，如果在临界区，也可以出现自己获取自己拥有的锁，那么同样也会导致循环等待。  </p>
+<p>解决方案：<br>    程序员计算出所有锁的顺序：比如使用优先队列<br>    所有代码都必须按该顺序获取锁<br>    即预测锁、排序、获取——复杂！</p>
+<h2 id="锁与模块化"><a href="#锁与模块化" class="headerlink" title="锁与模块化"></a>锁与模块化</h2><p>  锁使得难以隐藏模块内的细节<br>  为了避免死锁，我需要知道我调用的函数获取的锁<br>  我可能需要在<strong>调用之前获取它们</strong>，即使我不使用它们<br>  即<strong>锁通常不是单个模块的私有业务</strong></p>
+<p>如何考虑将锁放在哪里？<br>  这是新代码的简单计划</p>
+<ol>
+<li><p>串口执行下写模块正确<br>即假设单 CPU，单线程</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">void insert（）&#123;</span><br><span class="line">	e-&gt;next = l; </span><br><span class="line">	l = e; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>但如果并行执行则不正确</p>
+</li>
+</ol>
+<p>2.为保证串行执行添加锁<br>     由于获取&#x2F;释放允许一次仅由一个 CPU 执行<br>    要点：</p>
+<p>程序员更容易推理串行代码<br>    尽管具有并行性，锁仍可能导致您的串行代码正确</p>
+<p>性能呢？<br>  毕竟，我们可能将锁作为获得并行加速的计划的一部分，所以是<strong>并行不悖</strong></p>
+<h2 id="锁和并行"><a href="#锁和并行" class="headerlink" title="锁和并行"></a>锁和并行</h2><p>  锁<em>防止</em>并行执行<br>  为了获得并行性，你经常需要拆分数据和锁<br>    以某种方式让每个核心使用不同的数据和不同的锁<br>    “细粒度锁”<br>  选择数据&#x2F;锁的<strong>最佳分割</strong>是一个设计挑战<br>    整个ph.c表；每个表[]行；每个条目<br>    整个FS；目录&#x2F;文件；磁盘块<br>    整个内核；每个子系统；每个对象<br>  您可能需要重新设计代码以使其并行运行<br>    示例：将单个空闲内存列表分解为每核空闲列表<br>      如果线程在锁定单个空闲列表上等待很多，则有帮助<br>    这种重写可能需要大量的工作！</p>
+<p>锁粒度建议<br>  从大锁开始，例如保护整个模块的一把锁<br>    更少的死锁，因为更少的机会持有两个锁<br>    不需要对不变量&#x2F;原子性进行推理<br>  衡量是否有问题<br>    大锁通常就足够了——也许花在那个模块上的时间很少<br>  仅在必须时才重新设计细粒度锁定</p>
+<p>让我们看看 xv6 中的锁定。</p>
+<h1 id="锁的典型用途：ide-c"><a href="#锁的典型用途：ide-c" class="headerlink" title="锁的典型用途：ide.c"></a>锁的典型用途：ide.c</h1><p>  许多 O&#x2F;S 的设备驱动程序安排的典型<br>  图表：<br>    用户进程、内核、FS、iderw、追加到磁盘队列<br>    IDE磁盘硬件<br>    标识符<br>  并发源：进程、中断</p>
+<p>  ide.c 中只有一个锁：idelock——相当粗粒度</p>
+<p>  iderw() – idelock 保护什么？<br>    1. 出队操作无竞争<br>        2. 如果队列不为空，IDE h&#x2F;w 正在执行队列头<br>        3.没有对IDE寄存器的并发访问<br>      ideintr() – 中断处理程序<br>        获取锁——可能必须在中断级别等待！<br>        使用 idequeue (1)<br>        将下一个排队的请求交给 IDE h&#x2F;w (2)<br>        接触 IDE 硬件寄存器 (3)</p>
+<h1 id="如何实现锁？"><a href="#如何实现锁？" class="headerlink" title="如何实现锁？"></a>如何实现锁？</h1><p>  为什么不：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">struct &#123; int locked; &#125;</span><br><span class="line">    acquire（l）&#123;</span><br><span class="line">      while（1）&#123;</span><br><span class="line">        if(l-&gt;locked == 0)&#123; // A</span><br><span class="line">          l-&gt;clocked= 1; // B</span><br><span class="line">          return;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>  oops：A 线和 B 之间的原子性问题，如果他们不原子，那么我们从指令角度假设以下情况：CPU得到了lock的0，但是还未修改为1，这将导致同时另一个线程得到了0，那么他们各自将会将locked置为1，因此临界区将会允许两个线程进入，从而破坏临界区的互斥原则。</p>
+<p>那么，我们如何原子地做 A 和 B？</p>
+<p>硬件提供了原子交换指令：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">mov $1, %eax</span><br><span class="line">xchg %eax, addr</span><br><span class="line">或者</span><br><span class="line">xchg $1, addr</span><br><span class="line"></span><br><span class="line">1.这样有什么用呢？关键在于这个交换指令，我们先想想需要原子的是哪些操作？</span><br><span class="line">	获得锁，根据情况等待或者锁定</span><br><span class="line">对于等待而言，和获得锁一起进行原子并没有必要，是可以并行不悖，问题出在锁定上：假如我们使用xchg，那么1的交换就会导致</span><br><span class="line">	交换1和1:等待，很好</span><br><span class="line">	交换0和1:原子修改了locked为1，非常不错</span><br><span class="line">2.等待的判断需要原子吗？不需要，因为锁的获取和修改我们发现：也是临界区，等待并不修改临界区</span><br><span class="line">3.给出的汇编指令为什么可以有两种？因为mov $1这样的操作并不会出问题</span><br><span class="line">总之，想想有没可能出问题，再决定锁的需要和实现，这很重要</span><br></pre></td></tr></table></figure>
+
+<p>  在硬件中执行此操作：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">globle lock addr（其他内核无法使用）</span><br><span class="line">    temp= *addr</span><br><span class="line">    *addr = %eax</span><br><span class="line">    %eax = temp</span><br><span class="line">unlock addr</span><br></pre></td></tr></table></figure>
+
+<p>  x86 h&#x2F;w 提供了锁定内存位置的概念<br>    不同的 CPU 有不同的实现<br>    图：内核、总线、RAM、锁<br>    所以我们把问题推到了硬件上<br>    h&#x2F;w 在缓存行或整个总线的粒度上实现<br>  内存锁强制并发 xchg 一次运行一个，而不是交错</p>
+<p>现在：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">acquire（l）&#123;</span><br><span class="line">    while（xchg(&amp;l-&gt;locked, 1) == 0）&#123;&#125;//wait or not</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+
+<p>  如果 l-&gt;locked 已经是 1，则 xchg 设置为 1（再次），返回 1，<br>    并且循环继续旋转<br>  如果 l-&gt;locked 为 0，则最多有一个 xchg 会看到 0；它会设置<br>    它为 1 并返回 0；其他 xchgs 将返回 1<br>  这是一个“自旋锁”，因为在获取循环中等待内核“自旋”</p>
+<h2 id="看-xv6-自旋锁实现"><a href="#看-xv6-自旋锁实现" class="headerlink" title="看 xv6 自旋锁实现"></a>看 xv6 自旋锁实现</h2><p>  spinlock.h——你可以看到结构锁的“锁定”成员<br>  spinlock.c&#x2F;acquire():<br>    参见 while-loop 和 xchg() 调用<br>    pushcli() 是关于什么的？<br>      为什么要禁用中断？<br>  release（）：<br>    设置 lk-&gt;locked &#x3D; 0<br>    并重新启用中断</p>
+<p>详细信息：内存读&#x2F;写排序<br>  假设两个内核使用一个锁来保护一个计数器，x<br>  我们有一个简单的锁实现</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">核心 A：	  				核心 B：</span><br><span class="line">locked = 1</span><br><span class="line">x = x + 1   			while（locked == 1）</span><br><span class="line">locked = 0 ...end</span><br><span class="line">                  locked= 1</span><br><span class="line">                  x = x + 1</span><br><span class="line">                  locked = 0</span><br></pre></td></tr></table></figure>
+
+<p> 然而我们的编译器和 CPU 重新排序内存访问<br>    即它们不遵守源程序的内存引用顺序<br>    例如，编译器可能会为核心 A 生成此代码：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">locked = 1</span><br><span class="line">locked = 0</span><br><span class="line">x = x + 1</span><br><span class="line"></span><br><span class="line">将增量移动到临界区外！！！</span><br><span class="line">1.为什么这么干，在其他方面会有好处吗？有，假如你很快就要再次修改这个地址（事实上确实这样），那么我们可以优化为修改后不放入内存，等待下次访问，加速访问（就像某种缓存和回写）。</span><br><span class="line">2.那么有什么办法禁止呢？c代码使用同步函数：sync_synchronize()，汇编代码使用asm关键字来防止这种优化</span><br></pre></td></tr></table></figure>
+
+<p>  release() 对 sync_synchronize() 的调用防止重新排序<br>    编译器不会将内存引用移过 sync_synchronize()<br>    并且（可能）发出“内存屏障”指令来告诉 CPU<br>  Acquire() 对 xchg() 的调用具有类似的效果：<br>    英特尔承诺不会重新订购过去的 xchg 指令<br>    x86.h 中的一些垃圾 xchg() 告诉 C 编译器不要删除或重新排序<br>      （volatile asm 表示不要删除，“m”表示不重新排序）<br>  如果使用锁，则无需了解内存排序规则<br>    如果您想编写异国情调的“无锁”代码，则需要它们</p>
+<h2 id="为什么使用自旋锁？"><a href="#为什么使用自旋锁？" class="headerlink" title="为什么使用自旋锁？"></a>为什么使用自旋锁？</h2><p>  他们在等待时不会浪费CPU吗？<br>  为什么不放弃CPU并切换到另一个进程，让它运行？<br>  如果持有线程需要运行怎么办；不应该等待线程让出 CPU 吗？<br>  <strong>自旋锁指南</strong>：<br>    保持自旋锁很短的时间<br>    持有自旋锁时不要让出 CPU<br>  系统通常为较长的关键部分提供“<strong>阻塞</strong>”锁：这将会是后面介绍的协调（coordination），通过sleep和wakeup来完成<br>    等待线程产生 CPU<br>    但管理费用通常更高<br>    稍后你会看到一些 xv6 阻塞方案</p>
+<h2 id="建议："><a href="#建议：" class="headerlink" title="建议："></a>建议：</h2><p>  如果没有必要，请不要随意指定共享区：因为会在并行模式下导致问题<br>  从几个粗粒度的锁开始<br>  检测你的代码——哪些锁阻止了并行性？<br>  仅在并行性能需要时才使用细粒度锁<br>  使用检测器来检测效果</p>
+ 
+      <!-- reward -->
+      
+      <div id="reword-out">
+        <div id="reward-btn">
+          Donate
+        </div>
+      </div>
+      
+    </div>
+    
+
+    <!-- copyright -->
+    
+    <div class="declare">
+      <ul class="post-copyright">
+        <li>
+          <i class="ri-copyright-line"></i>
+          <strong>Copyright： </strong>
+          Copyright is owned by the author. For commercial reprints, please contact the author for authorization. For non-commercial reprints, please indicate the source.
+        </li>
+      </ul>
+    </div>
+    
+    <footer class="article-footer">
+       
+<div class="share-btn">
+      <span class="share-sns share-outer">
+        <i class="ri-share-forward-line"></i>
+        分享
+      </span>
+      <div class="share-wrap">
+        <i class="arrow"></i>
+        <div class="share-icons">
+          
+          <a class="weibo share-sns" href="javascript:;" data-type="weibo">
+            <i class="ri-weibo-fill"></i>
+          </a>
+          <a class="weixin share-sns wxFab" href="javascript:;" data-type="weixin">
+            <i class="ri-wechat-fill"></i>
+          </a>
+          <a class="qq share-sns" href="javascript:;" data-type="qq">
+            <i class="ri-qq-fill"></i>
+          </a>
+          <a class="douban share-sns" href="javascript:;" data-type="douban">
+            <i class="ri-douban-line"></i>
+          </a>
+          <!-- <a class="qzone share-sns" href="javascript:;" data-type="qzone">
+            <i class="icon icon-qzone"></i>
+          </a> -->
+          
+          <a class="facebook share-sns" href="javascript:;" data-type="facebook">
+            <i class="ri-facebook-circle-fill"></i>
+          </a>
+          <a class="twitter share-sns" href="javascript:;" data-type="twitter">
+            <i class="ri-twitter-fill"></i>
+          </a>
+          <a class="google share-sns" href="javascript:;" data-type="google">
+            <i class="ri-google-fill"></i>
+          </a>
+        </div>
+      </div>
+</div>
+
+<div class="wx-share-modal">
+    <a class="modal-close" href="javascript:;"><i class="ri-close-circle-line"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <div class="wx-qrcode">
+      <img src="//api.qrserver.com/v1/create-qr-code/?size=150x150&data=http://sakura-mac.github.io/2024/03/08/L9%EF%BC%9A%E9%94%81/" alt="微信分享二维码">
+    </div>
+</div>
+
+<div id="share-mask"></div>  
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Mit-6-828/" rel="tag">Mit-6.828</a></li></ul>
+
+    </footer>
+  </div>
+
+   
+  <nav class="article-nav">
+    
+      <a href="/2024/03/08/Linux%E7%B3%BB%E7%BB%9F%E8%B0%83%E7%94%A8/" class="article-nav-link">
+        <strong class="article-nav-caption">上一篇</strong>
+        <div class="article-nav-title">
+          
+            linux 系统调用
+          
+        </div>
+      </a>
+    
+    
+      <a href="/2024/03/08/L8%EF%BC%9A%E7%B3%BB%E7%BB%9F%E8%B0%83%E7%94%A8%EF%BC%8C%E4%B8%AD%E6%96%AD%E5%92%8C%E5%BC%82%E5%B8%B8/" class="article-nav-link">
+        <strong class="article-nav-caption">下一篇</strong>
+        <div class="article-nav-title">L8 ：系统调用、中断和异常</div>
+      </a>
+    
+  </nav>
+
+   
+<!-- valine评论 -->
+<div id="vcomments-box">
+  <div id="vcomments"></div>
+</div>
+<script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/valine@1.4.14/dist/Valine.min.js"></script>
+<script>
+  new Valine({
+    el: "#vcomments",
+    app_id: "bbzBMY2PHFRlbkSCorlYCrRX-gzGzoHsz",
+    app_key: "NMnT9uDCzg2rW4ckm0fpSm5y",
+    path: window.location.pathname,
+    avatar: "monsterid",
+    placeholder: "请留下你此刻脑海中的想法~",
+    recordIP: true,
+  });
+  const infoEle = document.querySelector("#vcomments .info");
+  if (infoEle && infoEle.childNodes && infoEle.childNodes.length > 0) {
+    infoEle.childNodes.forEach(function (item) {
+      item.parentNode.removeChild(item);
+    });
+  }
+</script>
+<style>
+  #vcomments-box {
+    padding: 5px 30px;
+  }
+
+  @media screen and (max-width: 800px) {
+    #vcomments-box {
+      padding: 5px 0px;
+    }
+  }
+
+  #vcomments-box #vcomments {
+    background-color: #fff;
+  }
+
+  .v .vlist .vcard .vh {
+    padding-right: 20px;
+  }
+
+  .v .vlist .vcard {
+    padding-left: 10px;
+  }
+</style>
+
+ 
+     
+</article>
+
+</section>
+      <footer class="footer">
+  <div class="outer">
+    <ul>
+      <li>
+        Copyrights &copy;
+        2020-2024
+        <i class="ri-heart-fill heart_icon"></i> 环烷烃
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        
+        Powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+        <span class="division">|</span>
+        Theme - <a href="https://github.com/Shen-Yu/hexo-theme-ayer" target="_blank">Ayer</a>
+        
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        <span>
+  <span><i class="ri-user-3-fill"></i>Visitors:<span id="busuanzi_value_site_uv"></span></s>
+  <span class="division">|</span>
+  <span><i class="ri-eye-fill"></i>Views:<span id="busuanzi_value_page_pv"></span></span>
+</span>
+        
+      </li>
+    </ul>
+    <ul>
+      
+    </ul>
+    <ul>
+      <li>
+        <!-- cnzz统计 -->
+        
+        <script type="text/javascript" src='https://s9.cnzz.com/z_stat.php?id=1278069914&amp;web_id=1278069914'></script>
+        
+      </li>
+    </ul>
+  </div>
+</footer>
+      <div class="float_btns">
+        <div class="totop" id="totop">
+  <i class="ri-arrow-up-line"></i>
+</div>
+
+      </div>
+    </main>
+    <aside class="sidebar on">
+      <button class="navbar-toggle"></button>
+<nav class="navbar">
+  
+  <div class="logo">
+    <a href="/"><img src="/images/ayer-side.jpg" alt="海猫栖息地"></a>
+  </div>
+  
+  <ul class="nav nav-main">
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/">主页</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/archives">归档</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/tags">标签</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/player/">播放器</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/about">关于我</a>
+    </li>
+    
+  </ul>
+</nav>
+<nav class="navbar navbar-bottom">
+  <ul class="nav">
+    <li class="nav-item">
+      
+      <a class="nav-item-link nav-item-search"  title="Search">
+        <i class="ri-search-line"></i>
+      </a>
+      
+      
+      <a class="nav-item-link" target="_blank" href="/atom.xml" title="RSS Feed">
+        <i class="ri-rss-line"></i>
+      </a>
+      
+    </li>
+  </ul>
+</nav>
+<div class="search-form-wrap">
+  <div class="local-search local-search-plugin">
+  <input type="search" id="local-search-input" class="local-search-input" placeholder="Search...">
+  <div id="local-search-result" class="local-search-result"></div>
+</div>
+</div>
+
+    </aside>
+    <script>
+      if (window.matchMedia("(max-width: 768px)").matches) {
+        document.querySelector('.content').classList.remove('on');
+        document.querySelector('.sidebar').classList.remove('on');
+      }
+    </script>
+    <div id="mask"></div>
+
+<!-- #reward -->
+<div id="reward">
+  <span class="close"><i class="ri-close-line"></i></span>
+  <p class="reward-p"><i class="ri-cup-line"></i>我很可爱，请我喝一瓶怡宝吧~</p>
+  <div class="reward-box">
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/alipay.jpg">
+      <span class="reward-type">支付宝</span>
+    </div>
+    
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/wechat.jpg">
+      <span class="reward-type">微信</span>
+    </div>
+    
+  </div>
+</div>
+    
+<script src="/js/jquery-2.0.3.min.js"></script>
+
+
+<script src="/js/lazyload.min.js"></script>
+
+<!-- Tocbot -->
+
+
+<script src="/js/tocbot.min.js"></script>
+
+<script>
+  tocbot.init({
+    tocSelector: '.tocbot',
+    contentSelector: '.article-entry',
+    headingSelector: 'h1, h2, h3, h4, h5, h6',
+    hasInnerContainers: true,
+    scrollSmooth: true,
+    scrollContainer: 'main',
+    positionFixedSelector: '.tocbot',
+    positionFixedClass: 'is-position-fixed',
+    fixedSidebarOffset: 'auto'
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.css">
+<script src="https://cdn.jsdelivr.net/npm/justifiedGallery@3.7.0/dist/js/jquery.justifiedGallery.min.js"></script>
+
+<script src="/dist/main.js"></script>
+
+<!-- ImageViewer -->
+
+<!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" style="display:none" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css">
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"></script>
+
+<script>
+    function viewer_init() {
+        let pswpElement = document.querySelectorAll('.pswp')[0];
+        let $imgArr = document.querySelectorAll(('.article-entry img:not(.reward-img)'))
+
+        $imgArr.forEach(($em, i) => {
+            $em.onclick = () => {
+                // slider展开状态
+                // todo: 这样不好，后面改成状态
+                if (document.querySelector('.left-col.show')) return
+                let items = []
+                $imgArr.forEach(($em2, i2) => {
+                    let img = $em2.getAttribute('data-idx', i2)
+                    let src = $em2.getAttribute('data-target') || $em2.getAttribute('src')
+                    let title = $em2.getAttribute('alt')
+                    // 获得原图尺寸
+                    const image = new Image()
+                    image.src = src
+                    items.push({
+                        src: src,
+                        w: image.width || $em2.width,
+                        h: image.height || $em2.height,
+                        title: title
+                    })
+                })
+                var gallery = new PhotoSwipe(pswpElement, PhotoSwipeUI_Default, items, {
+                    index: parseInt(i)
+                });
+                gallery.init()
+            }
+        })
+    }
+    viewer_init()
+</script>
+
+<!-- MathJax -->
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+      tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+  });
+
+  MathJax.Hub.Queue(function() {
+      var all = MathJax.Hub.getAllJax(), i;
+      for(i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+      }
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.6/unpacked/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<script>
+  var ayerConfig = {
+    mathjax: true
+  }
+</script>
+
+<!-- Katex -->
+
+<!-- busuanzi  -->
+
+
+<script src="/js/busuanzi-2.3.pure.min.js"></script>
+
+
+<!-- ClickLove -->
+
+<!-- ClickBoom1 -->
+
+<script src="https://cdn.jsdelivr.net/npm/animejs@latest/anime.min.js"></script>
+
+<script src="/js/clickBoom1.js"></script>
+
+
+<!-- ClickBoom2 -->
+
+<!-- CodeCopy -->
+
+
+<link rel="stylesheet" href="/css/clipboard.css">
+
+<script src="https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js"></script>
+<script>
+  function wait(callback, seconds) {
+    var timelag = null;
+    timelag = window.setTimeout(callback, seconds);
+  }
+  !function (e, t, a) {
+    var initCopyCode = function(){
+      var copyHtml = '';
+      copyHtml += '<button class="btn-copy" data-clipboard-snippet="">';
+      copyHtml += '<i class="ri-file-copy-2-line"></i><span>COPY</span>';
+      copyHtml += '</button>';
+      $(".highlight .code pre").before(copyHtml);
+      $(".article pre code").before(copyHtml);
+      var clipboard = new ClipboardJS('.btn-copy', {
+        target: function(trigger) {
+          return trigger.nextElementSibling;
+        }
+      });
+      clipboard.on('success', function(e) {
+        let $btn = $(e.trigger);
+        $btn.addClass('copied');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-checkbox-circle-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPIED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-checkbox-circle-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+      clipboard.on('error', function(e) {
+        e.clearSelection();
+        let $btn = $(e.trigger);
+        $btn.addClass('copy-failed');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-time-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPY FAILED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-time-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+    }
+    initCopyCode();
+  }(window, document);
+</script>
+
+
+<!-- CanvasBackground -->
+
+
+    
+  </div>
+<script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginRootPath":"live2dw/","pluginJsPath":"lib/","pluginModelPath":"assets/","tagMode":false,"debug":false,"model":{"jsonPath":"/live2dw/assets/hijiki.model.json"},"display":{"position":"left","width":150,"height":300,"hOffset":80,"vOffset":-50},"mobile":{"show":true},"log":false});</script></body>
+
+</html>

@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+
+
+<html lang="en">
+
+
+<head>
+  <meta charset="utf-8" />
+    
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>
+    自己搭建个人博客HEXO记录 |  
+  </title>
+  <meta name="generator" content="hexo-theme-ayer">
+  
+  <link rel="shortcut icon" href="/images/ayer.png" />
+  
+  
+<link rel="stylesheet" href="/dist/main.css">
+
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Shen-Yu/cdn/css/remixicon.min.css">
+
+  
+<link rel="stylesheet" href="/css/custom.css">
+
+  
+  
+<script src="https://cdn.jsdelivr.net/npm/pace-js@1.0.2/pace.min.js"></script>
+
+  
+  
+
+  
+<script>
+var _hmt = _hmt || [];
+(function() {
+	var hm = document.createElement("script");
+	hm.src = "https://hm.baidu.com/hm.js?41fc030db57d5570dd22f78997dc4a7e";
+	var s = document.getElementsByTagName("script")[0]; 
+	s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+<link rel="alternate" href="/atom.xml" title="海猫栖息地" type="application/atom+xml">
+</head>
+
+</html>
+
+<body>
+  <div id="app">
+    
+      <canvas class="fireworks"></canvas>
+      <style>
+        .fireworks {
+          position: fixed;
+          left: 0;
+          top: 0;
+          z-index: 99999;
+          pointer-events: none;
+        }
+      </style>
+      
+      
+    <main class="content on">
+      <section class="outer">
+  <article
+  id="post-Logs"
+  class="article article-type-post"
+  itemscope
+  itemprop="blogPost"
+  data-scroll-reveal
+>
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h1 class="article-title sea-center" style="border-left:0" itemprop="name">
+  自己搭建个人博客HEXO记录
+</h1>
+ 
+
+    </header>
+     
+    <div class="article-meta">
+      <a href="/2020/08/31/Logs/" class="article-date">
+  <time datetime="2020-08-31T06:17:33.000Z" itemprop="datePublished">2020-08-31</time>
+</a>   
+<div class="word_count">
+    <span class="post-time">
+        <span class="post-meta-item-icon">
+            <i class="ri-quill-pen-line"></i>
+            <span class="post-meta-item-text"> Word count:</span>
+            <span class="post-count">2k</span>
+        </span>
+    </span>
+
+    <span class="post-time">
+        &nbsp; | &nbsp;
+        <span class="post-meta-item-icon">
+            <i class="ri-book-open-line"></i>
+            <span class="post-meta-item-text"> Reading time≈</span>
+            <span class="post-count">7 min</span>
+        </span>
+    </span>
+</div>
+ 
+    </div>
+      
+    <div class="tocbot"></div>
+
+
+
+
+  
+    <div class="article-entry" itemprop="articleBody">
+       
+  <p>写在前言：本文分为两个部分：从零建立hexo博客和深入了解并修改中的第一个部分</p>
+<ol>
+<li><h2 id="前置知识"><a href="#前置知识" class="headerlink" title="前置知识"></a>前置知识</h2><p>（自行搜索或者进行基本尝试）</p>
+<ul>
+<li>明白hexo是什么，局限性和优越性</li>
+<li>明白node.js是什么以及和npm的关系</li>
+<li>明白github是什么以及和gitee的关系</li>
+<li>明白terminal是什么</li>
+<li>明白markdown格式书写<span id="more"></span></li>
+</ul>
+</li>
+<li><h2 id="初步建立"><a href="#初步建立" class="headerlink" title="初步建立"></a>初步建立</h2><h3 id="一、环境准备"><a href="#一、环境准备" class="headerlink" title="一、环境准备"></a>一、环境准备</h3><p>提前装好 Git，这里不多讲解了，可以百度安装下。</p>
+<h3 id="安装-Nodejs"><a href="#安装-Nodejs" class="headerlink" title="安装 Nodejs"></a>安装 Nodejs</h3><p>下载 nodejs：<code>https://nodejs.org/en/</code></p>
+<p><img src="https://bed1.oss-cn-beijing.aliyuncs.com/0081Kckwly1gm9hno9wr2j30hw0a4q3p.jpg"></p>
+<p>来进行安装。</p>
+<p>安装完以后会有两个组件：1.是 npm 包管理器；2.是 Nodejs 。</p>
+<p><strong>如果是 mac，需打开终端切换到 root 用户（目的是root时候不需要多次输入密码，这步可自选）:</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo su</span><br></pre></td></tr></table></figure>
+
+<p>输入密码，敲回车。</p>
+<p><img src="https://bed1.oss-cn-beijing.aliyuncs.com/202111292304874.png"></p>
+<p>输入<code>clear</code>清一下。</p>
+<p>查看 node 的版本：<code>node -v</code></p>
+<p>查看 npm 包管理器的版本：<code>npm -v</code></p>
+<p><strong>Windows 电脑我是直接以管理员身份打开 cmd，mac端打开terminal输入:</strong></p>
+<p>查看 node 的版本：<code>node -v</code></p>
+<p>查看 npm 包管理器的版本：<code>npm -v</code></p>
+<p>因为 Hexo 需要 Nodejs 支持的、生成的，所以这是前置步骤。</p>
+<h3 id="二、安装-Hexo-博客框架"><a href="#二、安装-Hexo-博客框架" class="headerlink" title="二、安装 Hexo 博客框架"></a>二、安装 Hexo 博客框架</h3><p>需借助 npm 包管理器来安装。因为国内安装镜像源很慢，所以利用 npm 安装 cnpm。</p>
+<h4 id="用淘宝链接进行安装："><a href="#用淘宝链接进行安装：" class="headerlink" title="用淘宝链接进行安装："></a>用淘宝链接进行安装：</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">npm install -g cnpm --registry=https://registry.npm.taobao.org</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://bed1.oss-cn-beijing.aliyuncs.com/0081Kckwly1gm9i7vukb0j30v80cq108.jpg"></p>
+<p>看下 cnpm 的版本：<code>cnpm -v</code></p>
+<p>这个是mac的截图，Windows一样操作</p>
+<h4 id="安装-Hexo-框架："><a href="#安装-Hexo-框架：" class="headerlink" title="安装 Hexo 框架："></a>安装 Hexo 框架：</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cnpm install -g hexo-cli</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://bed1.oss-cn-beijing.aliyuncs.com/0081Kckwly1gm9i8j17rhj30km0fkn1h.jpg"></p>
+<p><code>hexo -v</code>来验证下。</p>
+<p>可以看到 Hexo 的博客框架是基于 node 的。</p>
+<p><img src="https://bed1.oss-cn-beijing.aliyuncs.com/0081Kckwly1gm9j8arbqtj30ve0iqtf7.jpg"></p>
+<h3 id="三、使用-Hexo-搭建博客（本地启动）"><a href="#三、使用-Hexo-搭建博客（本地启动）" class="headerlink" title="三、使用 Hexo 搭建博客（本地启动）"></a>三、使用 Hexo 搭建博客（本地启动）</h3><h4 id="方式一："><a href="#方式一：" class="headerlink" title="方式一："></a>方式一：</h4><p>在开始之前，输入 pwd 看下所处路径。</p>
+<p>新建一个 blog 文件夹：<code>mkdir (blog文件夹名字)， 举例： mkdir myBlog </code></p>
+<h4 id="方式二："><a href="#方式二：" class="headerlink" title="方式二："></a>方式二：</h4><p>在自己方便查看的位置手工创建一个 blog 文件夹。</p>
+<p>所有博客的东西全部都在 blog 里面生成。<strong>所以大家如果出了什么错，直接文件夹整个删除就行了。注意：千万不能只删除 blog 文件夹里面的内容，却不删除 blog 文件夹，这样操作会出问题的。</strong></p>
+<p>进入 blog 的目录中，位于这个目录下，就可以使用 Hexo 生成我们的博客。</p>
+<p>（未sudo su情况下）mac 下输入 sudo，表示用管理员的命令来执行，用 mac 电脑需要加上。</p>
+<p>初始化一个博客：<code>sudo hexo init</code></p>
+<p>初始化一个博客：<code>hexo init</code></p>
+<p>安装完成后</p>
+<p>看该目录下的所有子目录和文件：<code>ls</code></p>
+<p>启动博客：<code>hexo s</code></p>
+<p>输入<code>localhost:4000</code>问下，看看博客是不是已经成功，已经有了，就像这样：</p>
+<p><img src="https://bed1.oss-cn-beijing.aliyuncs.com/0081Kckwly1gm9jbw4d7hj310e0m0k1c.jpg"></p>
+<h4 id="其中上图介绍来hexo博客的基本使用："><a href="#其中上图介绍来hexo博客的基本使用：" class="headerlink" title="其中上图介绍来hexo博客的基本使用："></a>其中上图介绍来hexo博客的基本使用：</h4><p><code>hexo s</code>就是<code>hexo server</code> ，写一篇博客，可以用<code>hexo s</code>这个命令启动预览，在本地修改文件可以及时渲染到页面上，非常方便。</p>
+<p>切换到 source，输入命令：<code>cd source/_posts/</code></p>
+<h4 id="用-vim-编辑器-x2F-自己使用合适的app建立markdown文章放在文件夹内："><a href="#用-vim-编辑器-x2F-自己使用合适的app建立markdown文章放在文件夹内：" class="headerlink" title="用 vim 编辑器&#x2F;自己使用合适的app建立markdown文章放在文件夹内："></a>用 vim 编辑器&#x2F;自己使用合适的app建立markdown文章放在文件夹内：</h4><p>可以进行编辑，也可以不编辑直接发布。</p>
+<p>如果是vim：点击键盘的 i 进行编辑，shift 和 esc 同时按下(这里我记得是这样用的，如果不行可以百度下），然后输入<code>:wq</code>保存退出。</p>
+<p>这样博客文章就创建好了。</p>
+<p>输入 pwd，看到在 source 目录下，需要退 2 层回去：<code>cd ../..</code></p>
+<p>这样就到了 blog 目录。</p>
+<h4 id="接着输入以下命令："><a href="#接着输入以下命令：" class="headerlink" title="接着输入以下命令："></a>接着输入以下命令：</h4><ul>
+<li><p>启动下（渲染成页面）：<code>hexo s</code></p>
+</li>
+<li><p>刷新下页面</p>
+</li>
+</ul>
+<p>以上 Hexo 博客的搭建已经完成了。</p>
+<h3 id="四、部署到远端（Gitee-x2F-Github）上公开使用"><a href="#四、部署到远端（Gitee-x2F-Github）上公开使用" class="headerlink" title="四、部署到远端（Gitee&#x2F;Github）上公开使用"></a>四、部署到远端（Gitee&#x2F;Github）上公开使用</h3><p>目前我们的博客还是在本地的，接下来要把它部署到远端，这样别人就可以访问你的博客了。本文记录使用<code>Github</code>和<code>Gitee</code>来托管我们的博客。</p>
+</li>
+</ol>
+<hr>
+<h4 id="1-托管方案"><a href="#1-托管方案" class="headerlink" title="1.托管方案"></a>1.托管方案</h4><p>   <code>Github</code>或者<code>Gitee</code>（码云）的<code>Pages</code>服务，它们都能够<strong>免费</strong>托管站点，没必要专门弄个服务器。其中<code>Gitee</code>访问会比较快点，毕竟是国内的。</p>
+<h4 id="创建仓库"><a href="#创建仓库" class="headerlink" title="创建仓库"></a>创建仓库</h4><h4 id="Github"><a href="#Github" class="headerlink" title="Github"></a>Github</h4><ul>
+<li>创建一个仓库，<strong>仓库设置为公开</strong>的才能免费使用<code>Github Pages</code>服务。</li>
+<li>仓库名必须设置为：**&lt;用户名&gt;.github.io**</li>
+<li>如下图：我的<code>Github</code>用户名为khalil-chen，那么就需要创建一个名为<code>sakura-mac.github.io</code>的公开仓库。</li>
+</ul>
+<p>   <img src="https://bed1.oss-cn-beijing.aliyuncs.com/0081Kckwly1gm9k79dtvyj317g0u0aft.jpg"></p>
+<ul>
+<li><p>创建完成后，我们就可以通过<code>&lt;用户名&gt;.github.io</code>来访问我们的站点了。</p>
+<h4 id="Gitee"><a href="#Gitee" class="headerlink" title="Gitee"></a>Gitee</h4></li>
+<li><p>创建一个仓库</p>
+</li>
+<li><p>仓库名如果设置成和个人空间地址一样，那么访问地址就是： <code>&lt;个人空间地址名&gt;.gitee.io</code></p>
+</li>
+<li><p>个人空间地址可在个人资料中查看。我的个人空间地址是<code>khalil-chen</code>，那么我的博客地址就是：<code>khalil-chen.gitee.io</code></p>
+</li>
+</ul>
+<p>   <img src="https://bed1.oss-cn-beijing.aliyuncs.com/0081Kckwly1gmacrnunguj31400akmy8.jpg"></p>
+<h4 id="2-开始部署"><a href="#2-开始部署" class="headerlink" title="2.开始部署"></a>2.开始部署</h4><p>   以gitee为例子</p>
+<p>   接下来，我们就可以把本地博客部署远端了。</p>
+<ul>
+<li><h4 id="安装部署插件"><a href="#安装部署插件" class="headerlink" title="安装部署插件"></a>安装部署插件</h4></li>
+</ul>
+<p>   在博客根目录中执行以下命令来下载自动部署工具：</p>
+   <figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ cnpm install hexo-deployer-git --save</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><h4 id="修改部署配置"><a href="#修改部署配置" class="headerlink" title="修改部署配置"></a>修改部署配置</h4><ul>
+<li><p><code>ssh</code>配置</p>
+<ul>
+<li>git用户信息配置（创建仓库完成后）</li>
+</ul>
+<p>在Git Bash（终端）命令行输入：<br>git config –global user.name “你的用户名”+回车<br>git config –global user.email “你的邮箱”+回车</p>
+<ul>
+<li>生成&#x2F;添加SSH公钥</li>
+</ul>
+<p>码云提供了基于SSH协议的Git服务，在使用SSH协议访问仓库之前，需要先配置好账户&#x2F;仓库的SSH公钥。<br>1、本机生成SSH公钥<br>1）本地打开 Git Bash（终端），输入命令：ssh-keygen<br>2）在暂停时按回车键，三次回车后，即可生成了SSH公钥<br>3）命令：cat &#x2F;.ssh&#x2F;id_rsa.pub（“cat”与“”之间有空格）查看SSH公钥<br>2、Gitee （码云）添加SSH公钥：<br>在gitee上找到个人设置-&gt;安全设置-&gt;SSH公钥，然后将刚才生成的公钥输入公钥框，点击确定即可。<br>3、确认是否配置成功<br>在命令行输入：ssh -T <a href="mailto:&#103;&#x69;&#x74;&#x40;&#x67;&#x69;&#x74;&#101;&#101;&#x2e;&#x63;&#x6f;&#109;">&#103;&#x69;&#x74;&#x40;&#x67;&#x69;&#x74;&#101;&#101;&#x2e;&#x63;&#x6f;&#109;</a>+回车<br>在询问yes&#x2F;no是，输入yes。这是因为首次使用需要确认并添加主机到本机SSH可信列表。<br>若返回 “Hi XXX! You’ve successfully authenticated, but Gitee.com does not provide shell access.”内容，则证明添加成功。</p>
+</li>
+<li><p>在文件夹_config.yml站点配置文件中修改如下配置：</p>
+</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">deploy:</span><br><span class="line">  type: git</span><br><span class="line">  repo: git@gitee.com:&lt;仓库名&gt;/&lt;路径&gt;.git</span><br><span class="line">  branch: master</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>注意：部署分支要和我们远端仓库的部署分支对应，没设置的话<code>Hexo</code>会自动创建一个分支作为部署分支。</p>
+</blockquote>
+</li>
+</ul>
+<h4 id="3-执行部署命令"><a href="#3-执行部署命令" class="headerlink" title="3.执行部署命令"></a>3.执行部署命令</h4><ul>
+<li>在博客根目录中执行以下命令：</li>
+</ul>
+   <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ hexo clean &amp;&amp; hexo g &amp;&amp; hexo d</span><br><span class="line"></span><br><span class="line">//hexo clean 意味着清理一下</span><br><span class="line">//hexo g 意味着生成相应的html代码保存</span><br><span class="line">//hexo d 意味着远程推送到托管仓库里（如果远程推送一定要hexo g，否则页面代码未改变即推送了个寂寞，无法再渲染更新页面）</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>对于<code>Gitee Pages</code>，由于不支持自动更新，每次执行命令部署后需要手动点击更新，等待更新完成后访问地址即可看到效果。</li>
+</ul>
+<p>   <img src="https://bed1.oss-cn-beijing.aliyuncs.com/0081Kckwly1gmaetl8yh5j30w40im40i.jpg"></p>
+<blockquote>
+<p>如果看不到效果的话，暂停服务，然后再重新启动。</p>
+</blockquote>
+<ul>
+<li>对于<code>GitHub Pages</code>，它支持自动更新，无需额外操作，稍等片刻后访问即可。</li>
+</ul>
+<p>   访问页面的网站地址可看到主题成功换了！</p>
+<p>   <img src="https://bed1.oss-cn-beijing.aliyuncs.com/0081Kckwly1gm9jwor29jj31ta0u0b2c.jpg"></p>
+<p>   以上整个过程已经完成了。</p>
+<ol start="3">
+<li><h2 id="美化改进"><a href="#美化改进" class="headerlink" title="美化改进"></a>美化改进</h2><ul>
+<li>添加后台评论系统</li>
+<li>添加live2D（电子宠物）</li>
+<li>添加网易云播放器</li>
+<li>添加点击烟花特效</li>
+<li>添加个人网盘</li>
+<li>添加友链</li>
+<li>添加个人影院（解析口）</li>
+<li>添加公共聊天室</li>
+</ul>
+</li>
+<li><p>测试</p>
+</li>
+</ol>
+ 
+      <!-- reward -->
+      
+      <div id="reword-out">
+        <div id="reward-btn">
+          Donate
+        </div>
+      </div>
+      
+    </div>
+    
+
+    <!-- copyright -->
+    
+    <div class="declare">
+      <ul class="post-copyright">
+        <li>
+          <i class="ri-copyright-line"></i>
+          <strong>Copyright： </strong>
+          Copyright is owned by the author. For commercial reprints, please contact the author for authorization. For non-commercial reprints, please indicate the source.
+        </li>
+      </ul>
+    </div>
+    
+    <footer class="article-footer">
+       
+<div class="share-btn">
+      <span class="share-sns share-outer">
+        <i class="ri-share-forward-line"></i>
+        分享
+      </span>
+      <div class="share-wrap">
+        <i class="arrow"></i>
+        <div class="share-icons">
+          
+          <a class="weibo share-sns" href="javascript:;" data-type="weibo">
+            <i class="ri-weibo-fill"></i>
+          </a>
+          <a class="weixin share-sns wxFab" href="javascript:;" data-type="weixin">
+            <i class="ri-wechat-fill"></i>
+          </a>
+          <a class="qq share-sns" href="javascript:;" data-type="qq">
+            <i class="ri-qq-fill"></i>
+          </a>
+          <a class="douban share-sns" href="javascript:;" data-type="douban">
+            <i class="ri-douban-line"></i>
+          </a>
+          <!-- <a class="qzone share-sns" href="javascript:;" data-type="qzone">
+            <i class="icon icon-qzone"></i>
+          </a> -->
+          
+          <a class="facebook share-sns" href="javascript:;" data-type="facebook">
+            <i class="ri-facebook-circle-fill"></i>
+          </a>
+          <a class="twitter share-sns" href="javascript:;" data-type="twitter">
+            <i class="ri-twitter-fill"></i>
+          </a>
+          <a class="google share-sns" href="javascript:;" data-type="google">
+            <i class="ri-google-fill"></i>
+          </a>
+        </div>
+      </div>
+</div>
+
+<div class="wx-share-modal">
+    <a class="modal-close" href="javascript:;"><i class="ri-close-circle-line"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <div class="wx-qrcode">
+      <img src="//api.qrserver.com/v1/create-qr-code/?size=150x150&data=http://sakura-mac.github.io/2020/08/31/Logs/" alt="微信分享二维码">
+    </div>
+</div>
+
+<div id="share-mask"></div>  
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Logs/" rel="tag">Logs</a></li></ul>
+
+    </footer>
+  </div>
+
+   
+  <nav class="article-nav">
+    
+      <a href="/2020/12/26/%E7%AC%AC%E4%B8%89%E8%8A%82%EF%BC%9A%E5%AD%A6%E4%BC%9A%E7%94%A8%E5%90%AC%E5%8A%9B%E6%9D%A5%E7%BB%83%E4%B9%A0%E5%92%8C%E5%BC%A6/" class="article-nav-link">
+        <strong class="article-nav-caption">上一篇</strong>
+        <div class="article-nav-title">
+          
+            学会用听力来练习和弦
+          
+        </div>
+      </a>
+    
+    
+      <a href="/2020/08/30/Todo-list/" class="article-nav-link">
+        <strong class="article-nav-caption">下一篇</strong>
+        <div class="article-nav-title">Todo List</div>
+      </a>
+    
+  </nav>
+
+   
+<!-- valine评论 -->
+<div id="vcomments-box">
+  <div id="vcomments"></div>
+</div>
+<script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/valine@1.4.14/dist/Valine.min.js"></script>
+<script>
+  new Valine({
+    el: "#vcomments",
+    app_id: "bbzBMY2PHFRlbkSCorlYCrRX-gzGzoHsz",
+    app_key: "NMnT9uDCzg2rW4ckm0fpSm5y",
+    path: window.location.pathname,
+    avatar: "monsterid",
+    placeholder: "请留下你此刻脑海中的想法~",
+    recordIP: true,
+  });
+  const infoEle = document.querySelector("#vcomments .info");
+  if (infoEle && infoEle.childNodes && infoEle.childNodes.length > 0) {
+    infoEle.childNodes.forEach(function (item) {
+      item.parentNode.removeChild(item);
+    });
+  }
+</script>
+<style>
+  #vcomments-box {
+    padding: 5px 30px;
+  }
+
+  @media screen and (max-width: 800px) {
+    #vcomments-box {
+      padding: 5px 0px;
+    }
+  }
+
+  #vcomments-box #vcomments {
+    background-color: #fff;
+  }
+
+  .v .vlist .vcard .vh {
+    padding-right: 20px;
+  }
+
+  .v .vlist .vcard {
+    padding-left: 10px;
+  }
+</style>
+
+ 
+     
+</article>
+
+</section>
+      <footer class="footer">
+  <div class="outer">
+    <ul>
+      <li>
+        Copyrights &copy;
+        2020-2024
+        <i class="ri-heart-fill heart_icon"></i> 环烷烃
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        
+        Powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+        <span class="division">|</span>
+        Theme - <a href="https://github.com/Shen-Yu/hexo-theme-ayer" target="_blank">Ayer</a>
+        
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        <span>
+  <span><i class="ri-user-3-fill"></i>Visitors:<span id="busuanzi_value_site_uv"></span></s>
+  <span class="division">|</span>
+  <span><i class="ri-eye-fill"></i>Views:<span id="busuanzi_value_page_pv"></span></span>
+</span>
+        
+      </li>
+    </ul>
+    <ul>
+      
+    </ul>
+    <ul>
+      <li>
+        <!-- cnzz统计 -->
+        
+        <script type="text/javascript" src='https://s9.cnzz.com/z_stat.php?id=1278069914&amp;web_id=1278069914'></script>
+        
+      </li>
+    </ul>
+  </div>
+</footer>
+      <div class="float_btns">
+        <div class="totop" id="totop">
+  <i class="ri-arrow-up-line"></i>
+</div>
+
+      </div>
+    </main>
+    <aside class="sidebar on">
+      <button class="navbar-toggle"></button>
+<nav class="navbar">
+  
+  <div class="logo">
+    <a href="/"><img src="/images/ayer-side.jpg" alt="海猫栖息地"></a>
+  </div>
+  
+  <ul class="nav nav-main">
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/">主页</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/archives">归档</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/tags">标签</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/player/">播放器</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/about">关于我</a>
+    </li>
+    
+  </ul>
+</nav>
+<nav class="navbar navbar-bottom">
+  <ul class="nav">
+    <li class="nav-item">
+      
+      <a class="nav-item-link nav-item-search"  title="Search">
+        <i class="ri-search-line"></i>
+      </a>
+      
+      
+      <a class="nav-item-link" target="_blank" href="/atom.xml" title="RSS Feed">
+        <i class="ri-rss-line"></i>
+      </a>
+      
+    </li>
+  </ul>
+</nav>
+<div class="search-form-wrap">
+  <div class="local-search local-search-plugin">
+  <input type="search" id="local-search-input" class="local-search-input" placeholder="Search...">
+  <div id="local-search-result" class="local-search-result"></div>
+</div>
+</div>
+
+    </aside>
+    <script>
+      if (window.matchMedia("(max-width: 768px)").matches) {
+        document.querySelector('.content').classList.remove('on');
+        document.querySelector('.sidebar').classList.remove('on');
+      }
+    </script>
+    <div id="mask"></div>
+
+<!-- #reward -->
+<div id="reward">
+  <span class="close"><i class="ri-close-line"></i></span>
+  <p class="reward-p"><i class="ri-cup-line"></i>我很可爱，请我喝一瓶怡宝吧~</p>
+  <div class="reward-box">
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/alipay.jpg">
+      <span class="reward-type">支付宝</span>
+    </div>
+    
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/wechat.jpg">
+      <span class="reward-type">微信</span>
+    </div>
+    
+  </div>
+</div>
+    
+<script src="/js/jquery-2.0.3.min.js"></script>
+
+
+<script src="/js/lazyload.min.js"></script>
+
+<!-- Tocbot -->
+
+
+<script src="/js/tocbot.min.js"></script>
+
+<script>
+  tocbot.init({
+    tocSelector: '.tocbot',
+    contentSelector: '.article-entry',
+    headingSelector: 'h1, h2, h3, h4, h5, h6',
+    hasInnerContainers: true,
+    scrollSmooth: true,
+    scrollContainer: 'main',
+    positionFixedSelector: '.tocbot',
+    positionFixedClass: 'is-position-fixed',
+    fixedSidebarOffset: 'auto'
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.css">
+<script src="https://cdn.jsdelivr.net/npm/justifiedGallery@3.7.0/dist/js/jquery.justifiedGallery.min.js"></script>
+
+<script src="/dist/main.js"></script>
+
+<!-- ImageViewer -->
+
+<!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" style="display:none" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css">
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"></script>
+
+<script>
+    function viewer_init() {
+        let pswpElement = document.querySelectorAll('.pswp')[0];
+        let $imgArr = document.querySelectorAll(('.article-entry img:not(.reward-img)'))
+
+        $imgArr.forEach(($em, i) => {
+            $em.onclick = () => {
+                // slider展开状态
+                // todo: 这样不好，后面改成状态
+                if (document.querySelector('.left-col.show')) return
+                let items = []
+                $imgArr.forEach(($em2, i2) => {
+                    let img = $em2.getAttribute('data-idx', i2)
+                    let src = $em2.getAttribute('data-target') || $em2.getAttribute('src')
+                    let title = $em2.getAttribute('alt')
+                    // 获得原图尺寸
+                    const image = new Image()
+                    image.src = src
+                    items.push({
+                        src: src,
+                        w: image.width || $em2.width,
+                        h: image.height || $em2.height,
+                        title: title
+                    })
+                })
+                var gallery = new PhotoSwipe(pswpElement, PhotoSwipeUI_Default, items, {
+                    index: parseInt(i)
+                });
+                gallery.init()
+            }
+        })
+    }
+    viewer_init()
+</script>
+
+<!-- MathJax -->
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+      tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+  });
+
+  MathJax.Hub.Queue(function() {
+      var all = MathJax.Hub.getAllJax(), i;
+      for(i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+      }
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.6/unpacked/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<script>
+  var ayerConfig = {
+    mathjax: true
+  }
+</script>
+
+<!-- Katex -->
+
+<!-- busuanzi  -->
+
+
+<script src="/js/busuanzi-2.3.pure.min.js"></script>
+
+
+<!-- ClickLove -->
+
+<!-- ClickBoom1 -->
+
+<script src="https://cdn.jsdelivr.net/npm/animejs@latest/anime.min.js"></script>
+
+<script src="/js/clickBoom1.js"></script>
+
+
+<!-- ClickBoom2 -->
+
+<!-- CodeCopy -->
+
+
+<link rel="stylesheet" href="/css/clipboard.css">
+
+<script src="https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js"></script>
+<script>
+  function wait(callback, seconds) {
+    var timelag = null;
+    timelag = window.setTimeout(callback, seconds);
+  }
+  !function (e, t, a) {
+    var initCopyCode = function(){
+      var copyHtml = '';
+      copyHtml += '<button class="btn-copy" data-clipboard-snippet="">';
+      copyHtml += '<i class="ri-file-copy-2-line"></i><span>COPY</span>';
+      copyHtml += '</button>';
+      $(".highlight .code pre").before(copyHtml);
+      $(".article pre code").before(copyHtml);
+      var clipboard = new ClipboardJS('.btn-copy', {
+        target: function(trigger) {
+          return trigger.nextElementSibling;
+        }
+      });
+      clipboard.on('success', function(e) {
+        let $btn = $(e.trigger);
+        $btn.addClass('copied');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-checkbox-circle-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPIED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-checkbox-circle-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+      clipboard.on('error', function(e) {
+        e.clearSelection();
+        let $btn = $(e.trigger);
+        $btn.addClass('copy-failed');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-time-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPY FAILED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-time-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+    }
+    initCopyCode();
+  }(window, document);
+</script>
+
+
+<!-- CanvasBackground -->
+
+
+    
+  </div>
+<script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginRootPath":"live2dw/","pluginJsPath":"lib/","pluginModelPath":"assets/","tagMode":false,"debug":false,"model":{"jsonPath":"/live2dw/assets/hijiki.model.json"},"display":{"position":"left","width":150,"height":300,"hOffset":80,"vOffset":-50},"mobile":{"show":true},"log":false});</script></body>
+
+</html>

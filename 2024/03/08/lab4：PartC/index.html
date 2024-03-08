@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+
+
+<html lang="en">
+
+
+<head>
+  <meta charset="utf-8" />
+    
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>
+    lab4：PartC |  
+  </title>
+  <meta name="generator" content="hexo-theme-ayer">
+  
+  <link rel="shortcut icon" href="/images/ayer.png" />
+  
+  
+<link rel="stylesheet" href="/dist/main.css">
+
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Shen-Yu/cdn/css/remixicon.min.css">
+
+  
+<link rel="stylesheet" href="/css/custom.css">
+
+  
+  
+<script src="https://cdn.jsdelivr.net/npm/pace-js@1.0.2/pace.min.js"></script>
+
+  
+  
+
+  
+<script>
+var _hmt = _hmt || [];
+(function() {
+	var hm = document.createElement("script");
+	hm.src = "https://hm.baidu.com/hm.js?41fc030db57d5570dd22f78997dc4a7e";
+	var s = document.getElementsByTagName("script")[0]; 
+	s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+<link rel="alternate" href="/atom.xml" title="海猫栖息地" type="application/atom+xml">
+</head>
+
+</html>
+
+<body>
+  <div id="app">
+    
+      <canvas class="fireworks"></canvas>
+      <style>
+        .fireworks {
+          position: fixed;
+          left: 0;
+          top: 0;
+          z-index: 99999;
+          pointer-events: none;
+        }
+      </style>
+      
+      
+    <main class="content on">
+      <section class="outer">
+  <article
+  id="post-lab4：PartC"
+  class="article article-type-post"
+  itemscope
+  itemprop="blogPost"
+  data-scroll-reveal
+>
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h1 class="article-title sea-center" style="border-left:0" itemprop="name">
+  lab4：PartC
+</h1>
+ 
+
+    </header>
+     
+    <div class="article-meta">
+      <a href="/2024/03/08/lab4%EF%BC%9APartC/" class="article-date">
+  <time datetime="2024-03-08T13:16:50.334Z" itemprop="datePublished">2024-03-08</time>
+</a>   
+<div class="word_count">
+    <span class="post-time">
+        <span class="post-meta-item-icon">
+            <i class="ri-quill-pen-line"></i>
+            <span class="post-meta-item-text"> Word count:</span>
+            <span class="post-count">2.1k</span>
+        </span>
+    </span>
+
+    <span class="post-time">
+        &nbsp; | &nbsp;
+        <span class="post-meta-item-icon">
+            <i class="ri-book-open-line"></i>
+            <span class="post-meta-item-text"> Reading time≈</span>
+            <span class="post-count">9 min</span>
+        </span>
+    </span>
+</div>
+ 
+    </div>
+      
+    <div class="tocbot"></div>
+
+
+
+
+  
+    <div class="article-entry" itemprop="articleBody">
+       
+  <p>lab通关记录</p>
+<a href="/2024/03/08/MIT-6.828%E5%AE%9E%E9%AA%8C%E9%80%9A%E5%85%B3%E8%AE%B0%E5%BD%95/" title="MIT-6.828实验通关记录">MIT-6.828实验通关记录</a>
+
+<h1 id="C-部分：抢占式多任务和进程间通信-IPC"><a href="#C-部分：抢占式多任务和进程间通信-IPC" class="headerlink" title="C 部分：抢占式多任务和进程间通信 (IPC)"></a>C 部分：抢占式多任务和进程间通信 (IPC)</h1><p>我们现在需要实行抢占式调度，并且实现具有权限检查的进程通信。</p>
+<span id="more"></span>
+
+<h2 id="Exercise13"><a href="#Exercise13" class="headerlink" title="Exercise13"></a>Exercise13</h2><p>外部中断（即设备中断）称为 IRQ。有 16 个可能的 IRQ，编号为 0 到 15。从 IRQ 编号到 IDT 条目的映射不是固定的。 <code>pic_init</code>在<code>picirq.c</code>映射的IRQ 0-15到IDT入口<code>IRQ_OFFSET</code>通过<code>IRQ_OFFSET+15</code>。</p>
+<p>在<code>inc/trap.h 中</code>， <code>IRQ_OFFSET</code>定义为十进制 32。因此，IDT 条目 32-47 对应于 IRQ 0-15。例如，时钟中断是IRQ 0。因此，IDT[IRQ_OFFSET+0]（即IDT[32]）包含内核中时钟中断处理程序的地址。<code>IRQ_OFFSET</code>选择此选项是为了使设备中断不会与处理器异常重叠，这显然会导致混淆。（事实上，在运行MS-DOS的PC的初期，<code>IRQ_OFFSET</code>有效地<em>是</em>零，这的确造成处理硬件中断和处理处理器异常之间巨大的混乱！）</p>
+<p>在 JOS 中，与 xv6 Unix 相比，我们做了一个关键的简化。外部设备中断在内核中<em>总是被</em>禁用（并且像 xv6 一样，在用户空间中启用）。外部中断由寄存器的<code>FL_IF</code>标志位控制<code>%eflags</code>（参见<code>inc/mmu.h</code>）。当该位被设置时，外部中断被使能。虽然可以通过多种方式修改该位，但由于我们的简化，我们将仅通过在<code>%eflags</code>进入和离开用户模式时保存和恢复寄存器的过程来处理它。</p>
+<p>我们必须确保<code>FL_IF</code>在用户环境运行时在用户环境中设置该标志，以便在中断到达时将其传递给处理器并由您的中断代码处理。</p>
+<p>处理器在调用硬件中断处理程序时从不推送错误代码。此时，您可能需要重新阅读<a target="_blank" rel="noopener" href="https://pdos.csail.mit.edu/6.828/2017/readings/i386/toc.htm"> 80386 参考手册的</a>第 9.2 节 或<a target="_blank" rel="noopener" href="https://pdos.csail.mit.edu/6.828/2017/readings/ia32/IA32-3A.pdf"> IA-32 英特尔架构软件开发人员手册第 3 卷的</a>第 5.8 节 。</p>
+<p>修改<code>kern/ trapentry.S</code>和<code>kern/trap.c</code>初始化所述IDT中的相应条目，并通过15提供为IRQs 0处理程序</p>
+<p>然后修改代码中的<code>env_alloc()</code>在<code>kern/ env.c</code>，以确保用户环境总是在启用中断的情况下运行。</p>
+<p>不要忘了还要取消注释<code>sched_halt() 中</code>的<code>sti</code>指令</p>
+<p>kern&#x2F; trapentry.S</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">TRAPHANDLER_NOEC(th32, IRQ_OFFSET)</span><br><span class="line">TRAPHANDLER_NOEC(th33, IRQ_OFFSET + <span class="number">1</span>)</span><br><span class="line">TRAPHANDLER_NOEC(th34, IRQ_OFFSET + <span class="number">2</span>)</span><br><span class="line">TRAPHANDLER_NOEC(th35, IRQ_OFFSET + <span class="number">3</span>)</span><br><span class="line">TRAPHANDLER_NOEC(th36, IRQ_OFFSET + <span class="number">4</span>)</span><br><span class="line">TRAPHANDLER_NOEC(th37, IRQ_OFFSET + <span class="number">5</span>)</span><br><span class="line">TRAPHANDLER_NOEC(th38, IRQ_OFFSET + <span class="number">6</span>)</span><br><span class="line">TRAPHANDLER_NOEC(th39, IRQ_OFFSET + <span class="number">7</span>)</span><br><span class="line">TRAPHANDLER_NOEC(th40, IRQ_OFFSET + <span class="number">8</span>)</span><br><span class="line">TRAPHANDLER_NOEC(th41, IRQ_OFFSET + <span class="number">9</span>)</span><br><span class="line">TRAPHANDLER_NOEC(th42, IRQ_OFFSET + <span class="number">10</span>)</span><br><span class="line">TRAPHANDLER_NOEC(th43, IRQ_OFFSET + <span class="number">11</span>)</span><br><span class="line">TRAPHANDLER_NOEC(th44, IRQ_OFFSET + <span class="number">12</span>)</span><br><span class="line">TRAPHANDLER_NOEC(th45, IRQ_OFFSET + <span class="number">13</span>)</span><br><span class="line">TRAPHANDLER_NOEC(th46, IRQ_OFFSET + <span class="number">14</span>)</span><br><span class="line">TRAPHANDLER_NOEC(th47, IRQ_OFFSET + <span class="number">15</span>)</span><br></pre></td></tr></table></figure>
+
+<p>kern&#x2F;trap.c</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">trap_init function:添加IDT的支持</span><br><span class="line"></span><br><span class="line">	SETGATE(idt[IRQ_OFFSET], <span class="number">0</span>, GD_KT, th32, <span class="number">0</span>);</span><br><span class="line">	SETGATE(idt[IRQ_OFFSET + <span class="number">1</span>], <span class="number">0</span>, GD_KT, th33, <span class="number">0</span>);</span><br><span class="line">	SETGATE(idt[IRQ_OFFSET + <span class="number">2</span>], <span class="number">0</span>, GD_KT, th34, <span class="number">0</span>);</span><br><span class="line">	SETGATE(idt[IRQ_OFFSET + <span class="number">3</span>], <span class="number">0</span>, GD_KT, th35, <span class="number">0</span>);</span><br><span class="line">	SETGATE(idt[IRQ_OFFSET + <span class="number">4</span>], <span class="number">0</span>, GD_KT, th36, <span class="number">0</span>);</span><br><span class="line">	SETGATE(idt[IRQ_OFFSET + <span class="number">5</span>], <span class="number">0</span>, GD_KT, th37, <span class="number">0</span>);</span><br><span class="line">	SETGATE(idt[IRQ_OFFSET + <span class="number">6</span>], <span class="number">0</span>, GD_KT, th38, <span class="number">0</span>);</span><br><span class="line">	SETGATE(idt[IRQ_OFFSET + <span class="number">7</span>], <span class="number">0</span>, GD_KT, th39, <span class="number">0</span>);</span><br><span class="line">	SETGATE(idt[IRQ_OFFSET + <span class="number">8</span>], <span class="number">0</span>, GD_KT, th40, <span class="number">0</span>);</span><br><span class="line">	SETGATE(idt[IRQ_OFFSET + <span class="number">9</span>], <span class="number">0</span>, GD_KT, th41, <span class="number">0</span>);</span><br><span class="line">	SETGATE(idt[IRQ_OFFSET + <span class="number">10</span>], <span class="number">0</span>, GD_KT, th42, <span class="number">0</span>);</span><br><span class="line">	SETGATE(idt[IRQ_OFFSET + <span class="number">11</span>], <span class="number">0</span>, GD_KT, th43, <span class="number">0</span>);</span><br><span class="line">	SETGATE(idt[IRQ_OFFSET + <span class="number">12</span>], <span class="number">0</span>, GD_KT, th44, <span class="number">0</span>);</span><br><span class="line">	SETGATE(idt[IRQ_OFFSET + <span class="number">13</span>], <span class="number">0</span>, GD_KT, th45, <span class="number">0</span>);</span><br><span class="line">	SETGATE(idt[IRQ_OFFSET + <span class="number">14</span>], <span class="number">0</span>, GD_KT, th46, <span class="number">0</span>);</span><br><span class="line">	SETGATE(idt[IRQ_OFFSET + <span class="number">15</span>], <span class="number">0</span>, GD_KT, th47, <span class="number">0</span>);</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<p>env_alloc:中断是IF flag，所以我们添加即可</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">e-&gt;env_tf.tf_eflags |= FL_IF;</span><br></pre></td></tr></table></figure>
+
+<h2 id="Exericse14"><a href="#Exericse14" class="headerlink" title="Exericse14"></a>Exericse14</h2><p>抢占式调度：我们会通过时钟的IRQ来强迫进入内核态，进而切换用户环境。</p>
+<p>修改内核<code>trap_dispatch()</code>函数，使其<code>sched_yield()</code> 在发生时钟中断时调用查找并运行不同的环境。</p>
+<p>到这里会得到65&#x2F;80的分数</p>
+<p>trap_dispatch</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (tf-&gt;tf_trapno == IRQ_OFFSET + IRQ_TIMER) &#123;</span><br><span class="line">		lapic_eoi();</span><br><span class="line">		sched_yield();</span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="Exercise-15"><a href="#Exercise-15" class="headerlink" title="Exercise 15"></a>Exercise 15</h2><p>我们将会通过两个系统调用来实现IPC，<code>sys_ipc_recv</code>以及 <code>sys_ipc_try_send</code>. 他们被两个库包装器 <code>ipc_recv</code>和<code>ipc_send</code>调用.</p>
+<p> IPC 机制相互发送的“消息”由两个组件组成：单个 32 位值和可选的单个页面映射。</p>
+<h3 id="发送和接收消息"><a href="#发送和接收消息" class="headerlink" title="发送和接收消息"></a>发送和接收消息</h3><p>要接收消息，环境调用 <code>sys_ipc_recv</code>. 这个系统调用取消了当前环境的调度，并且在收到消息之前不会再次运行它。当一个环境正在等待接收消息时， <em>任何</em>其他环境都可以向它发送消息 - 不仅仅是特定环境，也不仅仅是与接收环境有父&#x2F;子安排的环境。</p>
+<p>为了尝试发送一个值，环境调用 <code>sys_ipc_try_send</code>，参数是接收者的环境 ID 和要发送的值。如果目标环境实际上正在等待接收（它已调用 <code>sys_ipc_recv</code>但尚未获得值），则我们可以发送消息并返回 0。否则发送返回<code>-E_IPC_NOT_RECV</code>以指示目标环境当前不期望接收值。</p>
+<p><code>ipc_recv</code>用户空间中的 库函数将负责调用<code>sys_ipc_recv</code>，然后在当前环境的<code>struct Env</code>.</p>
+<p>同样，库函数<code>ipc_send</code>将负责重复调用，<code>sys_ipc_try_send</code> 直到发送成功。</p>
+<h3 id="传输页面"><a href="#传输页面" class="headerlink" title="传输页面"></a>传输页面</h3><p>当环境<code>sys_ipc_recv</code> 使用有效<code>dstva</code>参数（如下<code>UTOP</code>）调用时，环境表示它愿意接收页面映射。如果发送方发送一个页面，那么该页面应该被映射<code>dstva</code> 到接收方的地址空间中。如果接收方已经在 处映射了一个页面<code>dstva</code>，则该前一个页面将被取消映射。</p>
+<p>当环境<code>sys_ipc_try_send</code> 使用有效<code>srcva</code>（如下<code>UTOP</code>）调用时，这意味着发送方希望将当前映射<code>srcva</code>到的页面发送给接收方，并具有权限<code>perm</code>。IPC 成功后，发送方<code>srcva</code>在其地址空间中保留其对 at 页面的原始映射，但接收方也在<code>dstva</code>接收方地址空间中的接收方最初指定的同一物理页面上获得了该物理页面的映射。因此，此页面在发送方和接收方之间共享。</p>
+<p>如果发送方或接收方未指示应传送页面，则不传送页面。<strong>在任何 IPC 之后</strong>，内核将<code>env_ipc_perm</code> 接收者<code>Env</code>结构中的新字段<strong>设置为接收到的页面的权限</strong>，如果没有接收到页面，则为零。</p>
+<h3 id="实现-IPC"><a href="#实现-IPC" class="headerlink" title="实现 IPC"></a>实现 IPC</h3><p>我们的进程通信只是进程之间的mapping page而已，不过比较复杂的是权限检查。</p>
+<p>简单来说如何IPC？</p>
+<ol>
+<li>当环境调用sys_ipc_recv()后，该环境会阻塞（ENV_NOT_RUNNABLE），直到接受消息。并且sys_ipc_recv()传入dstva参数时，代表请求接受。</li>
+<li>环境调用sys_ipc_try_send()向目标环境发送“消息”，根据请求消息的参数决定发送，然后返回0，否则返回-E_IPC_NOT_RECV。当传入srcva参数时，将共享srcva映射的物理页。</li>
+</ol>
+<p>问题：为什么要阻塞？</p>
+<p>A：假设环境运行， 或许对应的页面进行新映射，而另一个环境毫不知情，所以必须要有一个signal来通知。而这个阻塞能够完成“我等你”的通知，但是并没有保证“你”是谁，所以存在抢占式的共享。并不是锁，更像是信号机制：”等待某个有缘人“</p>
+<p>实现sys_ipc_recv()和sys_ipc_try_send()。包装函数ipc_recv()和 ipc_send()。</p>
+<p>细节繁多，请注意查看lab给的注释和lab前面的讲解，否则实验debug会没有头绪。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span></span><br><span class="line"><span class="title function_">sys_ipc_try_send</span><span class="params">(<span class="type">envid_t</span> envid, <span class="type">uint32_t</span> value, <span class="type">void</span> *srcva, <span class="type">unsigned</span> perm)</span></span><br><span class="line">&#123;</span><br><span class="line">		<span class="comment">// LAB 4: Your code here.</span></span><br><span class="line">		<span class="type">int</span> r;</span><br><span class="line">  	<span class="class"><span class="keyword">struct</span> <span class="title">Env</span> * <span class="title">dstenv</span>;</span></span><br><span class="line">  	<span class="type">pte_t</span> * pte;</span><br><span class="line">  	<span class="class"><span class="keyword">struct</span> <span class="title">PageInfo</span> *<span class="title">pp</span>;</span></span><br><span class="line">  	<span class="comment">//err begin:</span></span><br><span class="line">  	r = envid2env(envid, &amp;dstenv, <span class="number">0</span>);</span><br><span class="line">  	<span class="keyword">if</span> (r &lt; <span class="number">0</span>) <span class="keyword">return</span> -E_BAD_ENV;		<span class="comment">//1.env not exit</span></span><br><span class="line"> 	<span class="keyword">if</span> (!dstenv-&gt;env_ipc_recving)<span class="keyword">return</span> -E_IPC_NOT_RECV;		<span class="comment">//2.target env not blocked:</span></span><br><span class="line"></span><br><span class="line">  		<span class="comment">//if srcva &lt; UTOP,what err will exit?</span></span><br><span class="line">  	<span class="keyword">if</span> ((<span class="type">uint32_t</span>)srcva &lt; UTOP) &#123;</span><br><span class="line">  		pp = page_lookup(curenv-&gt;env_pgdir, srcva, &amp;pte);<span class="comment">//find pp and pte</span></span><br><span class="line">  		</span><br><span class="line">    		<span class="keyword">if</span> ((<span class="type">uint32_t</span>)srcva &amp; <span class="number">0xfff</span>)<span class="keyword">return</span>  -E_INVAL;		<span class="comment">//3.not page-aligned</span></span><br><span class="line">    		<span class="type">int</span> flag = PTE_U | PTE_P;</span><br><span class="line">    		<span class="keyword">if</span> (flag != (flag &amp; perm)) <span class="keyword">return</span> -E_INVAL;		<span class="comment">//4.perm not appropriate</span></span><br><span class="line"></span><br><span class="line">    		<span class="keyword">if</span> (!pp) <span class="keyword">return</span> -E_INVAL;		<span class="comment">//5.srcva not mapped the same ppage</span></span><br><span class="line"></span><br><span class="line">    		<span class="keyword">if</span> ((perm &amp; PTE_W) &amp;&amp; !(*pte &amp; PTE_W)) <span class="keyword">return</span> -E_INVAL;		<span class="comment">//6.srcva read-only</span></span><br><span class="line"></span><br><span class="line">      			r = page_insert(dstenv-&gt;env_pgdir, pp, dstenv-&gt;env_ipc_dstva, perm);</span><br><span class="line">      			<span class="keyword">if</span> (r &lt; <span class="number">0</span>) <span class="keyword">return</span> -E_NO_MEM;		<span class="comment">//7.not enough memory for new page table</span></span><br><span class="line"></span><br><span class="line">      			dstenv-&gt;env_ipc_perm = perm;</span><br><span class="line">  	&#125;</span><br><span class="line"></span><br><span class="line">  	<span class="comment">//succeed: update</span></span><br><span class="line">  	dstenv-&gt;env_ipc_recving = <span class="number">0</span>;</span><br><span class="line">  	dstenv-&gt;env_ipc_value = value;</span><br><span class="line">  	dstenv-&gt;env_ipc_from = curenv-&gt;env_id;</span><br><span class="line">  	dstenv-&gt;env_status = ENV_RUNNABLE;</span><br><span class="line">	dstenv-&gt;env_tf.tf_regs.reg_eax = <span class="number">0</span>;</span><br><span class="line">  	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">int</span></span><br><span class="line"><span class="title function_">sys_ipc_recv</span><span class="params">(<span class="type">void</span> *dstva)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// LAB 4: Your code here.</span></span><br><span class="line">	<span class="keyword">if</span> (dstva &lt; (<span class="type">void</span> *)UTOP &amp;&amp; dstva != ROUNDDOWN(dstva, PGSIZE)) &#123;</span><br><span class="line">		<span class="keyword">return</span> -E_INVAL;</span><br><span class="line">	&#125;</span><br><span class="line">	curenv-&gt;env_ipc_recving = <span class="number">1</span>;</span><br><span class="line">	curenv-&gt;env_status = ENV_NOT_RUNNABLE;</span><br><span class="line">	curenv-&gt;env_ipc_dstva = dstva;</span><br><span class="line">	sys_yield();</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="type">int32_t</span></span><br><span class="line"><span class="title function_">ipc_recv</span><span class="params">(<span class="type">envid_t</span> *from_env_store, <span class="type">void</span> *pg, <span class="type">int</span> *perm_store)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// LAB 4: Your code here.</span></span><br><span class="line">	<span class="keyword">if</span> (pg == <span class="literal">NULL</span>) &#123;</span><br><span class="line">		pg = (<span class="type">void</span> *)<span class="number">-1</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="type">int</span> r = sys_ipc_recv(pg);</span><br><span class="line">	<span class="keyword">if</span> (r &lt; <span class="number">0</span>) &#123;				<span class="comment">//err</span></span><br><span class="line">		<span class="keyword">if</span> (from_env_store) *from_env_store = <span class="number">0</span>;</span><br><span class="line">		<span class="keyword">if</span> (perm_store) *perm_store = <span class="number">0</span>;</span><br><span class="line">		<span class="keyword">return</span> r;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> (from_env_store)</span><br><span class="line">		*from_env_store = thisenv-&gt;env_ipc_from;</span><br><span class="line">	<span class="keyword">if</span> (perm_store)</span><br><span class="line">		*perm_store = thisenv-&gt;env_ipc_perm;</span><br><span class="line">	<span class="keyword">return</span> thisenv-&gt;env_ipc_value;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">void</span></span><br><span class="line"><span class="title function_">ipc_send</span><span class="params">(<span class="type">envid_t</span> to_env, <span class="type">uint32_t</span> val, <span class="type">void</span> *pg, <span class="type">int</span> perm)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// LAB 4: Your code here.</span></span><br><span class="line">	<span class="keyword">if</span> (pg == <span class="literal">NULL</span>) &#123;</span><br><span class="line">		pg = (<span class="type">void</span> *)<span class="number">-1</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="type">int</span> r;</span><br><span class="line">	<span class="keyword">while</span>(<span class="number">1</span>) &#123;</span><br><span class="line">		r = sys_ipc_try_send(to_env, val, pg, perm);</span><br><span class="line">		<span class="keyword">if</span> (r == <span class="number">0</span>) &#123;		<span class="comment">//sucess</span></span><br><span class="line">			<span class="keyword">return</span>;</span><br><span class="line">		&#125; <span class="keyword">else</span> <span class="keyword">if</span> (r == -E_IPC_NOT_RECV) &#123;	<span class="comment">//target env not blocked</span></span><br><span class="line">			sys_yield();</span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;			<span class="comment">//other err</span></span><br><span class="line">			panic(<span class="string">&quot;ipc_send: sys_ipc_try_send failed\n&quot;</span>);</span><br><span class="line">		&#125;</span><br><span class="line">		</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>happy!</p>
+<p><img src="https://bed1.oss-cn-beijing.aliyuncs.com/20211124125816.png"></p>
+<p>代码在这：<a target="_blank" rel="noopener" href="https://github.com/sakura-mac/mit_6.828_jos">Source Code</a></p>
+ 
+      <!-- reward -->
+      
+      <div id="reword-out">
+        <div id="reward-btn">
+          Donate
+        </div>
+      </div>
+      
+    </div>
+    
+
+    <!-- copyright -->
+    
+    <div class="declare">
+      <ul class="post-copyright">
+        <li>
+          <i class="ri-copyright-line"></i>
+          <strong>Copyright： </strong>
+          Copyright is owned by the author. For commercial reprints, please contact the author for authorization. For non-commercial reprints, please indicate the source.
+        </li>
+      </ul>
+    </div>
+    
+    <footer class="article-footer">
+       
+<div class="share-btn">
+      <span class="share-sns share-outer">
+        <i class="ri-share-forward-line"></i>
+        分享
+      </span>
+      <div class="share-wrap">
+        <i class="arrow"></i>
+        <div class="share-icons">
+          
+          <a class="weibo share-sns" href="javascript:;" data-type="weibo">
+            <i class="ri-weibo-fill"></i>
+          </a>
+          <a class="weixin share-sns wxFab" href="javascript:;" data-type="weixin">
+            <i class="ri-wechat-fill"></i>
+          </a>
+          <a class="qq share-sns" href="javascript:;" data-type="qq">
+            <i class="ri-qq-fill"></i>
+          </a>
+          <a class="douban share-sns" href="javascript:;" data-type="douban">
+            <i class="ri-douban-line"></i>
+          </a>
+          <!-- <a class="qzone share-sns" href="javascript:;" data-type="qzone">
+            <i class="icon icon-qzone"></i>
+          </a> -->
+          
+          <a class="facebook share-sns" href="javascript:;" data-type="facebook">
+            <i class="ri-facebook-circle-fill"></i>
+          </a>
+          <a class="twitter share-sns" href="javascript:;" data-type="twitter">
+            <i class="ri-twitter-fill"></i>
+          </a>
+          <a class="google share-sns" href="javascript:;" data-type="google">
+            <i class="ri-google-fill"></i>
+          </a>
+        </div>
+      </div>
+</div>
+
+<div class="wx-share-modal">
+    <a class="modal-close" href="javascript:;"><i class="ri-close-circle-line"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <div class="wx-qrcode">
+      <img src="//api.qrserver.com/v1/create-qr-code/?size=150x150&data=http://sakura-mac.github.io/2024/03/08/lab4%EF%BC%9APartC/" alt="微信分享二维码">
+    </div>
+</div>
+
+<div id="share-mask"></div>  
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Mit-6-828/" rel="tag">Mit-6.828</a></li></ul>
+
+    </footer>
+  </div>
+
+   
+  <nav class="article-nav">
+    
+      <a href="/2024/03/08/lab5/" class="article-nav-link">
+        <strong class="article-nav-caption">上一篇</strong>
+        <div class="article-nav-title">
+          
+            实验 5：文件系统、Spawn 和 Shell
+          
+        </div>
+      </a>
+    
+    
+      <a href="/2024/03/08/lab4%EF%BC%9APartB/" class="article-nav-link">
+        <strong class="article-nav-caption">下一篇</strong>
+        <div class="article-nav-title">lab4：PartB</div>
+      </a>
+    
+  </nav>
+
+   
+<!-- valine评论 -->
+<div id="vcomments-box">
+  <div id="vcomments"></div>
+</div>
+<script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/valine@1.4.14/dist/Valine.min.js"></script>
+<script>
+  new Valine({
+    el: "#vcomments",
+    app_id: "bbzBMY2PHFRlbkSCorlYCrRX-gzGzoHsz",
+    app_key: "NMnT9uDCzg2rW4ckm0fpSm5y",
+    path: window.location.pathname,
+    avatar: "monsterid",
+    placeholder: "请留下你此刻脑海中的想法~",
+    recordIP: true,
+  });
+  const infoEle = document.querySelector("#vcomments .info");
+  if (infoEle && infoEle.childNodes && infoEle.childNodes.length > 0) {
+    infoEle.childNodes.forEach(function (item) {
+      item.parentNode.removeChild(item);
+    });
+  }
+</script>
+<style>
+  #vcomments-box {
+    padding: 5px 30px;
+  }
+
+  @media screen and (max-width: 800px) {
+    #vcomments-box {
+      padding: 5px 0px;
+    }
+  }
+
+  #vcomments-box #vcomments {
+    background-color: #fff;
+  }
+
+  .v .vlist .vcard .vh {
+    padding-right: 20px;
+  }
+
+  .v .vlist .vcard {
+    padding-left: 10px;
+  }
+</style>
+
+ 
+     
+</article>
+
+</section>
+      <footer class="footer">
+  <div class="outer">
+    <ul>
+      <li>
+        Copyrights &copy;
+        2020-2024
+        <i class="ri-heart-fill heart_icon"></i> 环烷烃
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        
+        Powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+        <span class="division">|</span>
+        Theme - <a href="https://github.com/Shen-Yu/hexo-theme-ayer" target="_blank">Ayer</a>
+        
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        <span>
+  <span><i class="ri-user-3-fill"></i>Visitors:<span id="busuanzi_value_site_uv"></span></s>
+  <span class="division">|</span>
+  <span><i class="ri-eye-fill"></i>Views:<span id="busuanzi_value_page_pv"></span></span>
+</span>
+        
+      </li>
+    </ul>
+    <ul>
+      
+    </ul>
+    <ul>
+      <li>
+        <!-- cnzz统计 -->
+        
+        <script type="text/javascript" src='https://s9.cnzz.com/z_stat.php?id=1278069914&amp;web_id=1278069914'></script>
+        
+      </li>
+    </ul>
+  </div>
+</footer>
+      <div class="float_btns">
+        <div class="totop" id="totop">
+  <i class="ri-arrow-up-line"></i>
+</div>
+
+      </div>
+    </main>
+    <aside class="sidebar on">
+      <button class="navbar-toggle"></button>
+<nav class="navbar">
+  
+  <div class="logo">
+    <a href="/"><img src="/images/ayer-side.jpg" alt="海猫栖息地"></a>
+  </div>
+  
+  <ul class="nav nav-main">
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/">主页</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/archives">归档</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/tags">标签</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/player/">播放器</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/about">关于我</a>
+    </li>
+    
+  </ul>
+</nav>
+<nav class="navbar navbar-bottom">
+  <ul class="nav">
+    <li class="nav-item">
+      
+      <a class="nav-item-link nav-item-search"  title="Search">
+        <i class="ri-search-line"></i>
+      </a>
+      
+      
+      <a class="nav-item-link" target="_blank" href="/atom.xml" title="RSS Feed">
+        <i class="ri-rss-line"></i>
+      </a>
+      
+    </li>
+  </ul>
+</nav>
+<div class="search-form-wrap">
+  <div class="local-search local-search-plugin">
+  <input type="search" id="local-search-input" class="local-search-input" placeholder="Search...">
+  <div id="local-search-result" class="local-search-result"></div>
+</div>
+</div>
+
+    </aside>
+    <script>
+      if (window.matchMedia("(max-width: 768px)").matches) {
+        document.querySelector('.content').classList.remove('on');
+        document.querySelector('.sidebar').classList.remove('on');
+      }
+    </script>
+    <div id="mask"></div>
+
+<!-- #reward -->
+<div id="reward">
+  <span class="close"><i class="ri-close-line"></i></span>
+  <p class="reward-p"><i class="ri-cup-line"></i>我很可爱，请我喝一瓶怡宝吧~</p>
+  <div class="reward-box">
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/alipay.jpg">
+      <span class="reward-type">支付宝</span>
+    </div>
+    
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/wechat.jpg">
+      <span class="reward-type">微信</span>
+    </div>
+    
+  </div>
+</div>
+    
+<script src="/js/jquery-2.0.3.min.js"></script>
+
+
+<script src="/js/lazyload.min.js"></script>
+
+<!-- Tocbot -->
+
+
+<script src="/js/tocbot.min.js"></script>
+
+<script>
+  tocbot.init({
+    tocSelector: '.tocbot',
+    contentSelector: '.article-entry',
+    headingSelector: 'h1, h2, h3, h4, h5, h6',
+    hasInnerContainers: true,
+    scrollSmooth: true,
+    scrollContainer: 'main',
+    positionFixedSelector: '.tocbot',
+    positionFixedClass: 'is-position-fixed',
+    fixedSidebarOffset: 'auto'
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.css">
+<script src="https://cdn.jsdelivr.net/npm/justifiedGallery@3.7.0/dist/js/jquery.justifiedGallery.min.js"></script>
+
+<script src="/dist/main.js"></script>
+
+<!-- ImageViewer -->
+
+<!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" style="display:none" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css">
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"></script>
+
+<script>
+    function viewer_init() {
+        let pswpElement = document.querySelectorAll('.pswp')[0];
+        let $imgArr = document.querySelectorAll(('.article-entry img:not(.reward-img)'))
+
+        $imgArr.forEach(($em, i) => {
+            $em.onclick = () => {
+                // slider展开状态
+                // todo: 这样不好，后面改成状态
+                if (document.querySelector('.left-col.show')) return
+                let items = []
+                $imgArr.forEach(($em2, i2) => {
+                    let img = $em2.getAttribute('data-idx', i2)
+                    let src = $em2.getAttribute('data-target') || $em2.getAttribute('src')
+                    let title = $em2.getAttribute('alt')
+                    // 获得原图尺寸
+                    const image = new Image()
+                    image.src = src
+                    items.push({
+                        src: src,
+                        w: image.width || $em2.width,
+                        h: image.height || $em2.height,
+                        title: title
+                    })
+                })
+                var gallery = new PhotoSwipe(pswpElement, PhotoSwipeUI_Default, items, {
+                    index: parseInt(i)
+                });
+                gallery.init()
+            }
+        })
+    }
+    viewer_init()
+</script>
+
+<!-- MathJax -->
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+      tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+  });
+
+  MathJax.Hub.Queue(function() {
+      var all = MathJax.Hub.getAllJax(), i;
+      for(i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+      }
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.6/unpacked/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<script>
+  var ayerConfig = {
+    mathjax: true
+  }
+</script>
+
+<!-- Katex -->
+
+<!-- busuanzi  -->
+
+
+<script src="/js/busuanzi-2.3.pure.min.js"></script>
+
+
+<!-- ClickLove -->
+
+<!-- ClickBoom1 -->
+
+<script src="https://cdn.jsdelivr.net/npm/animejs@latest/anime.min.js"></script>
+
+<script src="/js/clickBoom1.js"></script>
+
+
+<!-- ClickBoom2 -->
+
+<!-- CodeCopy -->
+
+
+<link rel="stylesheet" href="/css/clipboard.css">
+
+<script src="https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js"></script>
+<script>
+  function wait(callback, seconds) {
+    var timelag = null;
+    timelag = window.setTimeout(callback, seconds);
+  }
+  !function (e, t, a) {
+    var initCopyCode = function(){
+      var copyHtml = '';
+      copyHtml += '<button class="btn-copy" data-clipboard-snippet="">';
+      copyHtml += '<i class="ri-file-copy-2-line"></i><span>COPY</span>';
+      copyHtml += '</button>';
+      $(".highlight .code pre").before(copyHtml);
+      $(".article pre code").before(copyHtml);
+      var clipboard = new ClipboardJS('.btn-copy', {
+        target: function(trigger) {
+          return trigger.nextElementSibling;
+        }
+      });
+      clipboard.on('success', function(e) {
+        let $btn = $(e.trigger);
+        $btn.addClass('copied');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-checkbox-circle-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPIED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-checkbox-circle-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+      clipboard.on('error', function(e) {
+        e.clearSelection();
+        let $btn = $(e.trigger);
+        $btn.addClass('copy-failed');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-time-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPY FAILED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-time-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+    }
+    initCopyCode();
+  }(window, document);
+</script>
+
+
+<!-- CanvasBackground -->
+
+
+    
+  </div>
+<script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginRootPath":"live2dw/","pluginJsPath":"lib/","pluginModelPath":"assets/","tagMode":false,"debug":false,"model":{"jsonPath":"/live2dw/assets/hijiki.model.json"},"display":{"position":"left","width":150,"height":300,"hOffset":80,"vOffset":-50},"mobile":{"show":true},"log":false});</script></body>
+
+</html>

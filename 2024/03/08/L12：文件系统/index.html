@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+
+
+<html lang="en">
+
+
+<head>
+  <meta charset="utf-8" />
+    
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>
+    L12：文件系统 |  
+  </title>
+  <meta name="generator" content="hexo-theme-ayer">
+  
+  <link rel="shortcut icon" href="/images/ayer.png" />
+  
+  
+<link rel="stylesheet" href="/dist/main.css">
+
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Shen-Yu/cdn/css/remixicon.min.css">
+
+  
+<link rel="stylesheet" href="/css/custom.css">
+
+  
+  
+<script src="https://cdn.jsdelivr.net/npm/pace-js@1.0.2/pace.min.js"></script>
+
+  
+  
+
+  
+<script>
+var _hmt = _hmt || [];
+(function() {
+	var hm = document.createElement("script");
+	hm.src = "https://hm.baidu.com/hm.js?41fc030db57d5570dd22f78997dc4a7e";
+	var s = document.getElementsByTagName("script")[0]; 
+	s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+<link rel="alternate" href="/atom.xml" title="海猫栖息地" type="application/atom+xml">
+</head>
+
+</html>
+
+<body>
+  <div id="app">
+    
+      <canvas class="fireworks"></canvas>
+      <style>
+        .fireworks {
+          position: fixed;
+          left: 0;
+          top: 0;
+          z-index: 99999;
+          pointer-events: none;
+        }
+      </style>
+      
+      
+    <main class="content on">
+      <section class="outer">
+  <article
+  id="post-L12：文件系统"
+  class="article article-type-post"
+  itemscope
+  itemprop="blogPost"
+  data-scroll-reveal
+>
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h1 class="article-title sea-center" style="border-left:0" itemprop="name">
+  L12：文件系统
+</h1>
+ 
+
+    </header>
+     
+    <div class="article-meta">
+      <a href="/2024/03/08/L12%EF%BC%9A%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/" class="article-date">
+  <time datetime="2024-03-08T13:16:50.302Z" itemprop="datePublished">2024-03-08</time>
+</a>   
+<div class="word_count">
+    <span class="post-time">
+        <span class="post-meta-item-icon">
+            <i class="ri-quill-pen-line"></i>
+            <span class="post-meta-item-text"> Word count:</span>
+            <span class="post-count">2.4k</span>
+        </span>
+    </span>
+
+    <span class="post-time">
+        &nbsp; | &nbsp;
+        <span class="post-meta-item-icon">
+            <i class="ri-book-open-line"></i>
+            <span class="post-meta-item-text"> Reading time≈</span>
+            <span class="post-count">9 min</span>
+        </span>
+    </span>
+</div>
+ 
+    </div>
+      
+    <div class="tocbot"></div>
+
+
+
+
+  
+    <div class="article-entry" itemprop="articleBody">
+       
+  <p>lab通关记录</p>
+<a href="/2024/03/08/MIT-6.828%E5%AE%9E%E9%AA%8C%E9%80%9A%E5%85%B3%E8%AE%B0%E5%BD%95/" title="MIT-6.828实验通关记录">MIT-6.828实验通关记录</a>
+
+<h1 id="课程总览"><a href="#课程总览" class="headerlink" title="课程总览"></a>课程总览</h1><p>  文件系统<br>  磁盘<br>  磁盘布局<br>  xv6 案例研究</p>
+<span id="more"></span>
+
+<h1 id="问题开胃"><a href="#问题开胃" class="headerlink" title="问题开胃"></a>问题开胃</h1><p>为什么文件系统有用？<br>  重启的持久性：为了系统崩溃后恢复时数据的稳定<br>  命名和组织：方便<br>  在程序和用户之间共享：我们通过pathname找到文件，而不是块或者页，符合人的习惯</p>
+<p>为什么有趣？<br>  崩溃恢复<br>  表现<br>  分享<br>  安全<br>  抽象很有用：管道、设备、&#x2F;proc、&#x2F;afs、Plan 9<br>    所以面向 FS 的应用程序可以处理多种对象<br>  你将为 JOS 实现一个</p>
+<p>API 示例——UNIX&#x2F;Posix&#x2F;Linux&#x2F;xv6&#x2F;&amp;c：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">fd = open(<span class="string">&quot;x/y&quot;</span>, -);</span><br><span class="line"> write（fd，“ABC”，3）；</span><br><span class="line"> <span class="built_in">link</span>（“x/y”，“x/z”）；</span><br><span class="line"> <span class="built_in">unlink</span>（“x/y”）；</span><br></pre></td></tr></table></figure>
+
+<p>UNIX FS API 中可见的高级选项<br>  对象：文件（与虚拟磁盘、DB）<br>  内容：字节数组（对比 80 字节记录，BTree）<br>  命名：人类可读（与对象 ID）<br>  组织：名称层次结构<br>  同步：无（与锁定，版本）<br>  还有其他文件系统 API，有时完全不同！</p>
+<p>API 的一些含义：<br>  fd 指的是file descriptor：句柄（可以理解为一种多级指针）<br>    即使文件名更改也会保留<br>    或者如果文件在打开时被删除！<br>  一个文件可以有多个链接（pathname）<br>    即出现在多个目录中<br>    这些事件中没有一个是特别的<br>    所以文件必须有信息存储在目录以外的地方：info node<br>  因此：<br>    FS 在磁盘上的“inode”中记录文件信息<br>    FS 指的是带有 i-number 的 inode（FD 的内部版本）<br>    inode 必须有链接数（告诉我们何时释放）<br>    inode 必须有打开的 FD 数<br>    inode 解除分配推迟到最后一个链接和 FD 消失</p>
+<h1 id="让我们谈谈-xv6"><a href="#让我们谈谈-xv6" class="headerlink" title="让我们谈谈 xv6"></a>让我们谈谈 xv6</h1><p>FS 软件层<br>  系统调用<br>  名称操作 | FD 操作<br>  节点<br>  节点缓存<br>  日志<br>  缓冲区缓存<br>  驱动程序</p>
+<h3 id="xv6的文件系统磁盘布局"><a href="#xv6的文件系统磁盘布局" class="headerlink" title="xv6的文件系统磁盘布局"></a>xv6的文件系统磁盘布局</h3><p>IDE 是与设备对话的标准<br>  <a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Parallel_ATA">https://en.wikipedia.org/wiki/Parallel_ATA</a></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">简介：</span><br><span class="line">先进技术附件（英语：Advanced Technology Attachment，简称“ATA”）是用于连接存储设备的接口标准，与由集成驱动电子设备（英语：Integrated Drive Electronics，简称IDE）技术实现的磁盘驱动器关系最密切。</span><br><span class="line"></span><br><span class="line">IDE是一种计算机系统接口，主要用于硬盘和CD-ROM，本意为“把控制器与盘体集成在一起的硬盘”。数年以前PC主机使用的硬盘，大多数都是IDE兼容的，只需用一根电缆将它们与主板或接口卡连起来就可以了，而目前主要接口为SATA接口。而在SATA技术日益发展下，支持ATA的主板已不再出现，而且Intel在新型的芯片组中已经不默认支持ATA接口，主机版厂商需要另加芯片去对ATA作出支持（通常是为了兼容旧有硬盘和光盘驱动器）。</span><br><span class="line"></span><br><span class="line">SATA（Serial ATA）于2002年推出后，原有的ATA改名为PATA（并行高技术配置，Parallel ATA）。[1] 2013年12月29日，西部数据正式停止PATA硬盘供应，而希捷科技则已停售产多年，这意味着1986年设计的PATA接口在经历27年后正式退出历史舞台[2][3]。</span><br><span class="line"></span><br><span class="line">一般说来，ATA是一个控制器技术，而IDE是一个匹配它的磁盘驱动器技术，但是两个术语经常可以互用。ATA是一个花费低而性能适中的接口，主要是针对台式机而设计的，销售的大多数ATA控制器和IDE磁盘都是更高版本的，称为ATA - 2和ATA - 3，与之匹配的磁盘驱动器称为增强的IDE。</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>  连接器、接口、协议等。<br>  CPU 与 IDE 控制器对话<br>  控制器与硬盘、SSD、CD-ROM 通信</p>
+<p>硬盘驱动器 (HDD)<br>  同心轨道<br>  每个磁道是一个扇区序列，通常为 512 字节（柱面-&gt;磁道-&gt;扇区）<br>  磁头必须寻道，磁盘必须旋转<br>    随机访问很慢（每次访问 5 或 10 毫秒）<br>    顺序访问要快得多（100 MB&#x2F;秒）<br>  每个扇区的 ECC<br>  只能读&#x2F;写整个扇区<br>  因此：子扇区写入代价高昂（读-修改-写）</p>
+<p>固态硬盘 (SSD)<br>  非易失性“闪存”存储器<br>  随机访问：100 微秒<br>  顺序：500 MB&#x2F;秒<br>  内部复杂——隐藏除了有时性能<br>    在重新写入之前必须擦除闪存<br>    限制可写入闪存块的次数<br>    SSD 应对一定程度的间接性——重新映射的块</p>
+<p>对于 HDD 和 SSD：<br>  顺序访问比随机访问快得多<br>  大读&#x2F;写比小读&#x2F;写快<br>  这些都会影响 FS 设计和性能</p>
+<p>磁盘块<br>  大多数 o&#x2F;s 使用多个扇区的块，例如 4 KB 块 &#x3D; 8 个扇区<br>  减少簿记和寻求管理费用<br>  为简单起见，xv6 使用单扇区块</p>
+<p>磁盘布局<br>  第二个 IDE 驱动器上的 xv6 文件系统；首先只有内核<br>  xv6 将 IDE 驱动器视为<strong>扇区数组</strong>，忽略磁道结构</p>
+<p><img src="https://bed1.oss-cn-beijing.aliyuncs.com/2021112822234.png">         0：未使用（boot sector）<br>  1：超级块（大小，ninodes）<br>  2：日志头<br>  32：inode 数组，打包成块<br>  58：块使用中的位图（0&#x3D;空闲，1&#x3D;使用)<br>  59：文件&#x2F;目录内容块</p>
+<p>  磁盘结束</p>
+<p>xv6 的 mkfs 程序为空文件系统生成此布局<br>  布局在文件系统的生命周期内是<strong>静态</strong>的</p>
+<p>“元数据”metadata<br>  磁盘上除文件内容以外的所有内容<br>  超级块、索引节点、位图、目录内容</p>
+<p>磁盘索引节点</p>
+<p><img src="https://bed1.oss-cn-beijing.aliyuncs.com/2021112822936.png"></p>
+<p> type（free、file, dir、dev)<br>  Link cnt<br>  size<br>  block addr[12+1]</p>
+<p>直接块和间接块</p>
+<p>例子：<br>  如何找到文件的字节 8000？<br>  逻辑块 15 &#x3D; 8000 &#x2F; 512<br>  间接块中的第三个条目</p>
+<p>每个 i-node 都有一个 i-number<br>  !!很容易把 i-number 变成 inode<br>  inode 是 64 字节长<br>  磁盘上的字节地址：32<em>512 + 64</em>inum</p>
+<p>目录内容<br>  目录当作一个文件<br>    但用户不能直接写<br>  内容是目录的数组</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">假如我有一个pathname：/home/hello/hello.c需要通过这个pathname和文件系统找到hello.c？</span><br><span class="line"><span class="number">1.</span>我只能访问根目录/</span><br><span class="line"><span class="number">2.</span>/文件里找到了home</span><br><span class="line"><span class="number">3.</span>home文件里找到了hello</span><br><span class="line"><span class="number">4.</span>hello文件里找到了hello.c</span><br><span class="line"></span><br><span class="line">以上，<span class="number">123</span>步骤中都是文件，但是他们都属于目录文件，只有hello.c才是我们要的目标文件。</span><br><span class="line">因此，假如我增加了这个文件hello.c，实际上向上相关的目录文件都会进行更改/增加，通过这种方式构造了一个文件树的概念</span><br></pre></td></tr></table></figure>
+
+<p>  直接：<br>    枚举<br>    14 字节的文件名<br>  如果 inum 为零，dirent 是免费的</p>
+<p>您应该将 FS 视为磁盘上的数据结构<br>  [树：目录、索引节点、块]<br>  有两个分配池：索引节点和块</p>
+<p>让我们看看实际运行中的 xv6<br>  专注于磁盘写入<br>  通过如何更新说明磁盘上的数据结构</p>
+<h3 id="问：xv6-如何创建文件？"><a href="#问：xv6-如何创建文件？" class="headerlink" title="问：xv6 如何创建文件？"></a>问：xv6 如何创建文件？</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">echo</span> &gt; a</span><br><span class="line">write 34 ialloc (from create sysfile.c; mark it non-free)</span><br><span class="line">write 34 iupdate (from create; initialize nlink &amp;c)</span><br><span class="line">write 59 writei (from dirlink fs.c, from create)</span><br><span class="line"></span><br><span class="line">call graph:</span><br><span class="line">  sys_open      sysfile.c</span><br><span class="line">    create      sysfile.c</span><br><span class="line">      ialloc    fs.c</span><br><span class="line">      iupdate   fs.c</span><br><span class="line">      dirlink   fs.c</span><br><span class="line">        writei  fs.c</span><br></pre></td></tr></table></figure>
+
+<p>问：第 34 块中有什么？<br>   查看 sysfile.c 中的 create()</p>
+<p>问：为什么 <em>two</em> 写入块 34？</p>
+<p>问：59 块是什么？</p>
+<p>Q：如果<strong>并发</strong>调用ialloc怎么办？<br>   他们会得到相同的 inode 吗？<br>   在 ialloc 中注意面包 &#x2F; 写 &#x2F; brelse<br>   面包锁定块，可能等待，并从磁盘读取<br>   brese 解锁方块</p>
+<h3 id="问：xv6-如何将数据写入文件？"><a href="#问：xv6-如何将数据写入文件？" class="headerlink" title="问：xv6 如何将数据写入文件？"></a>问：xv6 如何将数据写入文件？</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">echo</span> x &gt; a</span><br><span class="line">write 58 balloc  (from bmap, from writei)</span><br><span class="line">write 508 bzero</span><br><span class="line">write 508 writei (from filewrite file.c)</span><br><span class="line">write 34 iupdate  (from writei)</span><br><span class="line">write 508 writei</span><br><span class="line">write 34 iupdate</span><br><span class="line"></span><br><span class="line">call graph:</span><br><span class="line">  sys_write       sysfile.c</span><br><span class="line">    filewrite     file.c</span><br><span class="line">      writei      fs.c</span><br><span class="line">        bmap</span><br><span class="line">          balloc</span><br><span class="line">            bzero</span><br><span class="line">        iupdate</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<p>问：第 58 块中有什么？<br>   看看 writei 对 bmap 的调用<br>   看看 bmap 对 balloc 的调用</p>
+<p>问：508 块中有什么？</p>
+<p>Q：为什么是iupdate？<br>   文件长度和地址[]</p>
+<p>问：为什么<em>两个</em> writei+iupdate？<br>   echo 调用 write() 两次，第二次调用换行符</p>
+<h3 id="问：xv6-如何删除文件？"><a href="#问：xv6-如何删除文件？" class="headerlink" title="问：xv6 如何删除文件？"></a>问：xv6 如何删除文件？</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">rm</span> a</span><br><span class="line">write 59 writei (from sys_unlink; directory content)</span><br><span class="line">write 34 iupdate (from sys_unlink; <span class="built_in">link</span> count of file)</span><br><span class="line">write 58 bfree  (from itrunc, from iput)</span><br><span class="line">write 34 iupdate (from itrunc; zeroed length)</span><br><span class="line">write 34 iupdate (from iput; marked free)</span><br><span class="line"></span><br><span class="line">call graph:</span><br><span class="line">  sys_unlink</span><br><span class="line">    writei</span><br><span class="line">    iupdate</span><br><span class="line">    iunlockput</span><br><span class="line">      iput</span><br><span class="line">        itrunc</span><br><span class="line">          bfree</span><br><span class="line">          iupdate</span><br><span class="line">        iupdate</span><br></pre></td></tr></table></figure>
+
+<p>问：第 59 块中有什么？<br>   sysfile.c 中的 sys_unlink</p>
+<p>问：第 34 块中有什么？</p>
+<p>问：第 58 块中有什么？<br>   看输入</p>
+<p>Q：为什么是三个iupdate？</p>
+<p>我们来看看bio.c中的块缓存<br>   块缓存只保存几个最近使用的块<br>   bio.c 开始时的 bcache</p>
+<p>FS调用bread，调用bget<br>   bget 查看块是否已经缓存<br>   如果存在而不是 B_BUSY，则返回块<br>   如果存在且 B_BUSY，则等待<br>   如果不存在，重新使用现有的缓冲区<br>   b-&gt;refcnt++ 防止 buf 在我们等待时被回收</p>
+<p>这里有两级锁定<br>  bcache.lock 保护缓存中内容的描述<br>  buf-&gt;lock 只保护一个缓冲区</p>
+<p>Q：什么是LRU替换策略？<br>   简单来说，就是时间轴的更新</p>
+<p>1.如果使用，就放到队尾</p>
+<p>2.如果替换，那么先替换队头（拿出清除后放入）</p>
+<p>问：那是最好的更换政策吗？</p>
+<p>Q：如果有很多进程需要读盘怎么办？谁先走？<br>   iderw 附加到 idequeue 列表<br>   ideintr 在 idequeue 列表的头部调用 idestart<br>   先进先出</p>
+<p>问：FIFO (先进先出)是一个好的磁盘调度策略吗？<br>   优先调度？<br>   电梯排序？</p>
+<p>问：为什么拥有 I&#x2F;O 的双重副本是有意义的？<br>   磁盘到缓冲缓存<br>   缓冲区缓存到用户空间<br>   我们可以修复它以获得更好的性能吗？</p>
+<p>问：我们应该为磁盘缓冲区分配多少 RAM？</p>
+ 
+      <!-- reward -->
+      
+      <div id="reword-out">
+        <div id="reward-btn">
+          Donate
+        </div>
+      </div>
+      
+    </div>
+    
+
+    <!-- copyright -->
+    
+    <div class="declare">
+      <ul class="post-copyright">
+        <li>
+          <i class="ri-copyright-line"></i>
+          <strong>Copyright： </strong>
+          Copyright is owned by the author. For commercial reprints, please contact the author for authorization. For non-commercial reprints, please indicate the source.
+        </li>
+      </ul>
+    </div>
+    
+    <footer class="article-footer">
+       
+<div class="share-btn">
+      <span class="share-sns share-outer">
+        <i class="ri-share-forward-line"></i>
+        分享
+      </span>
+      <div class="share-wrap">
+        <i class="arrow"></i>
+        <div class="share-icons">
+          
+          <a class="weibo share-sns" href="javascript:;" data-type="weibo">
+            <i class="ri-weibo-fill"></i>
+          </a>
+          <a class="weixin share-sns wxFab" href="javascript:;" data-type="weixin">
+            <i class="ri-wechat-fill"></i>
+          </a>
+          <a class="qq share-sns" href="javascript:;" data-type="qq">
+            <i class="ri-qq-fill"></i>
+          </a>
+          <a class="douban share-sns" href="javascript:;" data-type="douban">
+            <i class="ri-douban-line"></i>
+          </a>
+          <!-- <a class="qzone share-sns" href="javascript:;" data-type="qzone">
+            <i class="icon icon-qzone"></i>
+          </a> -->
+          
+          <a class="facebook share-sns" href="javascript:;" data-type="facebook">
+            <i class="ri-facebook-circle-fill"></i>
+          </a>
+          <a class="twitter share-sns" href="javascript:;" data-type="twitter">
+            <i class="ri-twitter-fill"></i>
+          </a>
+          <a class="google share-sns" href="javascript:;" data-type="google">
+            <i class="ri-google-fill"></i>
+          </a>
+        </div>
+      </div>
+</div>
+
+<div class="wx-share-modal">
+    <a class="modal-close" href="javascript:;"><i class="ri-close-circle-line"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <div class="wx-qrcode">
+      <img src="//api.qrserver.com/v1/create-qr-code/?size=150x150&data=http://sakura-mac.github.io/2024/03/08/L12%EF%BC%9A%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/" alt="微信分享二维码">
+    </div>
+</div>
+
+<div id="share-mask"></div>  
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Mit-6-828/" rel="tag">Mit-6.828</a></li></ul>
+
+    </footer>
+  </div>
+
+   
+  <nav class="article-nav">
+    
+      <a href="/2024/03/08/L13%EF%BC%9A%E5%B4%A9%E6%BA%83%E6%81%A2%E5%A4%8D%EF%BC%8C%E6%97%A5%E5%BF%97%E8%AE%B0%E5%BD%95/" class="article-nav-link">
+        <strong class="article-nav-caption">上一篇</strong>
+        <div class="article-nav-title">
+          
+            L13：崩溃恢复，日志记录
+          
+        </div>
+      </a>
+    
+    
+      <a href="/2024/03/08/L11%EF%BC%9A%E5%8D%8F%E8%B0%83%EF%BC%88sleep&wakeup%EF%BC%89/" class="article-nav-link">
+        <strong class="article-nav-caption">下一篇</strong>
+        <div class="article-nav-title">L11 ：协调（sleep&amp;wakeup）</div>
+      </a>
+    
+  </nav>
+
+   
+<!-- valine评论 -->
+<div id="vcomments-box">
+  <div id="vcomments"></div>
+</div>
+<script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/valine@1.4.14/dist/Valine.min.js"></script>
+<script>
+  new Valine({
+    el: "#vcomments",
+    app_id: "bbzBMY2PHFRlbkSCorlYCrRX-gzGzoHsz",
+    app_key: "NMnT9uDCzg2rW4ckm0fpSm5y",
+    path: window.location.pathname,
+    avatar: "monsterid",
+    placeholder: "请留下你此刻脑海中的想法~",
+    recordIP: true,
+  });
+  const infoEle = document.querySelector("#vcomments .info");
+  if (infoEle && infoEle.childNodes && infoEle.childNodes.length > 0) {
+    infoEle.childNodes.forEach(function (item) {
+      item.parentNode.removeChild(item);
+    });
+  }
+</script>
+<style>
+  #vcomments-box {
+    padding: 5px 30px;
+  }
+
+  @media screen and (max-width: 800px) {
+    #vcomments-box {
+      padding: 5px 0px;
+    }
+  }
+
+  #vcomments-box #vcomments {
+    background-color: #fff;
+  }
+
+  .v .vlist .vcard .vh {
+    padding-right: 20px;
+  }
+
+  .v .vlist .vcard {
+    padding-left: 10px;
+  }
+</style>
+
+ 
+     
+</article>
+
+</section>
+      <footer class="footer">
+  <div class="outer">
+    <ul>
+      <li>
+        Copyrights &copy;
+        2020-2024
+        <i class="ri-heart-fill heart_icon"></i> 环烷烃
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        
+        Powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+        <span class="division">|</span>
+        Theme - <a href="https://github.com/Shen-Yu/hexo-theme-ayer" target="_blank">Ayer</a>
+        
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        <span>
+  <span><i class="ri-user-3-fill"></i>Visitors:<span id="busuanzi_value_site_uv"></span></s>
+  <span class="division">|</span>
+  <span><i class="ri-eye-fill"></i>Views:<span id="busuanzi_value_page_pv"></span></span>
+</span>
+        
+      </li>
+    </ul>
+    <ul>
+      
+    </ul>
+    <ul>
+      <li>
+        <!-- cnzz统计 -->
+        
+        <script type="text/javascript" src='https://s9.cnzz.com/z_stat.php?id=1278069914&amp;web_id=1278069914'></script>
+        
+      </li>
+    </ul>
+  </div>
+</footer>
+      <div class="float_btns">
+        <div class="totop" id="totop">
+  <i class="ri-arrow-up-line"></i>
+</div>
+
+      </div>
+    </main>
+    <aside class="sidebar on">
+      <button class="navbar-toggle"></button>
+<nav class="navbar">
+  
+  <div class="logo">
+    <a href="/"><img src="/images/ayer-side.jpg" alt="海猫栖息地"></a>
+  </div>
+  
+  <ul class="nav nav-main">
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/">主页</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/archives">归档</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/tags">标签</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/player/">播放器</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/about">关于我</a>
+    </li>
+    
+  </ul>
+</nav>
+<nav class="navbar navbar-bottom">
+  <ul class="nav">
+    <li class="nav-item">
+      
+      <a class="nav-item-link nav-item-search"  title="Search">
+        <i class="ri-search-line"></i>
+      </a>
+      
+      
+      <a class="nav-item-link" target="_blank" href="/atom.xml" title="RSS Feed">
+        <i class="ri-rss-line"></i>
+      </a>
+      
+    </li>
+  </ul>
+</nav>
+<div class="search-form-wrap">
+  <div class="local-search local-search-plugin">
+  <input type="search" id="local-search-input" class="local-search-input" placeholder="Search...">
+  <div id="local-search-result" class="local-search-result"></div>
+</div>
+</div>
+
+    </aside>
+    <script>
+      if (window.matchMedia("(max-width: 768px)").matches) {
+        document.querySelector('.content').classList.remove('on');
+        document.querySelector('.sidebar').classList.remove('on');
+      }
+    </script>
+    <div id="mask"></div>
+
+<!-- #reward -->
+<div id="reward">
+  <span class="close"><i class="ri-close-line"></i></span>
+  <p class="reward-p"><i class="ri-cup-line"></i>我很可爱，请我喝一瓶怡宝吧~</p>
+  <div class="reward-box">
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/alipay.jpg">
+      <span class="reward-type">支付宝</span>
+    </div>
+    
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/wechat.jpg">
+      <span class="reward-type">微信</span>
+    </div>
+    
+  </div>
+</div>
+    
+<script src="/js/jquery-2.0.3.min.js"></script>
+
+
+<script src="/js/lazyload.min.js"></script>
+
+<!-- Tocbot -->
+
+
+<script src="/js/tocbot.min.js"></script>
+
+<script>
+  tocbot.init({
+    tocSelector: '.tocbot',
+    contentSelector: '.article-entry',
+    headingSelector: 'h1, h2, h3, h4, h5, h6',
+    hasInnerContainers: true,
+    scrollSmooth: true,
+    scrollContainer: 'main',
+    positionFixedSelector: '.tocbot',
+    positionFixedClass: 'is-position-fixed',
+    fixedSidebarOffset: 'auto'
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.css">
+<script src="https://cdn.jsdelivr.net/npm/justifiedGallery@3.7.0/dist/js/jquery.justifiedGallery.min.js"></script>
+
+<script src="/dist/main.js"></script>
+
+<!-- ImageViewer -->
+
+<!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" style="display:none" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css">
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"></script>
+
+<script>
+    function viewer_init() {
+        let pswpElement = document.querySelectorAll('.pswp')[0];
+        let $imgArr = document.querySelectorAll(('.article-entry img:not(.reward-img)'))
+
+        $imgArr.forEach(($em, i) => {
+            $em.onclick = () => {
+                // slider展开状态
+                // todo: 这样不好，后面改成状态
+                if (document.querySelector('.left-col.show')) return
+                let items = []
+                $imgArr.forEach(($em2, i2) => {
+                    let img = $em2.getAttribute('data-idx', i2)
+                    let src = $em2.getAttribute('data-target') || $em2.getAttribute('src')
+                    let title = $em2.getAttribute('alt')
+                    // 获得原图尺寸
+                    const image = new Image()
+                    image.src = src
+                    items.push({
+                        src: src,
+                        w: image.width || $em2.width,
+                        h: image.height || $em2.height,
+                        title: title
+                    })
+                })
+                var gallery = new PhotoSwipe(pswpElement, PhotoSwipeUI_Default, items, {
+                    index: parseInt(i)
+                });
+                gallery.init()
+            }
+        })
+    }
+    viewer_init()
+</script>
+
+<!-- MathJax -->
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+      tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+  });
+
+  MathJax.Hub.Queue(function() {
+      var all = MathJax.Hub.getAllJax(), i;
+      for(i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+      }
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.6/unpacked/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<script>
+  var ayerConfig = {
+    mathjax: true
+  }
+</script>
+
+<!-- Katex -->
+
+<!-- busuanzi  -->
+
+
+<script src="/js/busuanzi-2.3.pure.min.js"></script>
+
+
+<!-- ClickLove -->
+
+<!-- ClickBoom1 -->
+
+<script src="https://cdn.jsdelivr.net/npm/animejs@latest/anime.min.js"></script>
+
+<script src="/js/clickBoom1.js"></script>
+
+
+<!-- ClickBoom2 -->
+
+<!-- CodeCopy -->
+
+
+<link rel="stylesheet" href="/css/clipboard.css">
+
+<script src="https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js"></script>
+<script>
+  function wait(callback, seconds) {
+    var timelag = null;
+    timelag = window.setTimeout(callback, seconds);
+  }
+  !function (e, t, a) {
+    var initCopyCode = function(){
+      var copyHtml = '';
+      copyHtml += '<button class="btn-copy" data-clipboard-snippet="">';
+      copyHtml += '<i class="ri-file-copy-2-line"></i><span>COPY</span>';
+      copyHtml += '</button>';
+      $(".highlight .code pre").before(copyHtml);
+      $(".article pre code").before(copyHtml);
+      var clipboard = new ClipboardJS('.btn-copy', {
+        target: function(trigger) {
+          return trigger.nextElementSibling;
+        }
+      });
+      clipboard.on('success', function(e) {
+        let $btn = $(e.trigger);
+        $btn.addClass('copied');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-checkbox-circle-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPIED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-checkbox-circle-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+      clipboard.on('error', function(e) {
+        e.clearSelection();
+        let $btn = $(e.trigger);
+        $btn.addClass('copy-failed');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-time-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPY FAILED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-time-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+    }
+    initCopyCode();
+  }(window, document);
+</script>
+
+
+<!-- CanvasBackground -->
+
+
+    
+  </div>
+<script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginRootPath":"live2dw/","pluginJsPath":"lib/","pluginModelPath":"assets/","tagMode":false,"debug":false,"model":{"jsonPath":"/live2dw/assets/hijiki.model.json"},"display":{"position":"left","width":150,"height":300,"hOffset":80,"vOffset":-50},"mobile":{"show":true},"log":false});</script></body>
+
+</html>

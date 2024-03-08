@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+
+
+<html lang="en">
+
+
+<head>
+  <meta charset="utf-8" />
+    
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>
+    实验 5：文件系统、Spawn 和 Shell |  
+  </title>
+  <meta name="generator" content="hexo-theme-ayer">
+  
+  <link rel="shortcut icon" href="/images/ayer.png" />
+  
+  
+<link rel="stylesheet" href="/dist/main.css">
+
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Shen-Yu/cdn/css/remixicon.min.css">
+
+  
+<link rel="stylesheet" href="/css/custom.css">
+
+  
+  
+<script src="https://cdn.jsdelivr.net/npm/pace-js@1.0.2/pace.min.js"></script>
+
+  
+  
+
+  
+<script>
+var _hmt = _hmt || [];
+(function() {
+	var hm = document.createElement("script");
+	hm.src = "https://hm.baidu.com/hm.js?41fc030db57d5570dd22f78997dc4a7e";
+	var s = document.getElementsByTagName("script")[0]; 
+	s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+<link rel="alternate" href="/atom.xml" title="海猫栖息地" type="application/atom+xml">
+</head>
+
+</html>
+
+<body>
+  <div id="app">
+    
+      <canvas class="fireworks"></canvas>
+      <style>
+        .fireworks {
+          position: fixed;
+          left: 0;
+          top: 0;
+          z-index: 99999;
+          pointer-events: none;
+        }
+      </style>
+      
+      
+    <main class="content on">
+      <section class="outer">
+  <article
+  id="post-lab5"
+  class="article article-type-post"
+  itemscope
+  itemprop="blogPost"
+  data-scroll-reveal
+>
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h1 class="article-title sea-center" style="border-left:0" itemprop="name">
+  实验 5：文件系统、Spawn 和 Shell
+</h1>
+ 
+
+    </header>
+     
+    <div class="article-meta">
+      <a href="/2024/03/08/lab5/" class="article-date">
+  <time datetime="2024-03-08T13:16:50.335Z" itemprop="datePublished">2024-03-08</time>
+</a>   
+<div class="word_count">
+    <span class="post-time">
+        <span class="post-meta-item-icon">
+            <i class="ri-quill-pen-line"></i>
+            <span class="post-meta-item-text"> Word count:</span>
+            <span class="post-count">3.3k</span>
+        </span>
+    </span>
+
+    <span class="post-time">
+        &nbsp; | &nbsp;
+        <span class="post-meta-item-icon">
+            <i class="ri-book-open-line"></i>
+            <span class="post-meta-item-text"> Reading time≈</span>
+            <span class="post-count">13 min</span>
+        </span>
+    </span>
+</div>
+ 
+    </div>
+      
+    <div class="tocbot"></div>
+
+
+
+
+  
+    <div class="article-entry" itemprop="articleBody">
+       
+  <p>lab通关记录</p>
+<a href="/2024/03/08/MIT-6.828%E5%AE%9E%E9%AA%8C%E9%80%9A%E5%85%B3%E8%AE%B0%E5%BD%95/" title="MIT-6.828实验通关记录">MIT-6.828实验通关记录</a>
+
+<h2 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h2><p>在本实验中，您将实现<code>spawn</code>，一个加载和运行磁盘可执行文件的库调用。然后，您将充实您的内核和库操作系统，足以在控制台上运行 shell。这些特性需要一个文件系统，本实验介绍了一个简单的读&#x2F;写文件系统。</p>
+<span id="more"></span>
+
+<h2 id="入门"><a href="#入门" class="headerlink" title="入门"></a>入门</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$git</span> checkout lab5</span><br><span class="line"><span class="variable">$git</span> merge lab4</span><br></pre></td></tr></table></figure>
+
+<p>实验室这部分的主要新组件是文件系统环境，位于新的<code>fs</code>目录中。浏览此目录中的所有文件以了解所有新内容。此外，在<code>user</code>和<code>lib</code>目录中有一些新的文件系统相关的源文件，</p>
+<table>
+<thead>
+<tr>
+<th><code>fs/fs.c</code></th>
+<th>mainipulates 文件系统的磁盘结构的代码。</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>fs/bc.c</code></td>
+<td>一个简单的块缓存建立在我们的用户级页面错误处理设施之上。</td>
+</tr>
+<tr>
+<td><code>fs/ide.c</code></td>
+<td>最小的基于 PIO（非中断驱动）的 IDE 驱动程序代码。</td>
+</tr>
+<tr>
+<td><code>fs/serv.c</code></td>
+<td>使用文件系统 IPC 与客户端环境交互的文件系统服务器。</td>
+</tr>
+<tr>
+<td><code>lib/fd.c</code></td>
+<td>实现通用类 UNIX 文件描述符接口的代码。</td>
+</tr>
+<tr>
+<td><code>lib/file.c</code></td>
+<td>磁盘文件类型的驱动程序，作为文件系统 IPC 客户端实现。</td>
+</tr>
+<tr>
+<td><code>lib/console.c</code></td>
+<td>控制台输入&#x2F;输出文件类型的驱动程序。</td>
+</tr>
+<tr>
+<td><code>lib/ spawn.c</code></td>
+<td><code>spawn</code>库调用的代码框架。</td>
+</tr>
+</tbody></table>
+<h2 id="Exercise-1"><a href="#Exercise-1" class="headerlink" title="Exercise 1"></a>Exercise 1</h2><p>首先我们要赋予文件系统I&#x2F;O特权，作为实现文件系统的第一步。</p>
+<p>在i386_init里调用env_create，因此取消这部分注释，并在mmu.h找到相应的I&#x2F;O权限：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">if (type == ENV_TYPE_FS) &#123;</span><br><span class="line">		e-&gt;env_tf.tf_eflags |= FL_IOPL_MASK;</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="Exercise-2"><a href="#Exercise-2" class="headerlink" title="Exercise 2"></a>Exercise 2</h2><p>我们的文件系统也拥有自己的虚拟地址空间，大小为3GB：从 0x10000000 ( <code>DISKMAP</code>) 到 0xD0000000 ( <code>DISKMAP+DISKMAX</code>)。例如，磁盘块 0 映射到虚拟地址 0x10000000，磁盘块 1 映射到虚拟地址 0x10001000，依此类推。由于磁盘本身比3GB大，所以这是一个并不是很完美的想法。</p>
+<p>anyway，既然是作为拥有虚拟地址空间的一个env，我们同样要为文件系统环境提供了零拷贝的功能。当PGFLT产生时，我们从磁盘调入内存处理，而不是仅仅分配物理页置0。因此本exercise需要通过DMA方式来完成fs&#x2F;bc.c中PGFLT处理和写入磁盘。</p>
+<p>通过”fs.h”找到相关宏和函数，我们可以发现</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">BLKSIZE：PGSIZE</span><br><span class="line">SECTSIZE：<span class="number">512B</span></span><br></pre></td></tr></table></figure>
+
+<p>bc_pgfault：读取一个磁盘块</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">addr = ROUNDDOWN(addr, PGSIZE);</span><br><span class="line">sys_page_alloc(<span class="number">0</span>, addr, PTE_W|PTE_U|PTE_P);</span><br><span class="line"><span class="keyword">if</span> ((r = ide_read(blockno * BLKSECTS, addr, BLKSECTS)) &lt; <span class="number">0</span>)</span><br><span class="line">		panic(<span class="string">&quot;ide_read failed!\n&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+<p>flush_block：写入磁盘</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">addr = ROUNDOWN(addr, PGSIZE);<span class="comment">//hint</span></span><br><span class="line">	<span class="keyword">if</span>(!va_is_mapped(addr) || !va_is_dirty(addr))<span class="keyword">return</span>;<span class="comment">//hint</span></span><br><span class="line">	<span class="keyword">if</span>((r = ide_write(blockno * BLKSECTS, addr, BLKSECTS)) &lt; <span class="number">0</span>)</span><br><span class="line">		panic(<span class="string">&quot;flush_block: ide_write failed! %e\n&quot;</span>, r);</span><br><span class="line">	<span class="keyword">if</span>((r = sys_page_map(<span class="number">0</span>,addr,<span class="number">0</span>,addr, uvpt[PGNUM(addr)] &amp; PTE_SYSCALL)) &lt; <span class="number">0</span>)<span class="comment">//hint</span></span><br><span class="line">		panic(<span class="string">&quot;flush_block: sys_page_map failed! %e\n&quot;</span>,r);</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="Exercise-3"><a href="#Exercise-3" class="headerlink" title="Exercise 3"></a>Exercise 3</h2><p><img src="https://bed1.oss-cn-beijing.aliyuncs.com/202203291922894.png"></p>
+<p>我们通过bitmap来访问，这里给出一些信息</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">uint32_t</span> *bitmap<span class="comment">//定义：4字节，bitmap实际就是bool数组，bitmap[0]就可以访问0-31的block使用情况</span></span><br><span class="line"></span><br><span class="line">bitmap = disaddr(<span class="number">2</span>)：<span class="keyword">return</span> (<span class="type">char</span>*)(DISKMAP + blockno * BLKSIZE)<span class="comment">//2的block映射为bitmap</span></span><br><span class="line"></span><br><span class="line">bitmap[i/<span class="number">32</span>] |= <span class="number">1</span> &lt;&lt; (blockno%<span class="number">32</span>);<span class="comment">//free block：0代表use</span></span><br></pre></td></tr></table></figure>
+
+<p>使用<code>free_block</code>作为一种模式来实现<code>alloc_block</code>的<code>FS / fs.c</code>，应在该位图找到一个免费的磁盘块，将其标记使用，并返回该块的数量。分配块时，应立即使用 将更改的位图块刷新到磁盘<code>flush_block</code>，以帮助文件系统一致性。</p>
+<p>alloc_block</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//check_bitmap保证了0，1，bitmap所在的块都已经使用</span></span><br><span class="line"><span class="keyword">for</span>(<span class="type">uint32_t</span> i = <span class="number">3</span>; i &lt; super-&gt;s_nblocks; ++i)&#123;</span><br><span class="line">		<span class="keyword">if</span>(block_is_free(i))&#123;</span><br><span class="line">			bitmap[i/<span class="number">32</span>] &amp;= ~(<span class="number">1</span> &lt;&lt; (i%<span class="number">32</span>));</span><br><span class="line">			flush_block(&amp;bitmap[i/<span class="number">32</span>]);</span><br><span class="line">			<span class="keyword">return</span> i;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> -E_NO_DISK;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="Exercise-4"><a href="#Exercise-4" class="headerlink" title="Exercise 4"></a>Exercise 4</h2><p>实施 <code>file_block_walk</code> 和<code>file_get_block</code>。</p>
+<p> <code>file_block_walk</code>从文件中的块偏移量映射到该块<code>struct File</code>或间接块中该块的指针， <code>pgdir_walk</code>与页表所做的非常相似 。</p>
+<p> <code>file_get_block</code>更进一步，映射到实际的磁盘块，必要时分配一个新的内存块。</p>
+<p>使用make grade来测试你的代码。您的代码应该通过“file_open”、“file_get_block”、“file_flush&#x2F;file_truncated&#x2F;file rewrite”和“testfile”。</p>
+<p><code>file_block_walk</code>和<code>file_get_block</code>是文件系统的主力。例如，<code>file_read</code> 和<code>file_write</code>需要 <code>file_get_block</code>来分配块和初始化。</p>
+<p>给出文件File的信息</p>
+<p><img src="https://bed1.oss-cn-beijing.aliyuncs.com/202203291923290.png"></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">uint32_t</span> f_direct[NDIRECT];<span class="comment">//直接块pointer10个</span></span><br><span class="line">NINDIRECT (BLKSIZE / <span class="number">4</span>)<span class="comment">//非直接块pointer 1024个</span></span><br><span class="line"><span class="type">uint32_t</span> f_indirect;<span class="comment">//非直接块的块号</span></span><br></pre></td></tr></table></figure>
+
+<p>file_block_walk</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">	<span class="comment">//*ppdiskbno我们*之后得到块号，因此我们设置为存储块号的虚拟地址</span></span><br><span class="line">	<span class="comment">//filebno是File里面block数组的索引</span></span><br><span class="line">	<span class="comment">//注意这里块号和虚拟地址，File直接块里的索引区分</span></span><br><span class="line">	<span class="keyword">if</span>(filebno &gt;= NDIRECT + NINDIRECT)</span><br><span class="line">		<span class="keyword">return</span> -E_INVAL;</span><br><span class="line">	</span><br><span class="line">	<span class="keyword">if</span>(filebno &lt; NDIRECT)&#123;</span><br><span class="line">		*ppdiskbno = f-&gt;f_direct + filebno;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span>&#123;</span><br><span class="line">		<span class="keyword">if</span>(alloc &amp;&amp; (f-&gt;f_indirect == <span class="number">0</span>))&#123;</span><br><span class="line">			<span class="type">int</span> r;</span><br><span class="line">			<span class="keyword">if</span>((r = alloc_block()) &lt; <span class="number">0</span>)</span><br><span class="line">				<span class="keyword">return</span> r;</span><br><span class="line">			<span class="built_in">memset</span>(diskaddr(r), <span class="number">0</span>, BLKSIZE);</span><br><span class="line">			f-&gt;f_indirect = r;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">else</span> <span class="keyword">if</span>(f-&gt;f_indirect == <span class="number">0</span>)&#123;</span><br><span class="line">			<span class="keyword">return</span> -E_NOT_FOUND;</span><br><span class="line">		&#125;</span><br><span class="line">		*ppdiskbno = ((<span class="type">uint32_t</span> *)diskaddr(f-&gt;f_indirect)) + filebno - NDIRECT;<span class="comment">//diskaddr return char*</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line"><span class="comment">//在间接块分配时，我们将得到一个间接块里存储的块号 的地址，而我们filebno指向的那个块还没分配，暂时是0</span></span><br></pre></td></tr></table></figure>
+
+<p>file_get_block</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//这里的二级指针意义是：当我修改一个变量时，我将传入一个指针，当我修改一个指针时，我将传入一个二级指针。</span></span><br><span class="line">	<span class="type">uint32_t</span> *pdiskbno;</span><br><span class="line">	<span class="type">int</span> r;</span><br><span class="line">	<span class="keyword">if</span>((r = file_block_walk(f, filebno, &amp;pdiskbno, <span class="number">1</span>)) &lt; <span class="number">0</span>)</span><br><span class="line">		<span class="keyword">return</span> r;</span><br><span class="line">	<span class="keyword">if</span>(*pdiskbno == <span class="number">0</span>)&#123;<span class="comment">//上文说的0</span></span><br><span class="line">		<span class="keyword">if</span>((r = alloc_block()) &lt; <span class="number">0</span>)</span><br><span class="line">			<span class="keyword">return</span> r;</span><br><span class="line">		*pdiskbno = r;</span><br><span class="line">	&#125;</span><br><span class="line">	*blk = (<span class="type">char</span> *)diskaddr(*pdiskbno);</span><br><span class="line">	flush_block(*blk);<span class="comment">//访问块先flush，或者分配块也先flush（空闲块虚拟地址对应的物理页不一定是空的？？？，或许只是无用功）</span></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br></pre></td></tr></table></figure>
+
+<p>至此，我们可以开始准备将分页管理和文件系统结合：通过文件系统环境来管理环境（包括自己：又当裁判又当球员）的内存和磁盘的映射。而我们将通过自定的PGFLT处理来很容易地：页表修改-&gt;磁盘写入来完成串行结合。</p>
+<h2 id="Exercise-5"><a href="#Exercise-5" class="headerlink" title="Exercise 5"></a>Exercise 5</h2><p>由于其他环境无法直接调用文件系统环境中的函数，我们将通过构建在 JOS 的 IPC 机制之上的<em>远程过程调用</em>或 RPC 抽象公开对文件系统环境的访问。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">       Regular env           FS env</span><br><span class="line">   +---------------+   +---------------+</span><br><span class="line">   |      read     |   |   file_read   |</span><br><span class="line">   |   (lib/fd.c)  |   |   (fs/fs.c)   |</span><br><span class="line">...|.......|.......|...|.......^.......|...............</span><br><span class="line">   |       v       |   |       |       | RPC mechanism</span><br><span class="line">   |  devfile_read |   |  serve_read   |</span><br><span class="line">   |  (lib/file.c) |   |  (fs/serv.c)  |</span><br><span class="line">   |       |       |   |       ^       |</span><br><span class="line">   |       v       |   |       |       |</span><br><span class="line">   |     fsipc     |   |     serve     |</span><br><span class="line">   |  (lib/file.c) |   |  (fs/serv.c)  |</span><br><span class="line">   |       |       |   |       ^       |</span><br><span class="line">   |       v       |   |       |       |</span><br><span class="line">   |   ipc_send    |   |   ipc_recv    |</span><br><span class="line">   |       |       |   |       ^       |</span><br><span class="line">   +-------|-------+   +-------|-------+</span><br><span class="line">           |                   |</span><br><span class="line">           +-------------------+</span><br></pre></td></tr></table></figure>
+
+<p>虚线下方的所有内容只是从常规环境到文件系统环境获取读取请求的机制。从一开始，<code>read</code>（我们提供的）适用于任何文件描述符，并简单地分派到适当的设备读取函数，在这种情况下 <code>devfile_read</code>（我们可以有更多的设备类型，如管道）。 <code>devfile_read</code> 工具<code>read</code>专门针对磁盘上的文件。这个<code>devfile_*</code>函数和<code>lib/file.c 中</code>的其他函数 实现了 FS 操作的客户端，并且都以大致相同的方式工作，将参数捆绑在一个请求结构中，调用 <code>fsipc</code>发送 IPC 请求，解包并返回结果。这<code>fsipc</code> 函数只是处理向服务器发送请求和接收回复的常见细节。</p>
+<p>文件系统服务器代码可以在<code>fs/serv.c 中</code>找到。它在<code>serve</code>函数中循环，通过 IPC 无休止地接收请求，将该请求分派给适当的处理函数，并通过 IPC 将结果发送回。在读取示例中， <code>serve</code>将调度到<code>serve_read</code>，它将处理特定于读取请求的 IPC 详细信息，例如解包请求结构并最终调用 <code>file_read</code>以实际执行文件读取。</p>
+<p>回想一下，JOS 的 IPC 机制允许环境发送单个 32 位数字，并且可以选择共享页面。要将请求从客户端发送到服务器，我们使用 32 位数字作为请求类型（文件系统服务器 RPC 已编号，就像系统调用的编号方式一样）并将请求的参数存储<code>union Fsipc</code>在页面上的a 中 通过 IPC 共享。在客户端，我们总是在<code>fsipcbuf</code>; 在服务器端，我们将传入的请求页面映射到<code>fsreq</code> ( <code>0x0ffff000</code>)。</p>
+<p>服务器还通过 IPC 发回响应。我们使用 32 位数字作为函数的返回码。对于大多数 RPC，这就是它们返回的全部内容。 <code>FSREQ_READ</code>并<code>FSREQ_STAT</code>返回数据，它们只是将数据写入客户端发送请求的页面。不需要在响应 IPC 中发送此页面，因为客户端首先与文件系统服务器共享它。此外，在其响应中，<code>FSREQ_OPEN</code>与客户端共享一个新的“Fd 页面”。我们将很快返回到文件描述符页面。</p>
+<p>实现<code>serve_read</code>在<code>FS / serv.c</code>。</p>
+<p><code>serve_read</code>的繁重工作将由已经在<code>fs/fs.c </code>中实现的<code>file_read</code> （反过来，它只是一堆对  <code>file_get_block</code>的调用）来完成。 <code>serve_read</code>只需要提供用于文件读取的RPC接口。查看注释和代码<code>serve_set_size</code>以大致了解服务器功能的结构。</p>
+<p>使用make grade来测试你的代码。您的代码应通过“serve_open&#x2F;file_stat&#x2F;file_close”和“file_read”以获得 70&#x2F;150 的分数。</p>
+<p>给出有用的信息</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//File</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">File</span> &#123;</span></span><br><span class="line">	<span class="type">char</span> f_name[MAXNAMELEN];	<span class="comment">// filename</span></span><br><span class="line">	<span class="type">off_t</span> f_size;			<span class="comment">// file size in bytes</span></span><br><span class="line">	<span class="type">uint32_t</span> f_type;		<span class="comment">// file type</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// Block pointers.</span></span><br><span class="line">	<span class="comment">// A block is allocated iff its value is != 0.</span></span><br><span class="line">	<span class="type">uint32_t</span> f_direct[NDIRECT];	<span class="comment">// direct blocks</span></span><br><span class="line">	<span class="type">uint32_t</span> f_indirect;		<span class="comment">// indirect block</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// Pad out to 256 bytes; must do arithmetic in case we&#x27;re compiling</span></span><br><span class="line">	<span class="comment">// fsformat on a 64-bit machine.</span></span><br><span class="line">	<span class="type">uint8_t</span> f_pad[<span class="number">256</span> - MAXNAMELEN - <span class="number">8</span> - <span class="number">4</span>*NDIRECT - <span class="number">4</span>];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//OpenFile</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">OpenFile</span>&#123;</span></span><br><span class="line">	<span class="type">uint32_t</span> o_field;<span class="comment">//file id</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">File</span> *<span class="title">o_file</span>;</span><span class="comment">//mapped descriptor for open file</span></span><br><span class="line">	<span class="type">int</span> o_mode; <span class="comment">//open mode</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">Fd</span> *<span class="title">o_fd</span>;</span><span class="comment">//fd page</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//called function</span></span><br><span class="line"><span class="type">ssize_t</span>	<span class="title function_">file_read</span><span class="params">(<span class="keyword">struct</span> File *f, <span class="type">void</span> *buf, <span class="type">size_t</span> count, <span class="type">off_t</span> offset)</span>;</span><br><span class="line"><span class="type">int</span> <span class="title function_">openfile_lookup</span><span class="params">(<span class="type">envid_t</span> envid, <span class="type">uint32_t</span> fileid, <span class="keyword">struct</span> OpenFile **po)</span>;</span><br><span class="line"><span class="type">int</span>	<span class="title function_">file_write</span><span class="params">(<span class="keyword">struct</span> File *f, <span class="type">const</span> <span class="type">void</span> *buf, <span class="type">size_t</span> count, <span class="type">off_t</span> offset)</span>;</span><br></pre></td></tr></table></figure>
+
+<p>serve_read</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//模仿serve_set_size来进行openfile_lookup的调用参数传入</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">OpenFile</span> * <span class="title">o</span>;</span></span><br><span class="line">	<span class="type">int</span> r;</span><br><span class="line">	<span class="keyword">if</span>((r = openfile_lookup(envid, req-&gt;req_fileid, &amp;o)) &lt; <span class="number">0</span>)</span><br><span class="line">		<span class="keyword">return</span> r;</span><br><span class="line">	<span class="keyword">if</span>((r = file_read(o-&gt;o_file, ret-&gt;ret_buf, req-&gt;req_n, o-&gt;o_fd-&gt;fd_offset)) &lt; <span class="number">0</span>)</span><br><span class="line">		<span class="keyword">return</span> r;</span><br><span class="line">	o-&gt;o_fd-&gt;fd_offset += r;</span><br><span class="line">	<span class="keyword">return</span> r;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="Exercise-6"><a href="#Exercise-6" class="headerlink" title="Exercise 6"></a>Exercise 6</h2><p>模仿已有的serve_read即可</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span></span><br><span class="line"><span class="title function_">serve_write</span><span class="params">(<span class="type">envid_t</span> envid, <span class="keyword">struct</span> Fsreq_write *req)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">if</span> (debug)</span><br><span class="line">		cprintf(<span class="string">&quot;serve_write %08x %08x %08x\n&quot;</span>, envid, req-&gt;req_fileid, req-&gt;req_n);</span><br><span class="line"></span><br><span class="line">	<span class="comment">// LAB 5: Your code here.</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">OpenFile</span> *<span class="title">o</span>;</span></span><br><span class="line">	<span class="type">int</span> r;</span><br><span class="line">	<span class="keyword">if</span>((r = openfile_lookup(envid, req-&gt;req_fileid, &amp;o)) &lt; <span class="number">0</span>)</span><br><span class="line">		<span class="keyword">return</span> r;</span><br><span class="line">	<span class="keyword">if</span>((r = file_write(o-&gt;o_file, req-&gt;req_buf, req-&gt;req_n, o-&gt;o_fd-&gt;fd_offset)) &lt; <span class="number">0</span>)</span><br><span class="line">		<span class="keyword">return</span> r;</span><br><span class="line">	o-&gt;o_fd-&gt;fd_offset += r;</span><br><span class="line">	<span class="keyword">return</span> r;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="Exercise-7"><a href="#Exercise-7" class="headerlink" title="Exercise 7"></a>Exercise 7</h2><p> <code>spawn</code>依靠新的系统调用 <code>sys_env_set_trapframe</code>来初始化新创建环境的状态。<code>sys_env_set_trapframe</code>在<code>kern/syscall.c 中</code>实现 （不要忘记在 中调度新的系统调用<code>syscall()</code>）。</p>
+<p>通过运行<code>kern/init.c 中</code>的<code>user/spawnhello</code>程序来测试您的代码，该 程序将尝试从文件系统中生成<code>/hello</code>。</p>
+<p>使用make grade来测试你的代码。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span></span><br><span class="line"><span class="title function_">sys_env_set_trapframe</span><span class="params">(<span class="type">envid_t</span> envid, <span class="keyword">struct</span> Trapframe *tf)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// LAB 5: Your code here.</span></span><br><span class="line">	<span class="comment">// Remember to check whether the user has supplied us with a good</span></span><br><span class="line">	<span class="comment">// address!</span></span><br><span class="line">	<span class="type">int</span> r;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">Env</span> *<span class="title">e</span>;</span></span><br><span class="line">	<span class="keyword">if</span> ((r = envid2env(envid, &amp;e, <span class="number">1</span>)) &lt; <span class="number">0</span>) &#123;</span><br><span class="line">		<span class="keyword">return</span> r;</span><br><span class="line">	&#125;</span><br><span class="line">	tf-&gt;tf_eflags = FL_IF;</span><br><span class="line">	tf-&gt;tf_eflags &amp;= ~FL_IOPL_MASK;			<span class="comment">//普通进程不能有IO权限</span></span><br><span class="line">	tf-&gt;tf_cs = GD_UT | <span class="number">3</span>;</span><br><span class="line">	e-&gt;env_tf = *tf;</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="Exercise-8"><a href="#Exercise-8" class="headerlink" title="Exercise 8"></a>Exercise 8</h2><p>变化<code>duppage</code>中<code>的lib / fork.c</code>遵循新的约定。如果页表条目<code>PTE_SHARE</code> 设置了位，则直接复制映射。（您应该使用<code>PTE_SYSCALL</code>, not<code>0xfff</code>来屏蔽页表条目中的相关位。也可以<code>0xfff</code> 获取访问过的位和脏位。）</p>
+<p>同样，<code>copy_shared_pages</code>在 <code>lib/spawn.c 中实现</code>。它应该遍历当前进程中的所有页表条目（就像<code>fork</code> 之前所做的那样），将任何<code>PTE_SHARE</code>设置了该位的页映射复制 到子进程中。</p>
+<p>使用make run-testpteshare来检查你的代码是否正确行为。您应该会看到写着“ <code>fork handles PTE_SHARE right</code> ”和“ <code>spawn handles PTE_SHARE right</code> ”的行。</p>
+<p>使用make run-testfdsharing检查文件描述符正确共享。您应该会看到写着“ <code>read in child successfully</code> ”和“ <code>read in parent successfully</code> ”的行。</p>
+<h2 id="Exercise-9"><a href="#Exercise-9" class="headerlink" title="Exercise 9"></a>Exercise 9</h2><p>在您的<code>kern/trap.c 中</code>，调用<code>kbd_intr</code>处理陷阱 <code>IRQ_OFFSET+IRQ_KBD</code>和<code>serial_intr</code>处理陷阱<code>IRQ_OFFSET+IRQ_SERIAL</code>。</p>
+<p>我们在<code>lib/console.c 中</code>为您实现了控制台输入&#x2F;输出文件类型。<code>kbd_intr</code>并<code>serial_intr</code> 在控制台文件类型耗尽缓冲区时用最近读取的输入填充缓冲区（控制台文件类型默认用于 stdin&#x2F;stdout，除非用户重定向它们）。</p>
+<p>通过运行make run-testkbd并键入几行来测试您的代码。当您完成它们时，系统应该将您的台词回显给您。尝试在控制台和图形窗口中输入，如果两者都可用的话</p>
+<p>copy_shared_pages</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span></span><br><span class="line"><span class="title function_">copy_shared_pages</span><span class="params">(<span class="type">envid_t</span> child)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// LAB 5: Your code here.</span></span><br><span class="line">	<span class="type">uintptr_t</span> addr;</span><br><span class="line">	<span class="keyword">for</span> (addr = <span class="number">0</span>; addr &lt; UTOP; addr += PGSIZE) &#123;</span><br><span class="line">		<span class="keyword">if</span> ((uvpd[PDX(addr)] &amp; PTE_P) &amp;&amp; (uvpt[PGNUM(addr)] &amp; PTE_P) &amp;&amp;</span><br><span class="line">				(uvpt[PGNUM(addr)] &amp; PTE_U) &amp;&amp; (uvpt[PGNUM(addr)] &amp; PTE_SHARE)) &#123;</span><br><span class="line">            sys_page_map(<span class="number">0</span>, (<span class="type">void</span>*)addr, child, (<span class="type">void</span>*)addr, (uvpt[PGNUM(addr)] &amp; PTE_SYSCALL));</span><br><span class="line">        &#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="Exercise-10"><a href="#Exercise-10" class="headerlink" title="Exercise 10"></a>Exercise 10</h2><p>shell 不支持 I&#x2F;O 重定向。运行sh &lt;script而不是像上面那样手动输入脚本中的所有命令会很好 。为 &lt; to 添加 I&#x2F;O 重定向 <code>user/sh.c</code>。</p>
+<p>通过sh &lt;script在 shell 中键入内容来测试您的实现</p>
+<p>运行make run-testshell以测试您的外壳。 <code>testshell</code>只是将上述命令（也可以在<code>fs/testshell.sh 中</code>找到 ）输入 shell，然后检查输出是否与<code>fs/testshell.key</code>匹配。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> ((fd = open(t, O_RDONLY)) &lt; <span class="number">0</span>) &#123;</span><br><span class="line">				cprintf(<span class="string">&quot;open %s for write: %e&quot;</span>, t, fd);</span><br><span class="line">				<span class="built_in">exit</span>();</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">if</span> (fd != <span class="number">0</span>) &#123;</span><br><span class="line">				dup(fd, <span class="number">0</span>);</span><br><span class="line">				close(fd);</span><br><span class="line">			&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://bed1.oss-cn-beijing.aliyuncs.com/202203291923608.png"></p>
+<p>代码在这：<a target="_blank" rel="noopener" href="https://github.com/sakura-mac/mit_6.828_jos">Source Code</a></p>
+ 
+      <!-- reward -->
+      
+      <div id="reword-out">
+        <div id="reward-btn">
+          Donate
+        </div>
+      </div>
+      
+    </div>
+    
+
+    <!-- copyright -->
+    
+    <div class="declare">
+      <ul class="post-copyright">
+        <li>
+          <i class="ri-copyright-line"></i>
+          <strong>Copyright： </strong>
+          Copyright is owned by the author. For commercial reprints, please contact the author for authorization. For non-commercial reprints, please indicate the source.
+        </li>
+      </ul>
+    </div>
+    
+    <footer class="article-footer">
+       
+<div class="share-btn">
+      <span class="share-sns share-outer">
+        <i class="ri-share-forward-line"></i>
+        分享
+      </span>
+      <div class="share-wrap">
+        <i class="arrow"></i>
+        <div class="share-icons">
+          
+          <a class="weibo share-sns" href="javascript:;" data-type="weibo">
+            <i class="ri-weibo-fill"></i>
+          </a>
+          <a class="weixin share-sns wxFab" href="javascript:;" data-type="weixin">
+            <i class="ri-wechat-fill"></i>
+          </a>
+          <a class="qq share-sns" href="javascript:;" data-type="qq">
+            <i class="ri-qq-fill"></i>
+          </a>
+          <a class="douban share-sns" href="javascript:;" data-type="douban">
+            <i class="ri-douban-line"></i>
+          </a>
+          <!-- <a class="qzone share-sns" href="javascript:;" data-type="qzone">
+            <i class="icon icon-qzone"></i>
+          </a> -->
+          
+          <a class="facebook share-sns" href="javascript:;" data-type="facebook">
+            <i class="ri-facebook-circle-fill"></i>
+          </a>
+          <a class="twitter share-sns" href="javascript:;" data-type="twitter">
+            <i class="ri-twitter-fill"></i>
+          </a>
+          <a class="google share-sns" href="javascript:;" data-type="google">
+            <i class="ri-google-fill"></i>
+          </a>
+        </div>
+      </div>
+</div>
+
+<div class="wx-share-modal">
+    <a class="modal-close" href="javascript:;"><i class="ri-close-circle-line"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <div class="wx-qrcode">
+      <img src="//api.qrserver.com/v1/create-qr-code/?size=150x150&data=http://sakura-mac.github.io/2024/03/08/lab5/" alt="微信分享二维码">
+    </div>
+</div>
+
+<div id="share-mask"></div>  
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Mit-6-828/" rel="tag">Mit-6.828</a></li></ul>
+
+    </footer>
+  </div>
+
+   
+  <nav class="article-nav">
+    
+      <a href="/2024/03/08/lab6/" class="article-nav-link">
+        <strong class="article-nav-caption">上一篇</strong>
+        <div class="article-nav-title">
+          
+            实验 6：网络
+          
+        </div>
+      </a>
+    
+    
+      <a href="/2024/03/08/lab4%EF%BC%9APartC/" class="article-nav-link">
+        <strong class="article-nav-caption">下一篇</strong>
+        <div class="article-nav-title">lab4：PartC</div>
+      </a>
+    
+  </nav>
+
+   
+<!-- valine评论 -->
+<div id="vcomments-box">
+  <div id="vcomments"></div>
+</div>
+<script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/valine@1.4.14/dist/Valine.min.js"></script>
+<script>
+  new Valine({
+    el: "#vcomments",
+    app_id: "bbzBMY2PHFRlbkSCorlYCrRX-gzGzoHsz",
+    app_key: "NMnT9uDCzg2rW4ckm0fpSm5y",
+    path: window.location.pathname,
+    avatar: "monsterid",
+    placeholder: "请留下你此刻脑海中的想法~",
+    recordIP: true,
+  });
+  const infoEle = document.querySelector("#vcomments .info");
+  if (infoEle && infoEle.childNodes && infoEle.childNodes.length > 0) {
+    infoEle.childNodes.forEach(function (item) {
+      item.parentNode.removeChild(item);
+    });
+  }
+</script>
+<style>
+  #vcomments-box {
+    padding: 5px 30px;
+  }
+
+  @media screen and (max-width: 800px) {
+    #vcomments-box {
+      padding: 5px 0px;
+    }
+  }
+
+  #vcomments-box #vcomments {
+    background-color: #fff;
+  }
+
+  .v .vlist .vcard .vh {
+    padding-right: 20px;
+  }
+
+  .v .vlist .vcard {
+    padding-left: 10px;
+  }
+</style>
+
+ 
+     
+</article>
+
+</section>
+      <footer class="footer">
+  <div class="outer">
+    <ul>
+      <li>
+        Copyrights &copy;
+        2020-2024
+        <i class="ri-heart-fill heart_icon"></i> 环烷烃
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        
+        Powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+        <span class="division">|</span>
+        Theme - <a href="https://github.com/Shen-Yu/hexo-theme-ayer" target="_blank">Ayer</a>
+        
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        <span>
+  <span><i class="ri-user-3-fill"></i>Visitors:<span id="busuanzi_value_site_uv"></span></s>
+  <span class="division">|</span>
+  <span><i class="ri-eye-fill"></i>Views:<span id="busuanzi_value_page_pv"></span></span>
+</span>
+        
+      </li>
+    </ul>
+    <ul>
+      
+    </ul>
+    <ul>
+      <li>
+        <!-- cnzz统计 -->
+        
+        <script type="text/javascript" src='https://s9.cnzz.com/z_stat.php?id=1278069914&amp;web_id=1278069914'></script>
+        
+      </li>
+    </ul>
+  </div>
+</footer>
+      <div class="float_btns">
+        <div class="totop" id="totop">
+  <i class="ri-arrow-up-line"></i>
+</div>
+
+      </div>
+    </main>
+    <aside class="sidebar on">
+      <button class="navbar-toggle"></button>
+<nav class="navbar">
+  
+  <div class="logo">
+    <a href="/"><img src="/images/ayer-side.jpg" alt="海猫栖息地"></a>
+  </div>
+  
+  <ul class="nav nav-main">
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/">主页</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/archives">归档</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/tags">标签</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/player/">播放器</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/about">关于我</a>
+    </li>
+    
+  </ul>
+</nav>
+<nav class="navbar navbar-bottom">
+  <ul class="nav">
+    <li class="nav-item">
+      
+      <a class="nav-item-link nav-item-search"  title="Search">
+        <i class="ri-search-line"></i>
+      </a>
+      
+      
+      <a class="nav-item-link" target="_blank" href="/atom.xml" title="RSS Feed">
+        <i class="ri-rss-line"></i>
+      </a>
+      
+    </li>
+  </ul>
+</nav>
+<div class="search-form-wrap">
+  <div class="local-search local-search-plugin">
+  <input type="search" id="local-search-input" class="local-search-input" placeholder="Search...">
+  <div id="local-search-result" class="local-search-result"></div>
+</div>
+</div>
+
+    </aside>
+    <script>
+      if (window.matchMedia("(max-width: 768px)").matches) {
+        document.querySelector('.content').classList.remove('on');
+        document.querySelector('.sidebar').classList.remove('on');
+      }
+    </script>
+    <div id="mask"></div>
+
+<!-- #reward -->
+<div id="reward">
+  <span class="close"><i class="ri-close-line"></i></span>
+  <p class="reward-p"><i class="ri-cup-line"></i>我很可爱，请我喝一瓶怡宝吧~</p>
+  <div class="reward-box">
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/alipay.jpg">
+      <span class="reward-type">支付宝</span>
+    </div>
+    
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/wechat.jpg">
+      <span class="reward-type">微信</span>
+    </div>
+    
+  </div>
+</div>
+    
+<script src="/js/jquery-2.0.3.min.js"></script>
+
+
+<script src="/js/lazyload.min.js"></script>
+
+<!-- Tocbot -->
+
+
+<script src="/js/tocbot.min.js"></script>
+
+<script>
+  tocbot.init({
+    tocSelector: '.tocbot',
+    contentSelector: '.article-entry',
+    headingSelector: 'h1, h2, h3, h4, h5, h6',
+    hasInnerContainers: true,
+    scrollSmooth: true,
+    scrollContainer: 'main',
+    positionFixedSelector: '.tocbot',
+    positionFixedClass: 'is-position-fixed',
+    fixedSidebarOffset: 'auto'
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.css">
+<script src="https://cdn.jsdelivr.net/npm/justifiedGallery@3.7.0/dist/js/jquery.justifiedGallery.min.js"></script>
+
+<script src="/dist/main.js"></script>
+
+<!-- ImageViewer -->
+
+<!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" style="display:none" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css">
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"></script>
+
+<script>
+    function viewer_init() {
+        let pswpElement = document.querySelectorAll('.pswp')[0];
+        let $imgArr = document.querySelectorAll(('.article-entry img:not(.reward-img)'))
+
+        $imgArr.forEach(($em, i) => {
+            $em.onclick = () => {
+                // slider展开状态
+                // todo: 这样不好，后面改成状态
+                if (document.querySelector('.left-col.show')) return
+                let items = []
+                $imgArr.forEach(($em2, i2) => {
+                    let img = $em2.getAttribute('data-idx', i2)
+                    let src = $em2.getAttribute('data-target') || $em2.getAttribute('src')
+                    let title = $em2.getAttribute('alt')
+                    // 获得原图尺寸
+                    const image = new Image()
+                    image.src = src
+                    items.push({
+                        src: src,
+                        w: image.width || $em2.width,
+                        h: image.height || $em2.height,
+                        title: title
+                    })
+                })
+                var gallery = new PhotoSwipe(pswpElement, PhotoSwipeUI_Default, items, {
+                    index: parseInt(i)
+                });
+                gallery.init()
+            }
+        })
+    }
+    viewer_init()
+</script>
+
+<!-- MathJax -->
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+      tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+  });
+
+  MathJax.Hub.Queue(function() {
+      var all = MathJax.Hub.getAllJax(), i;
+      for(i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+      }
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.6/unpacked/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<script>
+  var ayerConfig = {
+    mathjax: true
+  }
+</script>
+
+<!-- Katex -->
+
+<!-- busuanzi  -->
+
+
+<script src="/js/busuanzi-2.3.pure.min.js"></script>
+
+
+<!-- ClickLove -->
+
+<!-- ClickBoom1 -->
+
+<script src="https://cdn.jsdelivr.net/npm/animejs@latest/anime.min.js"></script>
+
+<script src="/js/clickBoom1.js"></script>
+
+
+<!-- ClickBoom2 -->
+
+<!-- CodeCopy -->
+
+
+<link rel="stylesheet" href="/css/clipboard.css">
+
+<script src="https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js"></script>
+<script>
+  function wait(callback, seconds) {
+    var timelag = null;
+    timelag = window.setTimeout(callback, seconds);
+  }
+  !function (e, t, a) {
+    var initCopyCode = function(){
+      var copyHtml = '';
+      copyHtml += '<button class="btn-copy" data-clipboard-snippet="">';
+      copyHtml += '<i class="ri-file-copy-2-line"></i><span>COPY</span>';
+      copyHtml += '</button>';
+      $(".highlight .code pre").before(copyHtml);
+      $(".article pre code").before(copyHtml);
+      var clipboard = new ClipboardJS('.btn-copy', {
+        target: function(trigger) {
+          return trigger.nextElementSibling;
+        }
+      });
+      clipboard.on('success', function(e) {
+        let $btn = $(e.trigger);
+        $btn.addClass('copied');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-checkbox-circle-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPIED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-checkbox-circle-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+      clipboard.on('error', function(e) {
+        e.clearSelection();
+        let $btn = $(e.trigger);
+        $btn.addClass('copy-failed');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-time-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPY FAILED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-time-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+    }
+    initCopyCode();
+  }(window, document);
+</script>
+
+
+<!-- CanvasBackground -->
+
+
+    
+  </div>
+<script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginRootPath":"live2dw/","pluginJsPath":"lib/","pluginModelPath":"assets/","tagMode":false,"debug":false,"model":{"jsonPath":"/live2dw/assets/hijiki.model.json"},"display":{"position":"left","width":150,"height":300,"hOffset":80,"vOffset":-50},"mobile":{"show":true},"log":false});</script></body>
+
+</html>

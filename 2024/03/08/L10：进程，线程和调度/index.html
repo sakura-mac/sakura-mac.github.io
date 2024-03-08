@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+
+
+<html lang="en">
+
+
+<head>
+  <meta charset="utf-8" />
+    
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>
+    L10：进程，线程和调度 |  
+  </title>
+  <meta name="generator" content="hexo-theme-ayer">
+  
+  <link rel="shortcut icon" href="/images/ayer.png" />
+  
+  
+<link rel="stylesheet" href="/dist/main.css">
+
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Shen-Yu/cdn/css/remixicon.min.css">
+
+  
+<link rel="stylesheet" href="/css/custom.css">
+
+  
+  
+<script src="https://cdn.jsdelivr.net/npm/pace-js@1.0.2/pace.min.js"></script>
+
+  
+  
+
+  
+<script>
+var _hmt = _hmt || [];
+(function() {
+	var hm = document.createElement("script");
+	hm.src = "https://hm.baidu.com/hm.js?41fc030db57d5570dd22f78997dc4a7e";
+	var s = document.getElementsByTagName("script")[0]; 
+	s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+<link rel="alternate" href="/atom.xml" title="海猫栖息地" type="application/atom+xml">
+</head>
+
+</html>
+
+<body>
+  <div id="app">
+    
+      <canvas class="fireworks"></canvas>
+      <style>
+        .fireworks {
+          position: fixed;
+          left: 0;
+          top: 0;
+          z-index: 99999;
+          pointer-events: none;
+        }
+      </style>
+      
+      
+    <main class="content on">
+      <section class="outer">
+  <article
+  id="post-L10：进程，线程和调度"
+  class="article article-type-post"
+  itemscope
+  itemprop="blogPost"
+  data-scroll-reveal
+>
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h1 class="article-title sea-center" style="border-left:0" itemprop="name">
+  L10：进程，线程和调度
+</h1>
+ 
+
+    </header>
+     
+    <div class="article-meta">
+      <a href="/2024/03/08/L10%EF%BC%9A%E8%BF%9B%E7%A8%8B%EF%BC%8C%E7%BA%BF%E7%A8%8B%E5%92%8C%E8%B0%83%E5%BA%A6/" class="article-date">
+  <time datetime="2024-03-08T13:16:50.300Z" itemprop="datePublished">2024-03-08</time>
+</a>   
+<div class="word_count">
+    <span class="post-time">
+        <span class="post-meta-item-icon">
+            <i class="ri-quill-pen-line"></i>
+            <span class="post-meta-item-text"> Word count:</span>
+            <span class="post-count">1.8k</span>
+        </span>
+    </span>
+
+    <span class="post-time">
+        &nbsp; | &nbsp;
+        <span class="post-meta-item-icon">
+            <i class="ri-book-open-line"></i>
+            <span class="post-meta-item-text"> Reading time≈</span>
+            <span class="post-count">6 min</span>
+        </span>
+    </span>
+</div>
+ 
+    </div>
+      
+    <div class="tocbot"></div>
+
+
+
+
+  
+    <div class="article-entry" itemprop="articleBody">
+       
+  <p>lab通关记录</p>
+<a href="/2024/03/08/MIT-6.828%E5%AE%9E%E9%AA%8C%E9%80%9A%E5%85%B3%E8%AE%B0%E5%BD%95/" title="MIT-6.828实验通关记录">MIT-6.828实验通关记录</a>
+
+<h1 id="计划："><a href="#计划：" class="headerlink" title="计划："></a>计划：</h1><p>  为什么需要进程&#x2F;线程的调度<br>  调度实现</p>
+<span id="more"></span>
+
+<h1 id="为什么需要进程-x2F-线程的调度"><a href="#为什么需要进程-x2F-线程的调度" class="headerlink" title="为什么需要进程&#x2F;线程的调度"></a>为什么需要进程&#x2F;线程的调度</h1><p>过程<br>  一个抽象的虚拟机，好像它有自己的 CPU 和内存，<br>    不会意外地受到其他进程的影响。<br>  但是这也导致了似乎没有其他进程能进行并行的切换调度</p>
+<p>进程生命周期中的API调用：<br>  fork<br>  exec<br>  exit<br>  wait<br>  kill<br>  sbrk<br>  get pid</p>
+<p>挑战：进程多于处理器<br>  你的笔记本电脑有两个处理器<br>  你要运行三个程序：窗口系统、编辑器、编译器<br>  我们需要在 M 个进程之间复用 N 个处理器<br>  称为分时、调度、上下文切换</p>
+<p>解决目标：<br>  对用户进程透明<br>  先发制人的用户进程<br>  先发制人的内核，方便的地方<br>  有助于保持系统响应</p>
+<p>xv6 解决方案：<br>  每个进程 1 个用户线程和 1 个内核线程<br>  每个处理器 1 个调度程序线程<br>  n 个处理器</p>
+<p>什么是线程？<br>  正在执行的 CPU 内核（带有寄存器和堆栈），或<br>  未执行但是存在的一组保存的寄存器和一个可以执行的堆栈</p>
+<p>xv6 处理切换概述（单用户没实现多线程，而是内核的多线程）<br>  用户 -&gt; 内核线程（通过系统调用或定时器）<br>  内核线程产量，由于抢占或等待 I&#x2F;O<br>  内核线程 -&gt; 调度程序线程<br>  调度程序线程找到一个 RUNNABLE 内核线程（切换进程的细节在此）<br>  调度线程 -&gt; 内核线程<br>  内核线程 -&gt; 用户</p>
+<p>每个 xv6 进程都有一个 proc-&gt;state<br>  running<br>  runnable<br>  sleep<br>  zombie<br>  unused（还记得我们的env数组吗）</p>
+<p>笔记：<br>  xv6 有很多内核线程共享单个内核地址空间<br>  xv6 每个进程只有一个用户线程<br>  更严重的操作系统（例如 Linux）支持每个进程多个用户线程</p>
+<p>上下文（context）切换是 xv6 中最难做到的事情之一<br>  多核<br>  锁定<br>  中断<br>  进程终止</p>
+<h1 id="调度实现"><a href="#调度实现" class="headerlink" title="调度实现"></a>调度实现</h1><h2 id="swtch（）"><a href="#swtch（）" class="headerlink" title="swtch（）"></a>swtch（）</h2><p>  hog.c – 两个受 CPU 限制的进程<br>  我的 qemu 只有一个 CPU<br>  让我们看看 xv6 如何在它们之间切换</p>
+<p>使用定时器中断被动进入调度<br>  列出 trap.c:124<br>  设置yield() 上的断点<br>  【堆栈图】<br>  print myproc()-&gt;name<br>  print myproc()-&gt;pid<br>  print&#x2F;x tf-&gt;cs<br>  print&#x2F;x tf-&gt;eip<br>  print tf-&gt;trapno (T_IRQ0+IRQ_TIMER &#x3D; 32+0)<br>  step into yield<br>  state &#x3D; RUNNABLE – 放弃 CPU 但想再次运行<br>  step intosched</p>
+<p>swtch – 切换到调度后的线程<br>  上下文保存了内核线程的寄存器<br>  xv6将其保存在对栈中，通过特定位置保存的esp来寻找上下文<br>    (不要忘记了user环境保存是在trapframe和堆栈上)<br>    proc.h, struct context<br>  两个参数: from and to contexts<br>    在 *from 保存esp<br>    从 to得到esp， pop registers, return<br>  确保swtch能够切换（返回）到scheduler（）&#x2F;&#x2F;为什么？因为我们在swtch并没有恢复代码段的环境<br>    p&#x2F;x *mycpu()-&gt;scheduler<br>    p&#x2F;x &amp;scheduler<br>  stepi – and look at swtch.S<br>    [两个栈]<br>    eip (saved by call instruction)<br>    ebp, ebx, esi, edi<br>    save esp in *from<br>    load esp from to argument<br>    x&#x2F;8x $esp<br>    pops<br>    ret<br>    现在 – 我们返回到了scheduler的堆栈上</p>
+<h2 id="scheduler（）"><a href="#scheduler（）" class="headerlink" title="scheduler（）"></a>scheduler（）</h2><p>  print p-&gt; 状态<br>  print p-&gt; 名称<br>  print p-&gt;pid<br>  swtch 刚从<em>前一个</em>调度程序-&gt;进程切换返回<br>  scheduler释放旧页表，cpu-&gt;proc<br>    vm.c 中的 switchkvm()<br>  接下来几次 – scheduler() 找到其他进程<br>  print p-&gt;pid<br>  vm.c 中的 switchuvm()<br>  让我们通过 swtch() stepi看看情况<br>    <strong>线程堆栈上有什么</strong>？上下文（根据esp找到）&#x2F;调用记录（保存esp）&#x2F;trapframe<br>    从定时器中断返回到用户空间<br>    其中显示trap&#x2F;yield&#x2F;sched</p>
+<p>Q：调度策略是什么？<br>   调用 yield() 的线程会立即再次运行吗？不会</p>
+<p>Q：为什么scheduler()循环找到进程后释放锁，并且立即重新获取？<br>   让其他处理器有机会使用 proc 表<br>   否则两核CPU，单进程&#x3D;死锁</p>
+<p>问：为什么 scheduler() 会短暂启用中断？<br>   可能没有 RUNNABLE 线程<br>     它们可能都在等待 I&#x2F;O，例如磁盘或控制台<br>   启用中断，以便设备有机会发出完成信号<br>     从而唤醒一个线程</p>
+<p>Q：为什么yield()获取ptable.lock，而scheduler()释放它？<br>   不寻常：锁是由与获取它的不同的线程释放的！<br>   为什么锁必须保持在 swtch() 上？<br>   如果另一个核心的 scheduler() 立即看到 RUNNABLE 进程怎么办？</p>
+<p> sched() 和 scheduler() 是“<strong>协同程序</strong>”<br>   调用者知道 swtch() 正在做什么<br>   被调用者知道 switch 来自哪里<br>   例如 yield() 和 scheduler() 关于 ptable.lock 的合作<br>   不同于普通的线程切换，其中既不<br>     派对通常知道哪个线程在之前&#x2F;之后出现</p>
+<p>问：我们怎么知道 scheduler() 线程已经准备好让我们 swtch() 进入？<br>   它可以是 swtch() 以外的任何地方吗？</p>
+<p>这些是 ptable.lock 保护的一些不变量：<br>  如果 RUNNING，处理器寄存器保存值（不在上下文中）<br>  如果 RUNNABLE，则上下文保存其保存的寄存器<br>  如果 RUNNABLE，则没有处理器正在使用其堆栈<br>  保持从 yield() 一直到调度程序的锁强制执行：<br>    中断关闭，因此计时器不能使 swtch 保存&#x2F;恢复无效<br>    另一个 CPU 直到堆栈切换后才能执行</p>
+<p>Q：内核线程有抢占式调度吗？使用关中断<br>   如果在内核中执行时定时器中断怎么办？<br>   内核线程堆栈是什么样的？</p>
+<p>问：为什么在让出 CPU 时禁止持有锁？<br>   （除了 ptable.lock）<br>   即 sched() 检查 ncli &#x3D;&#x3D; 1<br>   获取可能会浪费大量时间旋转<br>   更糟糕的是：死锁，因为在中断关闭的情况下等待，记得我们的自旋锁和关中断区别！</p>
+<h2 id="线程清理"><a href="#线程清理" class="headerlink" title="线程清理"></a>线程清理</h2><p>  1.看 kill（pid）<br>    目的：停止目标进程<br>  kill() 可以释放被杀进程的资源吗？内存、FD 等？<br>    太难了：它可能正在运行、持有锁等。<br>    所以一个进程必须杀死自己，而不是kill能够直接解决的！<br>    trap() 检查 p-&gt;killed<br>    并调用 exit()<br>  2.看看 exit()<br>    被杀死的进程运行 exit()<br>    线程可以释放自己的堆栈吗？<br>      否：它正在使用它，并且需要它以 swtch() 到 scheduler()。<br>    所以 <strong>exit() 设置 proc-&gt;state &#x3D; ZOMBIE</strong>; 父母完成清理<br>    ZOMBIE 子进程保证<em>不</em> 正在执行&#x2F;使用堆栈！<br>  3.wait() 进行最后的清理<br>    预计父级会调用 wait() 系统调用<br>    堆栈、分页表、proc[] </p>
+<p>简单来说，kill-&gt;trap-&gt;exit-&gt;wait：当你使用kill，只是将p-&gt;killed设置，然后trap检查，将会调用exit，其中exit只是设置proc-&gt;state &#x3D; ZOMBIE，然后由swtch和scheduler，切换到父进程，父进程的wait在一开始等待到此刻，将会清理内存的堆栈，页表，进程表。</p>
+<p>因此xv6中大部分内存都是wait来清理的，其余的调用只是确定flag来保证某些东西不被使用，锁释放等麻烦的状态。</p>
+ 
+      <!-- reward -->
+      
+      <div id="reword-out">
+        <div id="reward-btn">
+          Donate
+        </div>
+      </div>
+      
+    </div>
+    
+
+    <!-- copyright -->
+    
+    <div class="declare">
+      <ul class="post-copyright">
+        <li>
+          <i class="ri-copyright-line"></i>
+          <strong>Copyright： </strong>
+          Copyright is owned by the author. For commercial reprints, please contact the author for authorization. For non-commercial reprints, please indicate the source.
+        </li>
+      </ul>
+    </div>
+    
+    <footer class="article-footer">
+       
+<div class="share-btn">
+      <span class="share-sns share-outer">
+        <i class="ri-share-forward-line"></i>
+        分享
+      </span>
+      <div class="share-wrap">
+        <i class="arrow"></i>
+        <div class="share-icons">
+          
+          <a class="weibo share-sns" href="javascript:;" data-type="weibo">
+            <i class="ri-weibo-fill"></i>
+          </a>
+          <a class="weixin share-sns wxFab" href="javascript:;" data-type="weixin">
+            <i class="ri-wechat-fill"></i>
+          </a>
+          <a class="qq share-sns" href="javascript:;" data-type="qq">
+            <i class="ri-qq-fill"></i>
+          </a>
+          <a class="douban share-sns" href="javascript:;" data-type="douban">
+            <i class="ri-douban-line"></i>
+          </a>
+          <!-- <a class="qzone share-sns" href="javascript:;" data-type="qzone">
+            <i class="icon icon-qzone"></i>
+          </a> -->
+          
+          <a class="facebook share-sns" href="javascript:;" data-type="facebook">
+            <i class="ri-facebook-circle-fill"></i>
+          </a>
+          <a class="twitter share-sns" href="javascript:;" data-type="twitter">
+            <i class="ri-twitter-fill"></i>
+          </a>
+          <a class="google share-sns" href="javascript:;" data-type="google">
+            <i class="ri-google-fill"></i>
+          </a>
+        </div>
+      </div>
+</div>
+
+<div class="wx-share-modal">
+    <a class="modal-close" href="javascript:;"><i class="ri-close-circle-line"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <div class="wx-qrcode">
+      <img src="//api.qrserver.com/v1/create-qr-code/?size=150x150&data=http://sakura-mac.github.io/2024/03/08/L10%EF%BC%9A%E8%BF%9B%E7%A8%8B%EF%BC%8C%E7%BA%BF%E7%A8%8B%E5%92%8C%E8%B0%83%E5%BA%A6/" alt="微信分享二维码">
+    </div>
+</div>
+
+<div id="share-mask"></div>  
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Mit-6-828/" rel="tag">Mit-6.828</a></li></ul>
+
+    </footer>
+  </div>
+
+   
+  <nav class="article-nav">
+    
+      <a href="/2024/03/08/L11%EF%BC%9A%E5%8D%8F%E8%B0%83%EF%BC%88sleep&wakeup%EF%BC%89/" class="article-nav-link">
+        <strong class="article-nav-caption">上一篇</strong>
+        <div class="article-nav-title">
+          
+            L11 ：协调（sleep&amp;wakeup）
+          
+        </div>
+      </a>
+    
+    
+      <a href="/2024/03/08/JOS%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98%E5%B8%83%E5%B1%80/" class="article-nav-link">
+        <strong class="article-nav-caption">下一篇</strong>
+        <div class="article-nav-title">JOS虚拟内存布局</div>
+      </a>
+    
+  </nav>
+
+   
+<!-- valine评论 -->
+<div id="vcomments-box">
+  <div id="vcomments"></div>
+</div>
+<script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/valine@1.4.14/dist/Valine.min.js"></script>
+<script>
+  new Valine({
+    el: "#vcomments",
+    app_id: "bbzBMY2PHFRlbkSCorlYCrRX-gzGzoHsz",
+    app_key: "NMnT9uDCzg2rW4ckm0fpSm5y",
+    path: window.location.pathname,
+    avatar: "monsterid",
+    placeholder: "请留下你此刻脑海中的想法~",
+    recordIP: true,
+  });
+  const infoEle = document.querySelector("#vcomments .info");
+  if (infoEle && infoEle.childNodes && infoEle.childNodes.length > 0) {
+    infoEle.childNodes.forEach(function (item) {
+      item.parentNode.removeChild(item);
+    });
+  }
+</script>
+<style>
+  #vcomments-box {
+    padding: 5px 30px;
+  }
+
+  @media screen and (max-width: 800px) {
+    #vcomments-box {
+      padding: 5px 0px;
+    }
+  }
+
+  #vcomments-box #vcomments {
+    background-color: #fff;
+  }
+
+  .v .vlist .vcard .vh {
+    padding-right: 20px;
+  }
+
+  .v .vlist .vcard {
+    padding-left: 10px;
+  }
+</style>
+
+ 
+     
+</article>
+
+</section>
+      <footer class="footer">
+  <div class="outer">
+    <ul>
+      <li>
+        Copyrights &copy;
+        2020-2024
+        <i class="ri-heart-fill heart_icon"></i> 环烷烃
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        
+        Powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+        <span class="division">|</span>
+        Theme - <a href="https://github.com/Shen-Yu/hexo-theme-ayer" target="_blank">Ayer</a>
+        
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        <span>
+  <span><i class="ri-user-3-fill"></i>Visitors:<span id="busuanzi_value_site_uv"></span></s>
+  <span class="division">|</span>
+  <span><i class="ri-eye-fill"></i>Views:<span id="busuanzi_value_page_pv"></span></span>
+</span>
+        
+      </li>
+    </ul>
+    <ul>
+      
+    </ul>
+    <ul>
+      <li>
+        <!-- cnzz统计 -->
+        
+        <script type="text/javascript" src='https://s9.cnzz.com/z_stat.php?id=1278069914&amp;web_id=1278069914'></script>
+        
+      </li>
+    </ul>
+  </div>
+</footer>
+      <div class="float_btns">
+        <div class="totop" id="totop">
+  <i class="ri-arrow-up-line"></i>
+</div>
+
+      </div>
+    </main>
+    <aside class="sidebar on">
+      <button class="navbar-toggle"></button>
+<nav class="navbar">
+  
+  <div class="logo">
+    <a href="/"><img src="/images/ayer-side.jpg" alt="海猫栖息地"></a>
+  </div>
+  
+  <ul class="nav nav-main">
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/">主页</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/archives">归档</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/tags">标签</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/player/">播放器</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/about">关于我</a>
+    </li>
+    
+  </ul>
+</nav>
+<nav class="navbar navbar-bottom">
+  <ul class="nav">
+    <li class="nav-item">
+      
+      <a class="nav-item-link nav-item-search"  title="Search">
+        <i class="ri-search-line"></i>
+      </a>
+      
+      
+      <a class="nav-item-link" target="_blank" href="/atom.xml" title="RSS Feed">
+        <i class="ri-rss-line"></i>
+      </a>
+      
+    </li>
+  </ul>
+</nav>
+<div class="search-form-wrap">
+  <div class="local-search local-search-plugin">
+  <input type="search" id="local-search-input" class="local-search-input" placeholder="Search...">
+  <div id="local-search-result" class="local-search-result"></div>
+</div>
+</div>
+
+    </aside>
+    <script>
+      if (window.matchMedia("(max-width: 768px)").matches) {
+        document.querySelector('.content').classList.remove('on');
+        document.querySelector('.sidebar').classList.remove('on');
+      }
+    </script>
+    <div id="mask"></div>
+
+<!-- #reward -->
+<div id="reward">
+  <span class="close"><i class="ri-close-line"></i></span>
+  <p class="reward-p"><i class="ri-cup-line"></i>我很可爱，请我喝一瓶怡宝吧~</p>
+  <div class="reward-box">
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/alipay.jpg">
+      <span class="reward-type">支付宝</span>
+    </div>
+    
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/wechat.jpg">
+      <span class="reward-type">微信</span>
+    </div>
+    
+  </div>
+</div>
+    
+<script src="/js/jquery-2.0.3.min.js"></script>
+
+
+<script src="/js/lazyload.min.js"></script>
+
+<!-- Tocbot -->
+
+
+<script src="/js/tocbot.min.js"></script>
+
+<script>
+  tocbot.init({
+    tocSelector: '.tocbot',
+    contentSelector: '.article-entry',
+    headingSelector: 'h1, h2, h3, h4, h5, h6',
+    hasInnerContainers: true,
+    scrollSmooth: true,
+    scrollContainer: 'main',
+    positionFixedSelector: '.tocbot',
+    positionFixedClass: 'is-position-fixed',
+    fixedSidebarOffset: 'auto'
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.css">
+<script src="https://cdn.jsdelivr.net/npm/justifiedGallery@3.7.0/dist/js/jquery.justifiedGallery.min.js"></script>
+
+<script src="/dist/main.js"></script>
+
+<!-- ImageViewer -->
+
+<!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" style="display:none" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css">
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"></script>
+
+<script>
+    function viewer_init() {
+        let pswpElement = document.querySelectorAll('.pswp')[0];
+        let $imgArr = document.querySelectorAll(('.article-entry img:not(.reward-img)'))
+
+        $imgArr.forEach(($em, i) => {
+            $em.onclick = () => {
+                // slider展开状态
+                // todo: 这样不好，后面改成状态
+                if (document.querySelector('.left-col.show')) return
+                let items = []
+                $imgArr.forEach(($em2, i2) => {
+                    let img = $em2.getAttribute('data-idx', i2)
+                    let src = $em2.getAttribute('data-target') || $em2.getAttribute('src')
+                    let title = $em2.getAttribute('alt')
+                    // 获得原图尺寸
+                    const image = new Image()
+                    image.src = src
+                    items.push({
+                        src: src,
+                        w: image.width || $em2.width,
+                        h: image.height || $em2.height,
+                        title: title
+                    })
+                })
+                var gallery = new PhotoSwipe(pswpElement, PhotoSwipeUI_Default, items, {
+                    index: parseInt(i)
+                });
+                gallery.init()
+            }
+        })
+    }
+    viewer_init()
+</script>
+
+<!-- MathJax -->
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+      tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+  });
+
+  MathJax.Hub.Queue(function() {
+      var all = MathJax.Hub.getAllJax(), i;
+      for(i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+      }
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.6/unpacked/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<script>
+  var ayerConfig = {
+    mathjax: true
+  }
+</script>
+
+<!-- Katex -->
+
+<!-- busuanzi  -->
+
+
+<script src="/js/busuanzi-2.3.pure.min.js"></script>
+
+
+<!-- ClickLove -->
+
+<!-- ClickBoom1 -->
+
+<script src="https://cdn.jsdelivr.net/npm/animejs@latest/anime.min.js"></script>
+
+<script src="/js/clickBoom1.js"></script>
+
+
+<!-- ClickBoom2 -->
+
+<!-- CodeCopy -->
+
+
+<link rel="stylesheet" href="/css/clipboard.css">
+
+<script src="https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js"></script>
+<script>
+  function wait(callback, seconds) {
+    var timelag = null;
+    timelag = window.setTimeout(callback, seconds);
+  }
+  !function (e, t, a) {
+    var initCopyCode = function(){
+      var copyHtml = '';
+      copyHtml += '<button class="btn-copy" data-clipboard-snippet="">';
+      copyHtml += '<i class="ri-file-copy-2-line"></i><span>COPY</span>';
+      copyHtml += '</button>';
+      $(".highlight .code pre").before(copyHtml);
+      $(".article pre code").before(copyHtml);
+      var clipboard = new ClipboardJS('.btn-copy', {
+        target: function(trigger) {
+          return trigger.nextElementSibling;
+        }
+      });
+      clipboard.on('success', function(e) {
+        let $btn = $(e.trigger);
+        $btn.addClass('copied');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-checkbox-circle-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPIED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-checkbox-circle-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+      clipboard.on('error', function(e) {
+        e.clearSelection();
+        let $btn = $(e.trigger);
+        $btn.addClass('copy-failed');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-time-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPY FAILED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-time-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+    }
+    initCopyCode();
+  }(window, document);
+</script>
+
+
+<!-- CanvasBackground -->
+
+
+    
+  </div>
+<script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginRootPath":"live2dw/","pluginJsPath":"lib/","pluginModelPath":"assets/","tagMode":false,"debug":false,"model":{"jsonPath":"/live2dw/assets/hijiki.model.json"},"display":{"position":"left","width":150,"height":300,"hOffset":80,"vOffset":-50},"mobile":{"show":true},"log":false});</script></body>
+
+</html>

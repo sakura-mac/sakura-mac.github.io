@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+
+
+<html lang="en">
+
+
+<head>
+  <meta charset="utf-8" />
+    
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>
+    2022 FALL CMU15445：lab2 |  
+  </title>
+  <meta name="generator" content="hexo-theme-ayer">
+  
+  <link rel="shortcut icon" href="/images/ayer.png" />
+  
+  
+<link rel="stylesheet" href="/dist/main.css">
+
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Shen-Yu/cdn/css/remixicon.min.css">
+
+  
+<link rel="stylesheet" href="/css/custom.css">
+
+  
+  
+<script src="https://cdn.jsdelivr.net/npm/pace-js@1.0.2/pace.min.js"></script>
+
+  
+  
+
+  
+<script>
+var _hmt = _hmt || [];
+(function() {
+	var hm = document.createElement("script");
+	hm.src = "https://hm.baidu.com/hm.js?41fc030db57d5570dd22f78997dc4a7e";
+	var s = document.getElementsByTagName("script")[0]; 
+	s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+<link rel="alternate" href="/atom.xml" title="海猫栖息地" type="application/atom+xml">
+</head>
+
+</html>
+
+<body>
+  <div id="app">
+    
+      <canvas class="fireworks"></canvas>
+      <style>
+        .fireworks {
+          position: fixed;
+          left: 0;
+          top: 0;
+          z-index: 99999;
+          pointer-events: none;
+        }
+      </style>
+      
+      
+    <main class="content on">
+      <section class="outer">
+  <article
+  id="post-2022 FALL CMU15445：lab2"
+  class="article article-type-post"
+  itemscope
+  itemprop="blogPost"
+  data-scroll-reveal
+>
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h1 class="article-title sea-center" style="border-left:0" itemprop="name">
+  2022 FALL CMU15445：lab2
+</h1>
+ 
+
+    </header>
+     
+    <div class="article-meta">
+      <a href="/2023/02/17/2022%20FALL%20CMU15445%EF%BC%9Alab2/" class="article-date">
+  <time datetime="2023-02-17T03:23:32.111Z" itemprop="datePublished">2023-02-17</time>
+</a>   
+<div class="word_count">
+    <span class="post-time">
+        <span class="post-meta-item-icon">
+            <i class="ri-quill-pen-line"></i>
+            <span class="post-meta-item-text"> Word count:</span>
+            <span class="post-count">2.3k</span>
+        </span>
+    </span>
+
+    <span class="post-time">
+        &nbsp; | &nbsp;
+        <span class="post-meta-item-icon">
+            <i class="ri-book-open-line"></i>
+            <span class="post-meta-item-text"> Reading time≈</span>
+            <span class="post-count">9 min</span>
+        </span>
+    </span>
+</div>
+ 
+    </div>
+      
+    <div class="tocbot"></div>
+
+
+
+
+  
+    <div class="article-entry" itemprop="articleBody">
+       
+  <h1 id="Resources"><a href="#Resources" class="headerlink" title="Resources"></a>Resources</h1><ul>
+<li><a target="_blank" rel="noopener" href="https://15445.courses.cs.cmu.edu/fall2022">https://15445.courses.cs.cmu.edu/fall2022</a> 课程官网</li>
+<li><a target="_blank" rel="noopener" href="https://github.com/cmu-db/bustub">https://github.com/cmu-db/bustub</a> Bustub Github Repo</li>
+<li><a target="_blank" rel="noopener" href="https://www.gradescope.com/">https://www.gradescope.com/</a> 自动测评网站 GradeScope</li>
+<li><a target="_blank" rel="noopener" href="https://discord.gg/YF7dMCg">https://discord.gg/YF7dMCg</a> Discord 论坛，课程交流用</li>
+<li><a target="_blank" rel="noopener" href="https://www.bilibili.com/video/BV1Bg411w7kW/?spm_id_from=333.999.0.0&amp;vd_source=06def12065e2f44a1283169bd13b48bc">https://www.bilibili.com/video/BV1Bg411w7kW/?spm_id_from=333.999.0.0&amp;vd_source=06def12065e2f44a1283169bd13b48bc</a> Moody老师的中文讲解ppt </li>
+<li><a target="_blank" rel="noopener" href="https://15445.courses.cs.cmu.edu/fall2022/bpt-printer/">https://15445.courses.cs.cmu.edu/fall2022/bpt-printer/</a> B+ 树插入删除的官方printer</li>
+</ul>
+<span id="more"></span>
+
+<h1 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h1><p>这一个project主要是实现B+树作为索引，通常数据库会使用b树或者b+树作为索引，比如mysql会使用b树。索引的作用通常是用来加快查询，比如在project3中就会出现index优化的join算子task。<br>至于二者的比较，b+树纯粹是用来存储索引，因此占据的页更少；同时b+树的遍历只能通过中序遍历，而b+树叶子结点可以认为是一个单向链表，因此只需要找到左侧边界就可以顺序遍历所有kv，更加快速。</p>
+<p>本次难度相对于project1陡增，具体表现在只给了接口自由发挥，实现细节则没有强制要求。所以这是一个思路相对实现简单的project。</p>
+<p>B+索引的底层基于project1的Buffer Pool实现，同时采用了非聚簇索引（即叶子结点作为指针指向数据的page）。</p>
+<h1 id="CheckPoint1-SingleThread-B-Tree"><a href="#CheckPoint1-SingleThread-B-Tree" class="headerlink" title="CheckPoint1 SingleThread B+Tree"></a>CheckPoint1 SingleThread B+Tree</h1><p>在B+的结构中，分为叶子结点（leaf node）和非叶子结点（internal node），并且每个结点占据空间为一个page，目的是为了加快和磁盘的存取时间。首先我们应该对继承了tree page的leaf page 和internal page来实现getter和setter，相对简单。而对于B+树的增删查，因为删除和插入需要找到叶子结点，因此首先实现查询。</p>
+<p>我们先来看Task1，在Buffer Pool中我们接触过page，观察定义可以发现page size为4kb，而其中的data_部分即为我们的leaf page和internal page，因此在使用时需要通过reinterpret_cast来转型。</p>
+<h1 id="Task1-B-Tree-Pages"><a href="#Task1-B-Tree-Pages" class="headerlink" title="Task1 B+Tree Pages"></a>Task1 B+Tree Pages</h1><h2 id="B-PLUS-TREE-PAGE"><a href="#B-PLUS-TREE-PAGE" class="headerlink" title="B_PLUS_TREE_PAGE"></a>B_PLUS_TREE_PAGE</h2><p>比较简单，重点是子类的实现</p>
+<h2 id="B-PLUS-TREE-LEAF-PAGE"><a href="#B-PLUS-TREE-LEAF-PAGE" class="headerlink" title="B_PLUS_TREE_LEAF_PAGE"></a>B_PLUS_TREE_LEAF_PAGE</h2><p><img src="https://bed1.oss-cn-beijing.aliyuncs.com/202403082102494.png"></p>
+<p>唯一需要注意的是采取了flexible array，通常用在固定长度对象中，具体来说我们在类最后位置的成员变量放一个长度为1的数组，同时维护一个size。在实际使用时会在数组后进行填充，而size来判定合法边界，</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">A</span>&#123;</span><br><span class="line">  <span class="comment">// other member field</span></span><br><span class="line">  <span class="type">int</span> array[<span class="number">1</span>];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="B-PLUS-TREE-INTERNAL-PAGE"><a href="#B-PLUS-TREE-INTERNAL-PAGE" class="headerlink" title="B_PLUS_TREE_INTERNAL_PAGE"></a>B_PLUS_TREE_INTERNAL_PAGE</h2><p><img src="https://bed1.oss-cn-beijing.aliyuncs.com/202403082102495.png"></p>
+<p>布局和leaf page唯二区别</p>
+<ul>
+<li><p>少了next page id</p>
+</li>
+<li><p>第一位的key是空的<img src="https://bed1.oss-cn-beijing.aliyuncs.com/202403082102496.png"></p>
+</li>
+</ul>
+<h1 id="Task2-B-Tree-Data-Structure-Insertion-Deletion-Search"><a href="#Task2-B-Tree-Data-Structure-Insertion-Deletion-Search" class="headerlink" title="Task2 B+Tree Data Structure(Insertion, Deletion, Search)"></a>Task2 B+Tree Data Structure(Insertion, Deletion, Search)</h1><p>这部分的debug强烈建议使用printer和网站的printer做对比（尤其是逻辑实现有问题的时候），这里给出个人写的一个随机数生成脚本，略微减轻debug的辛苦</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">!/bin/bash</span></span><br><span class="line"></span><br><span class="line">if [ $# -ne 1 ]</span><br><span class="line">then</span><br><span class="line">  echo &quot;Usage: $0 range&quot;</span><br><span class="line">  exit 1</span><br><span class="line">fi</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">delete file exist</span></span><br><span class="line">if [ -e input.txt ]</span><br><span class="line">then</span><br><span class="line">rm input.txt</span><br><span class="line">fi</span><br><span class="line"></span><br><span class="line">range=$1</span><br><span class="line">touch input.txt</span><br><span class="line">echo &quot;Generating $range random numbers in the range [1, $range]...&quot;</span><br><span class="line"></span><br><span class="line">for (( i=1; i&lt;=$range;i++ ));</span><br><span class="line">do</span><br><span class="line">	number=$(( RANDOM%range + 1))	</span><br><span class="line">  echo $number &gt;&gt; input.txt</span><br><span class="line">done</span><br><span class="line"></span><br><span class="line">echo &quot;Done. The numbers are stored in the file input.txt.&quot;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="Search"><a href="#Search" class="headerlink" title="Search"></a>Search</h3><p>对于查找而言，就是左小右大比较的向下查找，由于internal page 和 leaf page的定义不同，无论是采取迭代还是递归，都需要区分逻辑。个人实现如下</p>
+<ul>
+<li>kv的查找作为page内函数而不是b+tree的函数，减少耦合</li>
+<li>使用upper bound的bsearch来优化查找</li>
+</ul>
+<p>拿到pageid后我们以此得到node</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">auto</span> *page = buffer_pool_manager_-&gt;<span class="built_in">FetchPage</span>(page_id);</span><br><span class="line"><span class="keyword">auto</span> *node = <span class="built_in">reinterpret_case</span>&lt;TYPE *&gt;(page-&gt;<span class="built_in">GetData</span>());</span><br></pre></td></tr></table></figure>
+
+<p>也正是这种cast保证了flexible array的实现前提。</p>
+<p>另外，从这里开始，就会开始容易出现忘记unpin。你可以仔细查看自己的每一个case并unpin，也可以估计pin的承受能力在某个时间点集中unpin（如果你的buffer pool manager实现合理的话，unpin应该是幂等的，即多次unpin是安全的）。</p>
+<h3 id="Insertion"><a href="#Insertion" class="headerlink" title="Insertion"></a>Insertion</h3><p>我们需要调用search来找到叶子结点，然后插入。</p>
+<p>流程大致分为三个case：</p>
+<ul>
+<li>叶子结点的插入</li>
+<li>叶子结点的分裂</li>
+<li>非叶子结点的分裂</li>
+</ul>
+<p><img src="https://bed1.oss-cn-beijing.aliyuncs.com/202302172016301.png"><img src="https://bed1.oss-cn-beijing.aliyuncs.com/202403082102497.png"></p>
+<p>根据这个自顶向下查找，自底向上分裂的情况，很容易写出递归或者迭代的代码。需要额外注意的</p>
+<blockquote>
+<p>You should correctly perform splits if insertion triggers the splitting condition (number of key&#x2F;value pairs <strong>AFTER</strong> insertion equals to max_size for leaf nodes, number of children <strong>BEFORE</strong> insertion equals to max_size for internal nodes.).</p>
+</blockquote>
+<p>也就是说假设max_size为n，leaf node最多容纳n-1个而internal node最多容纳n个kv（假设空key也算在内）</p>
+<p><img src="https://bed1.oss-cn-beijing.aliyuncs.com/202302172021755.png"><img src="https://bed1.oss-cn-beijing.aliyuncs.com/202403082102496.png"></p>
+<h3 id="Deletion"><a href="#Deletion" class="headerlink" title="Deletion"></a>Deletion</h3><p>作为single thread最难的部分，delete的case相对复杂得多，一开始我设计了如下流程：</p>
+<p><img src="https://bed1.oss-cn-beijing.aliyuncs.com/202403082102498.png"></p>
+<p>注意到中间的三个判断上下重复出现，可以考虑一个范型函数</p>
+<p><img src="https://bed1.oss-cn-beijing.aliyuncs.com/202403082102499.png"></p>
+<p>又由于min_size和max_size的关系</p>
+<ul>
+<li>leaf node : max_size_ &#x2F; 2</li>
+<li>internal node : (max_size_ + 1) &#x2F; 2</li>
+</ul>
+<p>三个判断可以整合为一个：如果size + ssize &gt;&#x3D; max_size_，那么就可以borrow kv，否则就直接merge</p>
+<p>最后说三个小细节：</p>
+<ol>
+<li>在insertion中我们会在分裂时将key上推，而deletion中我们会在borrow&#x2F;merge时将key下推，如图我们可以发现删除6后，p4 p5进行merge，因此7下推，borrow类似就不说了<img src="https://bed1.oss-cn-beijing.aliyuncs.com/202302172106283.png"><img src="https://bed1.oss-cn-beijing.aliyuncs.com/202403082102500.png"></li>
+<li>一个internal node的corner case：</li>
+</ol>
+<p>回忆insertion的初始流程可以发现，如果根结点只剩一个孩子，那么应该直接删除根结点，将孩子作为根结点</p>
+<ol start="3">
+<li>merge时，两个结点应该右向左merge，因此左侧的sibling需要和结点swap</li>
+</ol>
+<p>总之建议配合printer手动模拟一遍，找到所有case后再动手。而官方推荐的database concept书上也列举了出来，有很大帮助。</p>
+<h1 id="CheckPoint2-Multi-Thread-B-Tree"><a href="#CheckPoint2-Multi-Thread-B-Tree" class="headerlink" title="CheckPoint2 Multi Thread B+Tree"></a>CheckPoint2 Multi Thread B+Tree</h1><p>完成了自顶向下查找，自底向上插入&#x2F;删除后，需要完成锁的实现。</p>
+<h2 id="Index-Iterator"><a href="#Index-Iterator" class="headerlink" title="Index Iterator"></a>Index Iterator</h2><p>这个实现相对简单，只需要实现begin 和end两个函数，而interator保存指针就好。个人理解中，end是开区间，如果是闭区间一般使用final来描述，第一次接触的话略微注意就好，记得注意unpin完遍历的page。</p>
+<h2 id="Concurrent-Index"><a href="#Concurrent-Index" class="headerlink" title="Concurrent Index"></a>Concurrent Index</h2><p>前面一个实验我使用了一把大锁保平安，这部分就不行了。我们将使用一种叫做latch crabbing的方式来加锁，顾名思义就像螃蟹一样来加锁和解锁。</p>
+<ul>
+<li>对parent加锁</li>
+<li>对child加锁</li>
+<li>如果安全插入&#x2F;删除（安全意味着不split&#x2F;merge&#x2F;borrow），那么释放parent锁</li>
+</ul>
+<p>那么怎么样算安全，很容易我们可以得知：</p>
+<ul>
+<li>insert  <ul>
+<li>leaf node’s size &lt; max_size_ - 1</li>
+<li>internal node’s size &lt; max_size_</li>
+</ul>
+</li>
+<li>delete <ul>
+<li>node’s size &gt; minsize</li>
+</ul>
+</li>
+</ul>
+<h3 id="Search-1"><a href="#Search-1" class="headerlink" title="Search"></a>Search</h3><p>search的流程没什么好说的，由于child肯定安全，按着方式加r锁即可。</p>
+<h3 id="Insertion-1"><a href="#Insertion-1" class="headerlink" title="Insertion"></a>Insertion</h3><p>对于insertion而言，我们需要在不安全时继续持有parent的锁，直到child安全时，释放所有祖先的写锁，需要用到transaction来实现：调用AddIntoPageSet()函数来记录加锁路径，释放时对set存在的锁释放。由于上层的锁竞争激烈，因此最好自顶向下释放锁。而split得到的页面不可能会被其他线程访问，所以不需要加锁只需要unpin。</p>
+<p>最后不要忘记结束insert后释放剩余的所有锁。</p>
+<p>同样这里也有个corner case：</p>
+<p><img src="https://bed1.oss-cn-beijing.aliyuncs.com/202403082102501.png"></p>
+<p><img src="https://bed1.oss-cn-beijing.aliyuncs.com/202403082102502.png"></p>
+<p>假如在一个leaf node（12）作为根结点时，由于父结点的保护</p>
+<ol>
+<li><p>线程1上锁，线程2等待</p>
+</li>
+<li><p>线程1插入3后分裂，得到1和23两个leaf node, 更新根结点</p>
+</li>
+<li><p>线程2得到锁，错误地插入了2</p>
+<p>因此我们需要额外对root page id访问加锁，让线程2得到锁后访问的永远是最新的根结点。</p>
+</li>
+</ol>
+<h3 id="Deletion-1"><a href="#Deletion-1" class="headerlink" title="Deletion"></a>Deletion</h3><p>deletetion基本也按照流程，但是merge会导致sibling页面的回收，因此不要忘记unlock。</p>
+<p>同样corner case：</p>
+<p><img src="https://bed1.oss-cn-beijing.aliyuncs.com/202403082102503.png"></p>
+<p><img src="https://bed1.oss-cn-beijing.aliyuncs.com/202403082102504.png"></p>
+<p>在borrow&#x2F;merge时，假如两个线程</p>
+<ol>
+<li><p>t1一个安全删除3，释放父结点</p>
+</li>
+<li><p>t2删除2将borrow</p>
+</li>
+<li><p>t2将可能在t1未删除成功时对sibling修改</p>
+<p>所以我们应该在borrow&#x2F;merge时先获取sibling的锁，保证t1的删除成功后进行t2的操作。</p>
+</li>
+</ol>
+<h3 id="误区"><a href="#误区" class="headerlink" title="误区"></a>误区</h3><p>前面讲的都是需要加锁的case，有没有不需要，加了反而会死锁的情况呢？</p>
+<p>有，</p>
+<ol>
+<li>对于自底向上split&#x2F;merge&#x2F;borrow&#x2F;修改parent page id时，如果加锁很明显会陷入死锁。</li>
+<li>在使用index iterator时，如果在获得sibling时左右向中间获取时也会得到死锁，所以这时在无法得到锁时应该立即放弃锁。</li>
+</ol>
+<h3 id="优化"><a href="#优化" class="headerlink" title="优化"></a>优化</h3><p>在insertion中，相同路径会以不同方向进行访问，因此向上时我们可以使用transaction里的set得到page的指针，减少bpm的重复fetch（前提是确保为重复fetch）</p>
+<p>同时我们可以发现insertion&#x2F;deletion条件中“安全”两个字难以确定，没有拿到leaf node无法确定是安全。因此这里可以两种方式：</p>
+<ul>
+<li>默认悲观：全部加锁不释放</li>
+<li>乐观优化：一开始加读锁，对leaf page加写锁，确定不安全后回退，重新加悲观锁</li>
+</ul>
+<p>由于根结点的瓶颈问题解决，乐观锁是一种有效优化方式，我们只需要对FindLeafPage修改即可。</p>
+<h3 id="unpin和unlock先后"><a href="#unpin和unlock先后" class="headerlink" title="unpin和unlock先后"></a>unpin和unlock先后</h3><p>如果是先unpin，那么可能在安全释放父结点后被其他线程使用buffer pool manager时替换页。所以unlock后才能unpin。</p>
+<h1 id="Result"><a href="#Result" class="headerlink" title="Result"></a>Result</h1><p>草草实现了下，没怎么做优化，有机会再回来实现。</p>
+<p><img src="https://bed1.oss-cn-beijing.aliyuncs.com/202403082102506.png"></p>
+ 
+      <!-- reward -->
+      
+      <div id="reword-out">
+        <div id="reward-btn">
+          Donate
+        </div>
+      </div>
+      
+    </div>
+    
+
+    <!-- copyright -->
+    
+    <div class="declare">
+      <ul class="post-copyright">
+        <li>
+          <i class="ri-copyright-line"></i>
+          <strong>Copyright： </strong>
+          Copyright is owned by the author. For commercial reprints, please contact the author for authorization. For non-commercial reprints, please indicate the source.
+        </li>
+      </ul>
+    </div>
+    
+    <footer class="article-footer">
+       
+<div class="share-btn">
+      <span class="share-sns share-outer">
+        <i class="ri-share-forward-line"></i>
+        分享
+      </span>
+      <div class="share-wrap">
+        <i class="arrow"></i>
+        <div class="share-icons">
+          
+          <a class="weibo share-sns" href="javascript:;" data-type="weibo">
+            <i class="ri-weibo-fill"></i>
+          </a>
+          <a class="weixin share-sns wxFab" href="javascript:;" data-type="weixin">
+            <i class="ri-wechat-fill"></i>
+          </a>
+          <a class="qq share-sns" href="javascript:;" data-type="qq">
+            <i class="ri-qq-fill"></i>
+          </a>
+          <a class="douban share-sns" href="javascript:;" data-type="douban">
+            <i class="ri-douban-line"></i>
+          </a>
+          <!-- <a class="qzone share-sns" href="javascript:;" data-type="qzone">
+            <i class="icon icon-qzone"></i>
+          </a> -->
+          
+          <a class="facebook share-sns" href="javascript:;" data-type="facebook">
+            <i class="ri-facebook-circle-fill"></i>
+          </a>
+          <a class="twitter share-sns" href="javascript:;" data-type="twitter">
+            <i class="ri-twitter-fill"></i>
+          </a>
+          <a class="google share-sns" href="javascript:;" data-type="google">
+            <i class="ri-google-fill"></i>
+          </a>
+        </div>
+      </div>
+</div>
+
+<div class="wx-share-modal">
+    <a class="modal-close" href="javascript:;"><i class="ri-close-circle-line"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <div class="wx-qrcode">
+      <img src="//api.qrserver.com/v1/create-qr-code/?size=150x150&data=http://sakura-mac.github.io/2023/02/17/2022%20FALL%20CMU15445%EF%BC%9Alab2/" alt="微信分享二维码">
+    </div>
+</div>
+
+<div id="share-mask"></div>  
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/CMU-15445/" rel="tag">CMU-15445</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/DB/" rel="tag">DB</a></li></ul>
+
+    </footer>
+  </div>
+
+   
+  <nav class="article-nav">
+    
+      <a href="/2023/02/18/2022%20FALL%20CMU15445%EF%BC%9Alab3/" class="article-nav-link">
+        <strong class="article-nav-caption">上一篇</strong>
+        <div class="article-nav-title">
+          
+            2022 FALL CMU15445：lab3
+          
+        </div>
+      </a>
+    
+    
+      <a href="/2023/01/20/PLRG%EF%BC%9Arecord1/" class="article-nav-link">
+        <strong class="article-nav-caption">下一篇</strong>
+        <div class="article-nav-title">PLRG：record1</div>
+      </a>
+    
+  </nav>
+
+   
+<!-- valine评论 -->
+<div id="vcomments-box">
+  <div id="vcomments"></div>
+</div>
+<script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/valine@1.4.14/dist/Valine.min.js"></script>
+<script>
+  new Valine({
+    el: "#vcomments",
+    app_id: "bbzBMY2PHFRlbkSCorlYCrRX-gzGzoHsz",
+    app_key: "NMnT9uDCzg2rW4ckm0fpSm5y",
+    path: window.location.pathname,
+    avatar: "monsterid",
+    placeholder: "请留下你此刻脑海中的想法~",
+    recordIP: true,
+  });
+  const infoEle = document.querySelector("#vcomments .info");
+  if (infoEle && infoEle.childNodes && infoEle.childNodes.length > 0) {
+    infoEle.childNodes.forEach(function (item) {
+      item.parentNode.removeChild(item);
+    });
+  }
+</script>
+<style>
+  #vcomments-box {
+    padding: 5px 30px;
+  }
+
+  @media screen and (max-width: 800px) {
+    #vcomments-box {
+      padding: 5px 0px;
+    }
+  }
+
+  #vcomments-box #vcomments {
+    background-color: #fff;
+  }
+
+  .v .vlist .vcard .vh {
+    padding-right: 20px;
+  }
+
+  .v .vlist .vcard {
+    padding-left: 10px;
+  }
+</style>
+
+ 
+     
+</article>
+
+</section>
+      <footer class="footer">
+  <div class="outer">
+    <ul>
+      <li>
+        Copyrights &copy;
+        2020-2024
+        <i class="ri-heart-fill heart_icon"></i> 环烷烃
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        
+        Powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+        <span class="division">|</span>
+        Theme - <a href="https://github.com/Shen-Yu/hexo-theme-ayer" target="_blank">Ayer</a>
+        
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        <span>
+  <span><i class="ri-user-3-fill"></i>Visitors:<span id="busuanzi_value_site_uv"></span></s>
+  <span class="division">|</span>
+  <span><i class="ri-eye-fill"></i>Views:<span id="busuanzi_value_page_pv"></span></span>
+</span>
+        
+      </li>
+    </ul>
+    <ul>
+      
+    </ul>
+    <ul>
+      <li>
+        <!-- cnzz统计 -->
+        
+        <script type="text/javascript" src='https://s9.cnzz.com/z_stat.php?id=1278069914&amp;web_id=1278069914'></script>
+        
+      </li>
+    </ul>
+  </div>
+</footer>
+      <div class="float_btns">
+        <div class="totop" id="totop">
+  <i class="ri-arrow-up-line"></i>
+</div>
+
+      </div>
+    </main>
+    <aside class="sidebar on">
+      <button class="navbar-toggle"></button>
+<nav class="navbar">
+  
+  <div class="logo">
+    <a href="/"><img src="/images/ayer-side.jpg" alt="海猫栖息地"></a>
+  </div>
+  
+  <ul class="nav nav-main">
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/">主页</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/archives">归档</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/tags">标签</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/player/">播放器</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/about">关于我</a>
+    </li>
+    
+  </ul>
+</nav>
+<nav class="navbar navbar-bottom">
+  <ul class="nav">
+    <li class="nav-item">
+      
+      <a class="nav-item-link nav-item-search"  title="Search">
+        <i class="ri-search-line"></i>
+      </a>
+      
+      
+      <a class="nav-item-link" target="_blank" href="/atom.xml" title="RSS Feed">
+        <i class="ri-rss-line"></i>
+      </a>
+      
+    </li>
+  </ul>
+</nav>
+<div class="search-form-wrap">
+  <div class="local-search local-search-plugin">
+  <input type="search" id="local-search-input" class="local-search-input" placeholder="Search...">
+  <div id="local-search-result" class="local-search-result"></div>
+</div>
+</div>
+
+    </aside>
+    <script>
+      if (window.matchMedia("(max-width: 768px)").matches) {
+        document.querySelector('.content').classList.remove('on');
+        document.querySelector('.sidebar').classList.remove('on');
+      }
+    </script>
+    <div id="mask"></div>
+
+<!-- #reward -->
+<div id="reward">
+  <span class="close"><i class="ri-close-line"></i></span>
+  <p class="reward-p"><i class="ri-cup-line"></i>我很可爱，请我喝一瓶怡宝吧~</p>
+  <div class="reward-box">
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/alipay.jpg">
+      <span class="reward-type">支付宝</span>
+    </div>
+    
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/wechat.jpg">
+      <span class="reward-type">微信</span>
+    </div>
+    
+  </div>
+</div>
+    
+<script src="/js/jquery-2.0.3.min.js"></script>
+
+
+<script src="/js/lazyload.min.js"></script>
+
+<!-- Tocbot -->
+
+
+<script src="/js/tocbot.min.js"></script>
+
+<script>
+  tocbot.init({
+    tocSelector: '.tocbot',
+    contentSelector: '.article-entry',
+    headingSelector: 'h1, h2, h3, h4, h5, h6',
+    hasInnerContainers: true,
+    scrollSmooth: true,
+    scrollContainer: 'main',
+    positionFixedSelector: '.tocbot',
+    positionFixedClass: 'is-position-fixed',
+    fixedSidebarOffset: 'auto'
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.css">
+<script src="https://cdn.jsdelivr.net/npm/justifiedGallery@3.7.0/dist/js/jquery.justifiedGallery.min.js"></script>
+
+<script src="/dist/main.js"></script>
+
+<!-- ImageViewer -->
+
+<!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" style="display:none" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css">
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"></script>
+
+<script>
+    function viewer_init() {
+        let pswpElement = document.querySelectorAll('.pswp')[0];
+        let $imgArr = document.querySelectorAll(('.article-entry img:not(.reward-img)'))
+
+        $imgArr.forEach(($em, i) => {
+            $em.onclick = () => {
+                // slider展开状态
+                // todo: 这样不好，后面改成状态
+                if (document.querySelector('.left-col.show')) return
+                let items = []
+                $imgArr.forEach(($em2, i2) => {
+                    let img = $em2.getAttribute('data-idx', i2)
+                    let src = $em2.getAttribute('data-target') || $em2.getAttribute('src')
+                    let title = $em2.getAttribute('alt')
+                    // 获得原图尺寸
+                    const image = new Image()
+                    image.src = src
+                    items.push({
+                        src: src,
+                        w: image.width || $em2.width,
+                        h: image.height || $em2.height,
+                        title: title
+                    })
+                })
+                var gallery = new PhotoSwipe(pswpElement, PhotoSwipeUI_Default, items, {
+                    index: parseInt(i)
+                });
+                gallery.init()
+            }
+        })
+    }
+    viewer_init()
+</script>
+
+<!-- MathJax -->
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+      tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+  });
+
+  MathJax.Hub.Queue(function() {
+      var all = MathJax.Hub.getAllJax(), i;
+      for(i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+      }
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.6/unpacked/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<script>
+  var ayerConfig = {
+    mathjax: true
+  }
+</script>
+
+<!-- Katex -->
+
+<!-- busuanzi  -->
+
+
+<script src="/js/busuanzi-2.3.pure.min.js"></script>
+
+
+<!-- ClickLove -->
+
+<!-- ClickBoom1 -->
+
+<script src="https://cdn.jsdelivr.net/npm/animejs@latest/anime.min.js"></script>
+
+<script src="/js/clickBoom1.js"></script>
+
+
+<!-- ClickBoom2 -->
+
+<!-- CodeCopy -->
+
+
+<link rel="stylesheet" href="/css/clipboard.css">
+
+<script src="https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js"></script>
+<script>
+  function wait(callback, seconds) {
+    var timelag = null;
+    timelag = window.setTimeout(callback, seconds);
+  }
+  !function (e, t, a) {
+    var initCopyCode = function(){
+      var copyHtml = '';
+      copyHtml += '<button class="btn-copy" data-clipboard-snippet="">';
+      copyHtml += '<i class="ri-file-copy-2-line"></i><span>COPY</span>';
+      copyHtml += '</button>';
+      $(".highlight .code pre").before(copyHtml);
+      $(".article pre code").before(copyHtml);
+      var clipboard = new ClipboardJS('.btn-copy', {
+        target: function(trigger) {
+          return trigger.nextElementSibling;
+        }
+      });
+      clipboard.on('success', function(e) {
+        let $btn = $(e.trigger);
+        $btn.addClass('copied');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-checkbox-circle-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPIED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-checkbox-circle-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+      clipboard.on('error', function(e) {
+        e.clearSelection();
+        let $btn = $(e.trigger);
+        $btn.addClass('copy-failed');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-time-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPY FAILED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-time-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+    }
+    initCopyCode();
+  }(window, document);
+</script>
+
+
+<!-- CanvasBackground -->
+
+
+    
+  </div>
+<script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginRootPath":"live2dw/","pluginJsPath":"lib/","pluginModelPath":"assets/","tagMode":false,"debug":false,"model":{"jsonPath":"/live2dw/assets/hijiki.model.json"},"display":{"position":"left","width":150,"height":300,"hOffset":80,"vOffset":-50},"mobile":{"show":true},"log":false});</script></body>
+
+</html>
