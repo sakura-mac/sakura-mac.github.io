@@ -31,10 +31,10 @@
 <p>1.mp3&#x2F;mp4 player plugin</p>
 <ul>
 <li>
-        <div id="aplayer-kNGJgcEa" class="aplayer aplayer-tag-marker" style="margin-bottom: 20px;"></div>
+        <div id="aplayer-fYxmomdQ" class="aplayer aplayer-tag-marker" style="margin-bottom: 20px;"></div>
 			  <script>
 				  var options = {"narrow":false,"autoplay":false,"showlrc":0,"mode":"random","music":[{"title":"Blue in green","author":"TheGrimeyHooligan","url":"https://bed1.oss-cn-beijing.aliyuncs.com/mp3/EILmVbUEZZEz.128.mp3","pic":"https://bed1.oss-cn-beijing.aliyuncs.com/202209022020020.png"}]};
-				  options.element = document.getElementById("aplayer-kNGJgcEa");
+				  options.element = document.getElementById("aplayer-fYxmomdQ");
 				  var ap = new APlayer(options);
 			    window.aplayers || (window.aplayers = []);
 				  window.aplayers.push(ap);
@@ -48,6 +48,48 @@
 ]]></content>
       <tags>
         <tag>Todo List</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>摸鱼阅读:No.1</title>
+    <url>/2024/03/08/%E6%91%B8%E9%B1%BC%E9%98%85%E8%AF%BB:No.1/</url>
+    <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="/assets/css/APlayer.min.css"><script src="/assets/js/APlayer.min.js" class="aplayer-secondary-script-marker"></script><script class="meting-secondary-script-marker" src="/assets/js/Meting.min.js"></script><p>原文</p>
+<p>这是一篇介绍故障排除和学习环境（TLEs）AI程序的文章，不过大部分篇幅讲了故障排除需要的技术以及专家和初学者的区别</p>
+<span id="more"></span>
+
+<h1 id="故障排除需要的技术"><a href="#故障排除需要的技术" class="headerlink" title="故障排除需要的技术"></a>故障排除需要的技术</h1><p>​	文章认为故障排除主要是一项认知任务，包括通过潜在的大问题寻找可能的故障原因。一般使用流程图和决策表。但是他们通常适用于简单的故障排除问题，如果你想要变得熟练或者精通故障排除，是远远不够的。</p>
+<p>​	有经验的故障排除者不是直接对故障进行从头开始的测试，而是首先将故障与他们从经验中过往的故障相匹配，并应用这些经验中的解决方案来解决当前的问题。</p>
+<p>​	以下几种系统知识被普遍认为是排除故障的关键</p>
+<ul>
+<li>专业知识</li>
+<li>设备了解</li>
+<li>性能测试</li>
+<li>排除策略</li>
+<li>固有能力</li>
+</ul>
+<h2 id="专业知识"><a href="#专业知识" class="headerlink" title="专业知识"></a>专业知识</h2><p>所谓“纸上得来终觉浅，绝知此事要躬行”，专业知识是初学故障排除者的必要条件，但对于学习成为一个合格熟练的故障排除者来说，这并不充分。</p>
+<p>不过有意思的是，文章提出初学者通常按照顺序记忆和使用专业知识，而专家则更偏向于以因果关系来记忆，个人认为可以推广为记忆专业知识的相互联系。</p>
+<h2 id="系统设备了解"><a href="#系统设备了解" class="headerlink" title="系统设备了解"></a>系统设备了解</h2><p>文章认为，专家和新手排除故障的主要区别在于系统设备知识的数量和组织，即特定范围内的经验丰富与否。</p>
+<blockquote>
+<p> 当调试电子系统时，David（1983）发现熟练的故障排除者围绕着电气系统中的因果相互作用来组织他们的模型，而不是布线的线性组织</p>
+</blockquote>
+<p>同样的，在特定设备的了解上，因果关系胜过线性关系。尽管系统的拓扑图和功能关系图都提供了排错路径，但新手故障排除者更可能使用拓扑图搜索策略，而有经验的在排除故障时更经常以功能关系图来思考。基于对设备操作的功能了解的故障排除策略使故障排除者通常能更有效地找到问题。</p>
+<h2 id="性能测试"><a href="#性能测试" class="headerlink" title="性能测试"></a>性能测试</h2><h2 id="排除策略"><a href="#排除策略" class="headerlink" title="排除策略"></a>排除策略</h2><h2 id="固有能力"><a href="#固有能力" class="headerlink" title="固有能力"></a>固有能力</h2><p>基本上讲了关于工作记忆，问题敏感性，排错策略理解的这些作为人本身的能力。</p>
+<h1 id="学习故障排除"><a href="#学习故障排除" class="headerlink" title="学习故障排除"></a>学习故障排除</h1><blockquote>
+<p>学生通过复制操作从程序性演示中学习。如果这些具体的操作不能显示出故障，那么按程序教学的学习者就不知道该怎么做。他们缺乏领域原则、系统知识和战略知识，而这些都是排除故障所需要的。</p>
+</blockquote>
+<p>教导故障排除的内容方法强调对系统的理论和概念理解，与任何故障排除活动无关</p>
+<p>故障排除</p>
+<p>专家们可以很容易地决定做什么，但他们更不能提供关于他们为什么要这样做的明确规则</p>
+<p>专家们根据在构建问题空间和随后的解释过程中获得的初步信息形成他们的初步假设</p>
+<p> 如果产生了一个以上的解决方案选项，那么故障排除者必须选择并验证首选的解决方案</p>
+<p>概念模型中的这种多层次表述的一个重要理由是，它们可以减少学习者的认知负荷</p>
+<p> 然而，提供系统成分和状态的外部表示，通过卸载同时对多个问题成分进行建模的需要，为工作记忆提供支架。能够通过一个复杂的概念模型的不同层次来减少工作记忆的需求，然后可以应用于诊断。—</p>
+<p>对于每个案例，确定相关的索引，以便在每种情况下都能召回案例。故障排除案例库中可能的索引包括：。• 具体故障描述• 观察到的最初症状• 发生的频率• 隔离故障所需的行动、程序• 检验的假设• 各种测试的结果• 地形部分• 职能目的• 解决方案战略</p>
+<p>对于熟练的执行者和专家来说，诊断成为一种分类活动，在这种活动中，故障排除者搜索他们的事件模式，以便识别不同的故障状态。学习排除故障代表着从对系统的概念性理解到对过程的经验性理解的转变</p>
+]]></content>
+      <tags>
+        <tag>Essay note</tag>
       </tags>
   </entry>
   <entry>
@@ -289,48 +331,6 @@
 ]]></content>
       <tags>
         <tag>Math</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>摸鱼阅读:No.1</title>
-    <url>/2024/03/08/%E6%91%B8%E9%B1%BC%E9%98%85%E8%AF%BB:No.1/</url>
-    <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="/assets/css/APlayer.min.css"><script src="/assets/js/APlayer.min.js" class="aplayer-secondary-script-marker"></script><script class="meting-secondary-script-marker" src="/assets/js/Meting.min.js"></script><p>原文</p>
-<p>这是一篇介绍故障排除和学习环境（TLEs）AI程序的文章，不过大部分篇幅讲了故障排除需要的技术以及专家和初学者的区别</p>
-<span id="more"></span>
-
-<h1 id="故障排除需要的技术"><a href="#故障排除需要的技术" class="headerlink" title="故障排除需要的技术"></a>故障排除需要的技术</h1><p>​	文章认为故障排除主要是一项认知任务，包括通过潜在的大问题寻找可能的故障原因。一般使用流程图和决策表。但是他们通常适用于简单的故障排除问题，如果你想要变得熟练或者精通故障排除，是远远不够的。</p>
-<p>​	有经验的故障排除者不是直接对故障进行从头开始的测试，而是首先将故障与他们从经验中过往的故障相匹配，并应用这些经验中的解决方案来解决当前的问题。</p>
-<p>​	以下几种系统知识被普遍认为是排除故障的关键</p>
-<ul>
-<li>专业知识</li>
-<li>设备了解</li>
-<li>性能测试</li>
-<li>排除策略</li>
-<li>固有能力</li>
-</ul>
-<h2 id="专业知识"><a href="#专业知识" class="headerlink" title="专业知识"></a>专业知识</h2><p>所谓“纸上得来终觉浅，绝知此事要躬行”，专业知识是初学故障排除者的必要条件，但对于学习成为一个合格熟练的故障排除者来说，这并不充分。</p>
-<p>不过有意思的是，文章提出初学者通常按照顺序记忆和使用专业知识，而专家则更偏向于以因果关系来记忆，个人认为可以推广为记忆专业知识的相互联系。</p>
-<h2 id="系统设备了解"><a href="#系统设备了解" class="headerlink" title="系统设备了解"></a>系统设备了解</h2><p>文章认为，专家和新手排除故障的主要区别在于系统设备知识的数量和组织，即特定范围内的经验丰富与否。</p>
-<blockquote>
-<p> 当调试电子系统时，David（1983）发现熟练的故障排除者围绕着电气系统中的因果相互作用来组织他们的模型，而不是布线的线性组织</p>
-</blockquote>
-<p>同样的，在特定设备的了解上，因果关系胜过线性关系。尽管系统的拓扑图和功能关系图都提供了排错路径，但新手故障排除者更可能使用拓扑图搜索策略，而有经验的在排除故障时更经常以功能关系图来思考。基于对设备操作的功能了解的故障排除策略使故障排除者通常能更有效地找到问题。</p>
-<h2 id="性能测试"><a href="#性能测试" class="headerlink" title="性能测试"></a>性能测试</h2><h2 id="排除策略"><a href="#排除策略" class="headerlink" title="排除策略"></a>排除策略</h2><h2 id="固有能力"><a href="#固有能力" class="headerlink" title="固有能力"></a>固有能力</h2><p>基本上讲了关于工作记忆，问题敏感性，排错策略理解的这些作为人本身的能力。</p>
-<h1 id="学习故障排除"><a href="#学习故障排除" class="headerlink" title="学习故障排除"></a>学习故障排除</h1><blockquote>
-<p>学生通过复制操作从程序性演示中学习。如果这些具体的操作不能显示出故障，那么按程序教学的学习者就不知道该怎么做。他们缺乏领域原则、系统知识和战略知识，而这些都是排除故障所需要的。</p>
-</blockquote>
-<p>教导故障排除的内容方法强调对系统的理论和概念理解，与任何故障排除活动无关</p>
-<p>故障排除</p>
-<p>专家们可以很容易地决定做什么，但他们更不能提供关于他们为什么要这样做的明确规则</p>
-<p>专家们根据在构建问题空间和随后的解释过程中获得的初步信息形成他们的初步假设</p>
-<p> 如果产生了一个以上的解决方案选项，那么故障排除者必须选择并验证首选的解决方案</p>
-<p>概念模型中的这种多层次表述的一个重要理由是，它们可以减少学习者的认知负荷</p>
-<p> 然而，提供系统成分和状态的外部表示，通过卸载同时对多个问题成分进行建模的需要，为工作记忆提供支架。能够通过一个复杂的概念模型的不同层次来减少工作记忆的需求，然后可以应用于诊断。—</p>
-<p>对于每个案例，确定相关的索引，以便在每种情况下都能召回案例。故障排除案例库中可能的索引包括：。• 具体故障描述• 观察到的最初症状• 发生的频率• 隔离故障所需的行动、程序• 检验的假设• 各种测试的结果• 地形部分• 职能目的• 解决方案战略</p>
-<p>对于熟练的执行者和专家来说，诊断成为一种分类活动，在这种活动中，故障排除者搜索他们的事件模式，以便识别不同的故障状态。学习排除故障代表着从对系统的概念性理解到对过程的经验性理解的转变</p>
-]]></content>
-      <tags>
-        <tag>Essay note</tag>
       </tags>
   </entry>
   <entry>
@@ -5881,7 +5881,7 @@ ps：写动作会在末尾加一个EOF代表结束
 <ul>
 <li>生成&#x2F;添加SSH公钥</li>
 </ul>
-<p>码云提供了基于SSH协议的Git服务，在使用SSH协议访问仓库之前，需要先配置好账户&#x2F;仓库的SSH公钥。<br>1、本机生成SSH公钥<br>1）本地打开 Git Bash（终端），输入命令：ssh-keygen<br>2）在暂停时按回车键，三次回车后，即可生成了SSH公钥<br>3）命令：cat &#x2F;.ssh&#x2F;id_rsa.pub（“cat”与“”之间有空格）查看SSH公钥<br>2、Gitee （码云）添加SSH公钥：<br>在gitee上找到个人设置-&gt;安全设置-&gt;SSH公钥，然后将刚才生成的公钥输入公钥框，点击确定即可。<br>3、确认是否配置成功<br>在命令行输入：ssh -T <a href="mailto:&#103;&#x69;&#x74;&#x40;&#x67;&#x69;&#x74;&#101;&#101;&#x2e;&#x63;&#x6f;&#109;">&#103;&#x69;&#x74;&#x40;&#x67;&#x69;&#x74;&#101;&#101;&#x2e;&#x63;&#x6f;&#109;</a>+回车<br>在询问yes&#x2F;no是，输入yes。这是因为首次使用需要确认并添加主机到本机SSH可信列表。<br>若返回 “Hi XXX! You’ve successfully authenticated, but Gitee.com does not provide shell access.”内容，则证明添加成功。</p>
+<p>码云提供了基于SSH协议的Git服务，在使用SSH协议访问仓库之前，需要先配置好账户&#x2F;仓库的SSH公钥。<br>1、本机生成SSH公钥<br>1）本地打开 Git Bash（终端），输入命令：ssh-keygen<br>2）在暂停时按回车键，三次回车后，即可生成了SSH公钥<br>3）命令：cat &#x2F;.ssh&#x2F;id_rsa.pub（“cat”与“”之间有空格）查看SSH公钥<br>2、Gitee （码云）添加SSH公钥：<br>在gitee上找到个人设置-&gt;安全设置-&gt;SSH公钥，然后将刚才生成的公钥输入公钥框，点击确定即可。<br>3、确认是否配置成功<br>在命令行输入：ssh -T <a href="mailto:&#103;&#105;&#116;&#x40;&#x67;&#105;&#x74;&#101;&#101;&#x2e;&#99;&#x6f;&#x6d;">&#103;&#105;&#116;&#x40;&#x67;&#105;&#x74;&#101;&#101;&#x2e;&#99;&#x6f;&#x6d;</a>+回车<br>在询问yes&#x2F;no是，输入yes。这是因为首次使用需要确认并添加主机到本机SSH可信列表。<br>若返回 “Hi XXX! You’ve successfully authenticated, but Gitee.com does not provide shell access.”内容，则证明添加成功。</p>
 </li>
 <li><p>在文件夹_config.yml站点配置文件中修改如下配置：</p>
 </li>
